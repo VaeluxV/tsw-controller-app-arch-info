@@ -1,6 +1,9 @@
 
 # CHANGELOG
 
+## 1.3.6
+- Fix bug when saving calibration files
+
 ## 1.3.5
 - Update webkit to 4.1 for debian/ubuntu
 - Fix conditions missing from sharing and profile builder
