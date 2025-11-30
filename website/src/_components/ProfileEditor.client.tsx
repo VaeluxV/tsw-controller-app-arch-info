@@ -1,11 +1,13 @@
 "use client";
 
 import jsonSchema from "../_profile-builder-json-schema/profile.complete.schema.json";
-import { useCallback, useEffect, useRef } from "react";
+import { ChangeEventHandler, useCallback, useEffect, useRef } from "react";
 
 declare class JSONEditor {
   constructor(element: HTMLElement, options: Record<string, unknown>);
   getValue(): Record<string, unknown>;
+  setValue(input: unknown): void;
+  validate(): void;
 }
 
 export const ProfileEditor = () => {
@@ -26,6 +28,24 @@ export const ProfileEditor = () => {
     downloadLink.click();
     downloadLink.remove();
     URL.revokeObjectURL(url);
+  };
+
+  const handleOpen: ChangeEventHandler<HTMLInputElement> = (event) => {
+    if (
+      !event.currentTarget.files?.length ||
+      !event.currentTarget.files[0].name.match(/\.json|\.tswprofile$/)
+    ) {
+      return;
+    }
+
+    const [file] = event.currentTarget.files;
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      const json = JSON.parse(reader.result?.toString() ?? "{}");
+      editorRef.current?.setValue(json);
+      editorRef.current?.validate();
+    });
+    reader.readAsText(file);
   };
 
   const handleInitializeEditor = useCallback(() => {
@@ -75,10 +95,21 @@ export const ProfileEditor = () => {
       <div id="editor" ref={handleContainerRef}></div>
       <div className="px-6 mx-auto max-w-4xl sticky bottom-4">
         <div className="bg-base-100 border-base-content/5 border rounded-lg shadow-xl">
-          <div className="m-4">
+          <div className="m-4 flex items-center gap-2">
             <button className="btn btn-primary" onClick={handleSave}>
               Save
             </button>
+            <div>
+              <label className="btn">
+                Open
+                <input
+                  className="hidden"
+                  type="file"
+                  accept=".json,.tswprofile"
+                  onChange={handleOpen}
+                ></input>
+              </label>
+            </div>
           </div>
         </div>
       </div>
