@@ -117,6 +117,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [build__socketconnectionlib, build__ue4ssmod]
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v5
         name: Download previously built artifacts
       - run: |
@@ -125,6 +126,8 @@ jobs:
           install -D ue4ssdll/UE4SS.dll mod_assets/ue4ss_tsw_controller_mod/UE4SS.dll
           install -D socketconnectionlib/target/release/tsw_controller_mod_socket_connection.dll mod_assets/ue4ss_tsw_controller_mod/Mods/TSWControllerMod/dlls/tsw_controller_mod_socket_connection.dll
           install -D tswcontrollermod/TSWControllerMod.dll mod_assets/ue4ss_tsw_controller_mod/Mods/TSWControllerMod/dlls/main.dll
+          install -D go-app/mod_assets/ue4ss_tsw_controller_mod/UE4SS-settings.ini mod_assets/ue4ss_tsw_controller_mod/UE4SS-settings.ini
+          touch mod_assets/ue4ss_tsw_controller_mod/Mods/TSWControllerMod/enabled.txt
       - uses: actions/upload-artifact@v4
         with:
           name: mod_assets
@@ -178,13 +181,16 @@ jobs:
           $env:VERSION=(Get-Content -Path RELEASE_VERSION -First 1)
           cd go-app
            ./windows_build.ps1
+      - run: |
+          New-Item -ItemType Directory -Path "tswcontrollerapp_windows"
+          Copy-Item -Path "go-app/build/bin/tsw-controller-app.exe" -Destination "tswcontrollerapp_windows/tsw-controller-app.exe"
+          Copy-Item -Path "go-app/SDL2.dll" -Destination "tswcontrollerapp_windows/SDL2.dll"
 
       - uses: actions/upload-artifact@v4
         with:
           name: tswcontrollerapp_windows
           path: |
-            go-app/build/bin/tsw-controller-app.exe
-            go-app/SDL2.dll
+            tswcontrollerapp_windows/*
 
       - name: Install Inno Setup
         run: |
