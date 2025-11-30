@@ -15,17 +15,21 @@ import {
   OpenProfileBuilder,
   DeleteProfile,
   OpenNewProfileBuilder,
+  OpenNewProfileBuilderForUsbID,
   SaveProfileForSharing,
+  SaveProfileForSharingWithControllerInformation,
   ImportProfile,
 } from "../../../wailsjs/go/main/App";
 import { useCallback, useEffect } from "react";
 import { BrowserOpenURL, EventsOn } from "../../../wailsjs/runtime/runtime";
 import { events } from "../../events";
 import { useForm } from "react-hook-form";
-import { MainTabControllerProfileSelector } from "./MainTabControllerProfileSelecor";
+import { MainTabControllerProfileSelector } from "./MainTabControllerProfileSelector";
 import { main } from "../../../wailsjs/go/models";
 import { alert } from "../../utils/alert";
 import { confirm } from "../../utils/confirm";
+import { ProfileInfo } from "./_components/ProfileSelectionMoreMenu";
+import { MainTabProfileSelector } from "./MainTabProfileSelector";
 
 type FormValues = {
   profiles: Partial<Awaited<ReturnType<typeof GetSelectedProfiles>>>;
@@ -55,9 +59,7 @@ export const MainTab = () => {
   );
 
   const form = useForm<FormValues>({
-    defaultValues: async () => ({
-      profiles: await GetSelectedProfiles(),
-    }),
+    defaultValues: { profiles: {} },
   });
   const { watch, getValues } = form;
 
@@ -87,49 +89,46 @@ export const MainTab = () => {
     OpenConfigDirectory();
   };
 
-  const handleCreateProfile = (controller: main.Interop_GenericController) => {
-    OpenNewProfileBuilder(controller.UsbID);
+  const handleCreateProfile = (
+    controller: main.Interop_GenericController | null,
+  ) => {
+    if (!controller) OpenNewProfileBuilder();
+    else OpenNewProfileBuilderForUsbID(controller.UsbID);
   };
 
-  const handleOpenProfile = (controller: main.Interop_GenericController) => {
-    const profile = getValues(`profiles.${controller.GUID}`);
-    if (profile) {
-      OpenProfileBuilder(profile.Id).catch((err) =>
-        alert(String(err), "error"),
-      );
-    }
+  const handleEditProfile = (profile: ProfileInfo) => {
+    OpenProfileBuilder(profile.Id).catch((err) => alert(String(err), "error"));
   };
 
-  const handleDeleteProfile = (controller: main.Interop_GenericController) => {
-    const profile = getValues(`profiles.${controller.GUID}`);
-    if (profile) {
-      confirm({
-        id: "confirm-delete",
-        title: "Confirm delete profile?",
-        message: "Are you sure you want to delete this profile?",
-        actions: ["Cancel", "Confirm"],
-        onConfirm: () => {
-          DeleteProfile(profile.Id)
-            .then(() => {
-              form.setValue(`profiles.${controller.GUID}`, undefined);
-              LoadConfiguration();
-              ClearProfile(controller.GUID);
-            })
-            .catch((reason) => alert(String(reason), "error"));
-        },
-      });
-    }
+  const handleDeleteProfile = (profile: ProfileInfo) => {
+    confirm({
+      id: "confirm-delete",
+      title: "Confirm delete profile?",
+      message: "Are you sure you want to delete this profile?",
+      actions: ["Cancel", "Confirm"],
+      onConfirm: () => {
+        DeleteProfile(profile.Id)
+          .then(() => {
+            const profiles = form.getValues("profiles");
+            for (const guid in profiles) {
+              form.setValue(`profiles.${guid}`, undefined);
+              ClearProfile(guid);
+            }
+            LoadConfiguration();
+          })
+          .catch((reason) => alert(String(reason), "error"));
+      },
+    });
   };
 
   const handleSaveProfileForSharing = (
-    controller: main.Interop_GenericController,
+    profile: ProfileInfo,
+    controller: main.Interop_GenericController | null,
   ) => {
-    const profile = getValues(`profiles.${controller.GUID}`);
-    if (profile) {
-      SaveProfileForSharing(controller.GUID, profile.Id).catch((err) =>
-        alert(String(err), "error"),
-      );
-    }
+    (controller
+      ? SaveProfileForSharingWithControllerInformation(profile.Id, controller.GUID)
+      : SaveProfileForSharing(profile.Id)
+    ).catch((err) => alert(String(err), "error"));
   };
 
   const handleInstall = () => {
@@ -155,6 +154,10 @@ export const MainTab = () => {
   useEffect(() => {
     return watch(trySyncSelectedProfiles).unsubscribe;
   }, [trySyncSelectedProfiles]);
+
+  useEffect(() => {
+    GetSelectedProfiles().then((profiles) => form.reset({ profiles }));
+  }, [form]);
 
   useEffect(() => {
     return EventsOn(events.profiles_updated, () => {
@@ -184,6 +187,19 @@ export const MainTab = () => {
         </span>
       </div>
       <div>
+        {controllers && controllers.length > 1 && (
+          <MainTabProfileSelector
+            form={form}
+            profiles={profiles ?? []}
+            controllers={controllers}
+            onBrowseConfiguration={handleBrowseConfig}
+            onCreateProfile={handleCreateProfile}
+            onReloadConfiguration={handleReloadConfiguration}
+            onSaveProfile={handleSaveProfileForSharing}
+            onEditProfile={handleEditProfile}
+            onDeleteProfileForController={handleDeleteProfile}
+          />
+        )}
         {controllers?.map((c) => (
           <div key={c.GUID}>
             <MainTabControllerProfileSelector
@@ -193,8 +209,8 @@ export const MainTab = () => {
               onBrowseConfiguration={handleBrowseConfig}
               onCreateProfile={handleCreateProfile}
               onReloadConfiguration={handleReloadConfiguration}
-              onSaveControllerProfileForSharing={handleSaveProfileForSharing}
-              onOpenProfileForController={handleOpenProfile}
+              onSaveProfile={handleSaveProfileForSharing}
+              onEditProfile={handleEditProfile}
               onDeleteProfileForController={handleDeleteProfile}
             />
           </div>

@@ -48,7 +48,9 @@ export function LoadConfiguration():Promise<void>;
 
 export function OpenConfigDirectory():Promise<void>;
 
-export function OpenNewProfileBuilder(arg1:string):Promise<void>;
+export function OpenNewProfileBuilder():Promise<void>;
+
+export function OpenNewProfileBuilderForUsbID(arg1:string):Promise<void>;
 
 export function OpenProfileBuilder(arg1:string):Promise<void>;
 
@@ -58,7 +60,9 @@ export function SaveCalibration(arg1:main.Interop_ControllerCalibration):Promise
 
 export function SaveLogs(arg1:Array<string>):Promise<void>;
 
-export function SaveProfileForSharing(arg1:string,arg2:string):Promise<void>;
+export function SaveProfileForSharing(arg1:string):Promise<void>;
+
+export function SaveProfileForSharingWithControllerInformation(arg1:string,arg2:string):Promise<void>;
 
 export function SelectProfile(arg1:string,arg2:string):Promise<void>;
 

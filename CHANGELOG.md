@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## 1.3.6
+- Fix bug when saving calibration files
+- Add way to select profile for all controllers
+
 ## 1.3.5
 - Update webkit to 4.1 for debian/ubuntu
 - Fix conditions missing from sharing and profile builder
