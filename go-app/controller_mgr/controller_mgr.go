@@ -240,6 +240,31 @@ func (ctrl *ControllerManager_Controller_JoyControl) ProcessEvent(event sdl.Even
 	}
 }
 
+func (controller *ControllerManager_ConfiguredController) RegisterVirtualControl(name string, initial_value float64) {
+	controller.VirtualControls.Set(name, ControllerManager_Controller_VirtualControl{
+		Manager:    controller.Manager,
+		Controller: controller,
+		Joystick:   controller.Joystick,
+		Name:       name,
+		State: ControllerManager_Controller_ControlState{
+			Direction: ControllerManager_Controller_ControlState_DirectionChangeMarker{
+				Direction:   0,
+				ChangeValue: initial_value,
+			},
+			NormalizedValues: ControllerManager_Controller_ControlStateValues{
+				Value:         initial_value,
+				PreviousValue: initial_value,
+				InitialValue:  initial_value,
+			},
+			RawValues: ControllerManager_Controller_ControlStateValues{
+				Value:         initial_value,
+				PreviousValue: initial_value,
+				InitialValue:  initial_value,
+			},
+		},
+	})
+}
+
 func (controller *ControllerManager_ConfiguredController) ProcessEvent(event sdl.Event) {
 	switch e := event.(type) {
 	case *sdl.JoyAxisEvent:

@@ -1,6 +1,9 @@
 
 # CHANGELOG
 
+## 1.4.0
+- Implement virtual controls
+
 ## 1.3.6
 - Fix bug when saving calibration files
 - Add way to select profile for all controllers
