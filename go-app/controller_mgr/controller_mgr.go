@@ -25,7 +25,7 @@ type ControllerManager_RawEvent struct {
 type ControllerManager_Control_ChangeEvent struct {
 	Joystick     *sdl_mgr.SDLMgr_Joystick
 	Controller   *ControllerManager_ConfiguredController
-	Control      *ControllerManager_Controller_Control
+	Control      ControllerManager_Controller_Control
 	ControlName  string
 	ControlState ControllerManager_Controller_ControlState
 }
@@ -57,22 +57,34 @@ type ControllerManager_Controller_ControlState struct {
 	RawValues ControllerManager_Controller_ControlStateValues
 }
 
-type ControllerManager_Controller_Control struct {
-	Manager     *ControllerManager
-	Controller  *ControllerManager_ConfiguredController
-	Joystick    *sdl_mgr.SDLMgr_Joystick
-	Name        string
+type ControllerManager_Controller_Control interface {
+	UpdateValue(value float64, is_reset bool)
+	GetState() ControllerManager_Controller_ControlState
+}
+
+type ControllerManager_Controller_VirtualControl struct {
+	ControllerManager_Controller_Control
+	Manager    *ControllerManager
+	Controller *ControllerManager_ConfiguredController
+	Joystick   *sdl_mgr.SDLMgr_Joystick
+	Name       string
+	State      ControllerManager_Controller_ControlState
+}
+
+type ControllerManager_Controller_JoyControl struct {
+	ControllerManager_Controller_Control
+	ControllerManager_Controller_VirtualControl
 	Kind        sdl_mgr.SDLMgr_Control_Kind
 	Index       int
 	SDLMapping  config.Config_Controller_SDLMap_Control
 	Calibration config.Config_Controller_CalibrationData
-	State       ControllerManager_Controller_ControlState
 }
 
 type ControllerManager_ConfiguredController struct {
-	Manager  *ControllerManager
-	Joystick *sdl_mgr.SDLMgr_Joystick
-	Controls *map_utils.LockMap[string, ControllerManager_Controller_Control]
+	Manager         *ControllerManager
+	Joystick        *sdl_mgr.SDLMgr_Joystick
+	Controls        *map_utils.LockMap[string, ControllerManager_Controller_JoyControl]
+	VirtualControls *map_utils.LockMap[string, ControllerManager_Controller_VirtualControl]
 }
 
 type ControllerManager_UnconfiguredController struct {
@@ -100,7 +112,23 @@ type ControllerManager struct {
 	JoyDevicesUpdatedChannels *pubsub_utils.PubSubSlice[ControllerManager_Control_JoyDevicesUpdated]
 }
 
-func (ctrl *ControllerManager_Controller_Control) Reset() {
+func (state *ControllerManager_Controller_ControlState) UpdateDirection() {
+	last_direction_change_value := state.Direction.ChangeValue
+	value_diff := state.NormalizedValues.Value - last_direction_change_value
+	if value_diff > DIRECTION_CHANGE_THRESHOLD {
+		state.Direction = ControllerManager_Controller_ControlState_DirectionChangeMarker{
+			Direction:   1,
+			ChangeValue: state.NormalizedValues.Value,
+		}
+	} else if value_diff < DIRECTION_CHANGE_THRESHOLD {
+		state.Direction = ControllerManager_Controller_ControlState_DirectionChangeMarker{
+			Direction:   -1,
+			ChangeValue: state.NormalizedValues.Value,
+		}
+	}
+}
+
+func (ctrl *ControllerManager_Controller_JoyControl) Reset() {
 	switch ctrl.SDLMapping.Kind {
 	case sdl_mgr.SDLMgr_Control_Kind_Axis:
 		axis_value := ctrl.Joystick.InternalJoystick.Axis(ctrl.SDLMapping.Index)
@@ -114,7 +142,11 @@ func (ctrl *ControllerManager_Controller_Control) Reset() {
 	}
 }
 
-func (ctrl *ControllerManager_Controller_Control) UpdateValue(value float64, is_reset bool) {
+func (ctrl *ControllerManager_Controller_JoyControl) GetState() ControllerManager_Controller_ControlState {
+	return ctrl.State
+}
+
+func (ctrl *ControllerManager_Controller_JoyControl) UpdateValue(value float64, is_reset bool) {
 	/* update raw values */
 	if is_reset {
 		ctrl.State.RawValues.PreviousValue = value
@@ -144,19 +176,7 @@ func (ctrl *ControllerManager_Controller_Control) UpdateValue(value float64, is_
 			ChangeValue: ctrl.State.NormalizedValues.Value,
 		}
 	} else {
-		last_direction_change_value := ctrl.State.Direction.ChangeValue
-		value_diff := ctrl.State.NormalizedValues.Value - last_direction_change_value
-		if value_diff > DIRECTION_CHANGE_THRESHOLD {
-			ctrl.State.Direction = ControllerManager_Controller_ControlState_DirectionChangeMarker{
-				Direction:   1,
-				ChangeValue: ctrl.State.NormalizedValues.Value,
-			}
-		} else if value_diff < DIRECTION_CHANGE_THRESHOLD {
-			ctrl.State.Direction = ControllerManager_Controller_ControlState_DirectionChangeMarker{
-				Direction:   -1,
-				ChangeValue: ctrl.State.NormalizedValues.Value,
-			}
-		}
+		ctrl.State.UpdateDirection()
 	}
 
 	ctrl.Manager.ChangeEventChannels.EmitTimeout(time.Second, ControllerManager_Control_ChangeEvent{
@@ -168,7 +188,43 @@ func (ctrl *ControllerManager_Controller_Control) UpdateValue(value float64, is_
 	})
 }
 
-func (ctrl *ControllerManager_Controller_Control) ProcessEvent(event sdl.Event) {
+func (ctrl *ControllerManager_Controller_VirtualControl) GetState() ControllerManager_Controller_ControlState {
+	return ctrl.State
+}
+
+func (ctrl *ControllerManager_Controller_VirtualControl) UpdateValue(value float64, is_reset bool) {
+	if is_reset {
+		ctrl.State.RawValues.PreviousValue = value
+		ctrl.State.RawValues.InitialValue = value
+		ctrl.State.NormalizedValues.InitialValue = value
+		ctrl.State.NormalizedValues.PreviousValue = value
+	} else {
+		ctrl.State.RawValues.PreviousValue = ctrl.State.RawValues.Value
+		ctrl.State.NormalizedValues.PreviousValue = ctrl.State.NormalizedValues.Value
+	}
+	ctrl.State.RawValues.Value = value
+	ctrl.State.NormalizedValues.Value = value
+
+	/* update direction */
+	if is_reset {
+		ctrl.State.Direction = ControllerManager_Controller_ControlState_DirectionChangeMarker{
+			Direction:   0,
+			ChangeValue: ctrl.State.NormalizedValues.Value,
+		}
+	} else {
+		ctrl.State.UpdateDirection()
+	}
+
+	ctrl.Manager.ChangeEventChannels.EmitTimeout(time.Second, ControllerManager_Control_ChangeEvent{
+		Joystick:     ctrl.Joystick,
+		Controller:   ctrl.Controller,
+		Control:      ctrl,
+		ControlName:  ctrl.Name,
+		ControlState: ctrl.State,
+	})
+}
+
+func (ctrl *ControllerManager_Controller_JoyControl) ProcessEvent(event sdl.Event) {
 	switch e := event.(type) {
 	case *sdl.JoyAxisEvent:
 		ctrl.UpdateValue(float64(e.Value), false)
@@ -187,21 +243,21 @@ func (ctrl *ControllerManager_Controller_Control) ProcessEvent(event sdl.Event) 
 func (controller *ControllerManager_ConfiguredController) ProcessEvent(event sdl.Event) {
 	switch e := event.(type) {
 	case *sdl.JoyAxisEvent:
-		controller.Controls.ForEachMap(func(maybe_axis ControllerManager_Controller_Control, _ string) ControllerManager_Controller_Control {
+		controller.Controls.ForEachMap(func(maybe_axis ControllerManager_Controller_JoyControl, _ string) ControllerManager_Controller_JoyControl {
 			if maybe_axis.SDLMapping.Kind == sdl_mgr.SDLMgr_Control_Kind_Axis && maybe_axis.SDLMapping.Index == int(e.Axis) {
 				maybe_axis.ProcessEvent(event)
 			}
 			return maybe_axis
 		})
 	case *sdl.JoyButtonEvent:
-		controller.Controls.ForEachMap(func(maybe_button ControllerManager_Controller_Control, _ string) ControllerManager_Controller_Control {
+		controller.Controls.ForEachMap(func(maybe_button ControllerManager_Controller_JoyControl, _ string) ControllerManager_Controller_JoyControl {
 			if maybe_button.SDLMapping.Kind == sdl_mgr.SDLMgr_Control_Kind_Button && maybe_button.SDLMapping.Index == int(e.Button) {
 				maybe_button.ProcessEvent(event)
 			}
 			return maybe_button
 		})
 	case *sdl.JoyHatEvent:
-		controller.Controls.ForEachMap(func(maybe_hat ControllerManager_Controller_Control, _ string) ControllerManager_Controller_Control {
+		controller.Controls.ForEachMap(func(maybe_hat ControllerManager_Controller_JoyControl, _ string) ControllerManager_Controller_JoyControl {
 			if maybe_hat.SDLMapping.Kind == sdl_mgr.SDLMgr_Control_Kind_Hat && maybe_hat.SDLMapping.Index == int(e.Hat) {
 				maybe_hat.ProcessEvent(event)
 			}
@@ -229,9 +285,10 @@ func New(sdlmgr *sdl_mgr.SDLMgr) *ControllerManager {
 
 func (mgr *ControllerManager) ConfigureJoystick(joystick *sdl_mgr.SDLMgr_Joystick, sdl_map config.Config_Controller_SDLMap, calibration config.Config_Controller_Calibration) ControllerManager_ConfiguredController {
 	controller := ControllerManager_ConfiguredController{
-		Manager:  mgr,
-		Joystick: joystick,
-		Controls: map_utils.NewLockMap[string, ControllerManager_Controller_Control](),
+		Manager:         mgr,
+		Joystick:        joystick,
+		Controls:        map_utils.NewLockMap[string, ControllerManager_Controller_JoyControl](),
+		VirtualControls: map_utils.NewLockMap[string, ControllerManager_Controller_VirtualControl](),
 	}
 	for _, control := range sdl_map.Data {
 		var calibration_data config.Config_Controller_CalibrationData = config.Config_Controller_CalibrationData{
@@ -262,31 +319,33 @@ func (mgr *ControllerManager) ConfigureJoystick(joystick *sdl_mgr.SDLMgr_Joystic
 		}
 		current_normal_value := calibration_data.NormalizeRawValue(current_raw_value).Value
 
-		control := ControllerManager_Controller_Control{
-			Manager:     mgr,
-			Joystick:    joystick,
-			Controller:  &controller,
-			Name:        control.Name,
+		control := ControllerManager_Controller_JoyControl{
+			ControllerManager_Controller_VirtualControl: ControllerManager_Controller_VirtualControl{
+				Manager:    mgr,
+				Joystick:   joystick,
+				Controller: &controller,
+				Name:       control.Name,
+				State: ControllerManager_Controller_ControlState{
+					Direction: ControllerManager_Controller_ControlState_DirectionChangeMarker{
+						Direction:   0,
+						ChangeValue: current_raw_value,
+					},
+					NormalizedValues: ControllerManager_Controller_ControlStateValues{
+						Value:         current_normal_value,
+						PreviousValue: current_normal_value,
+						InitialValue:  current_normal_value,
+					},
+					RawValues: ControllerManager_Controller_ControlStateValues{
+						Value:         current_raw_value,
+						PreviousValue: current_raw_value,
+						InitialValue:  current_raw_value,
+					},
+				},
+			},
 			Kind:        control.Kind,
 			Index:       control.Index,
 			SDLMapping:  control,
 			Calibration: calibration_data,
-			State: ControllerManager_Controller_ControlState{
-				Direction: ControllerManager_Controller_ControlState_DirectionChangeMarker{
-					Direction:   0,
-					ChangeValue: current_raw_value,
-				},
-				NormalizedValues: ControllerManager_Controller_ControlStateValues{
-					Value:         current_normal_value,
-					PreviousValue: current_normal_value,
-					InitialValue:  current_normal_value,
-				},
-				RawValues: ControllerManager_Controller_ControlStateValues{
-					Value:         current_raw_value,
-					PreviousValue: current_raw_value,
-					InitialValue:  current_raw_value,
-				},
-			},
 		}
 		control.Reset()
 		controller.Controls.Set(control.Name, control)

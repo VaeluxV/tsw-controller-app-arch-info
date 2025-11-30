@@ -470,7 +470,7 @@ func (a *App) GetControllerConfiguration(guid controller_mgr.JoystickGUIDString)
 			UsbId:    sdl_mapping.UsbID,
 			Controls: []Interop_ControllerCalibration_Control{},
 		}
-		controller.Controls.ForEach(func(control controller_mgr.ControllerManager_Controller_Control, key string) bool {
+		controller.Controls.ForEach(func(control controller_mgr.ControllerManager_Controller_JoyControl, key string) bool {
 			calibration := Interop_ControllerCalibration_Control{
 				Kind:        control.SDLMapping.Kind,
 				Index:       control.SDLMapping.Index,
@@ -741,7 +741,7 @@ func (a *App) SaveProfileForSharingWithControllerInformation(id string, guid con
 				UsbID: usb_id,
 				Data:  []config.Config_Controller_SDLMap_Control{},
 			}
-			controller.Controls.ForEach(func(value controller_mgr.ControllerManager_Controller_Control, key string) bool {
+			controller.Controls.ForEach(func(value controller_mgr.ControllerManager_Controller_JoyControl, key string) bool {
 				mapping.Data = append(mapping.Data, value.SDLMapping)
 				return true
 			})

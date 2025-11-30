@@ -473,11 +473,13 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 
 				control_name := change_event.ControlName
 				if selected_profile.Profile.Controller != nil && selected_profile.Profile.Controller.Mapping != nil {
-					root_mapping := change_event.Control.SDLMapping
-					override_mapping := selected_profile.Profile.Controller.Mapping
-					override_control, find_override_control_err := override_mapping.FindByKindAndIndex(root_mapping.Kind, root_mapping.Index)
-					if find_override_control_err == nil {
-						control_name = override_control.Name
+					if joy_control, is_joy_control := change_event.Control.(*controller_mgr.ControllerManager_Controller_JoyControl); is_joy_control {
+						root_mapping := joy_control.SDLMapping
+						override_mapping := selected_profile.Profile.Controller.Mapping
+						override_control, find_override_control_err := override_mapping.FindByKindAndIndex(root_mapping.Kind, root_mapping.Index)
+						if find_override_control_err == nil {
+							control_name = override_control.Name
+						}
 					}
 				}
 
@@ -587,7 +589,7 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 						}
 					}
 					if control_assignment_item.DirectControl != nil {
-						output_value := control_assignment_item.DirectControl.InputValue.CalculateOutputValue(change_event.Control.State.NormalizedValues.Value)
+						output_value := control_assignment_item.DirectControl.InputValue.CalculateOutputValue(change_event.Control.GetState().NormalizedValues.Value)
 						flags := []string{}
 						if control_assignment_item.DirectControl.Hold != nil && *control_assignment_item.DirectControl.Hold {
 							flags = append(flags, "hold")
@@ -604,7 +606,7 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 						})
 					}
 					if control_assignment_item.ApiControl != nil {
-						output_value := control_assignment_item.ApiControl.InputValue.CalculateOutputValue(change_event.Control.State.NormalizedValues.Value)
+						output_value := control_assignment_item.ApiControl.InputValue.CalculateOutputValue(change_event.Control.GetState().NormalizedValues.Value)
 						p.CallAssignmentActionForControl(control_name, assignment_index, change_event.ControlState, control_assignment_item, &ProfileRunnerAssignmentCall{
 							ControlState:          change_event.ControlState,
 							ActionSequencerAction: nil,
@@ -616,7 +618,7 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 						})
 					}
 					if control_assignment_item.SyncControl != nil {
-						output_value := control_assignment_item.SyncControl.InputValue.CalculateOutputValue(change_event.Control.State.NormalizedValues.Value)
+						output_value := control_assignment_item.SyncControl.InputValue.CalculateOutputValue(change_event.Control.GetState().NormalizedValues.Value)
 						p.SyncController.UpdateControlStateTargetValue(control_assignment_item.SyncControl.Identifier, output_value, control_assignment_item.SyncControl, &change_event)
 					}
 				}
