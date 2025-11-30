@@ -67,7 +67,8 @@ jobs:
             RE-UE4SS/.xmake
             RE-UE4SS/Binaries
             RE-UE4SS/Intermediates
-            C:/Users/runneradmin/AppData/Local/.xmake
+            ~/AppData/Local/.xmake
+            ~/AppData/Local/vcpkg/archives
           key: ${{ runner.os }}_ue4ssmod_xmake_${{ hashFiles('RE-UE4SS/**/xmake.lua') }}
 
       - uses: actions/download-artifact@v5
@@ -273,7 +274,6 @@ jobs:
           name: tswcontrollerapp_linux_debian
           path: |
             tswcontrollerapp_debian_amd64.deb
-
 
   build__goapp__macos:
     runs-on: macos-latest
