@@ -674,25 +674,63 @@ func (a *App) SubscribeRaw(guid string) error {
 	return nil
 }
 
-func (a *App) SaveProfileForSharing(guid controller_mgr.JoystickGUIDString, id string) error {
+func (a *App) SaveProfileForSharing(id string) error {
+	if profile, has_profile := a.profile_runner.Profiles.Get(id); has_profile {
+		profile_for_sharing := config.Config_Controller_Profile{
+			Name:                 profile.Name,
+			AutoSelect:           profile.AutoSelect,
+			RailClassInformation: profile.RailClassInformation,
+			Controller:           profile.Controller,
+			Controls:             profile.Controls,
+		}
+
+		profile_for_sharing_filepath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+			Title:           "Select save location for profile",
+			DefaultFilename: fmt.Sprintf("%s.tswprofile", string_utils.Sluggify(profile_for_sharing.Name)),
+		})
+		if err != nil {
+			return err
+		}
+
+		profile_for_sharing_file, err := os.OpenFile(profile_for_sharing_filepath, os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
+		defer profile_for_sharing_file.Close()
+
+		encoder_sdl_mapping_file := json.NewEncoder(profile_for_sharing_file)
+		encoder_sdl_mapping_file.SetIndent("", "  ")
+		if err := encoder_sdl_mapping_file.Encode(profile_for_sharing); err != nil {
+			return err
+		}
+
+		return nil
+	} else {
+		return fmt.Errorf("could not find profile")
+	}
+}
+
+func (a *App) SaveProfileForSharingWithControllerInformation(id string, guid controller_mgr.JoystickGUIDString) error {
 	if profile, has_profile := a.profile_runner.Profiles.Get(id); has_profile {
 		controller, has_controller := a.controller_manager.ConfiguredControllers.Get(guid)
 		if !has_controller {
 			return fmt.Errorf("could not find controller")
 		}
 
-		joy_usbid := controller.Joystick.ToString()
+		usb_id := controller.Joystick.ToString()
 		profile_for_sharing := config.Config_Controller_Profile{
 			/*
 				this copy omits extends and the internal metadata since it's not appropriate for sharing,
 			*/
-			Name:       profile.Name,
-			Controller: profile.Controller,
-			Controls:   profile.Controls,
+			Name:                 profile.Name,
+			AutoSelect:           profile.AutoSelect,
+			RailClassInformation: profile.RailClassInformation,
+			Controller:           profile.Controller,
+			Controls:             profile.Controls,
 		}
 		if profile_for_sharing.Controller == nil {
 			profile_for_sharing.Controller = &config.Config_Controller_Profile_Controller{
-				UsbID:   &joy_usbid,
+				UsbID:   &usb_id,
 				Mapping: nil,
 			}
 		}
@@ -700,7 +738,7 @@ func (a *App) SaveProfileForSharing(guid controller_mgr.JoystickGUIDString, id s
 		if profile_for_sharing.Controller.Mapping == nil {
 			mapping := config.Config_Controller_SDLMap{
 				Name:  fmt.Sprintf("%s - %s", controller.Joystick.Name, profile_for_sharing.Name),
-				UsbID: joy_usbid,
+				UsbID: usb_id,
 				Data:  []config.Config_Controller_SDLMap_Control{},
 			}
 			controller.Controls.ForEach(func(value controller_mgr.ControllerManager_Controller_Control, key string) bool {
@@ -736,11 +774,21 @@ func (a *App) SaveProfileForSharing(guid controller_mgr.JoystickGUIDString, id s
 	}
 }
 
-func (a *App) OpenNewProfileBuilder(usbid string) {
+func (a *App) OpenNewProfileBuilder() {
+	empty_profile := config.Config_Controller_Profile{
+		Name:     "My new profile",
+		Controls: []config.Config_Controller_Profile_Control{},
+	}
+	profile_json, _ := json.Marshal(empty_profile)
+	encoded := base64.StdEncoding.EncodeToString(profile_json)
+	runtime.BrowserOpenURL(a.ctx, fmt.Sprintf("https://tsw-controller-app.vercel.app/profile-builder?profile=%s", encoded))
+}
+
+func (a *App) OpenNewProfileBuilderForUsbID(usb_id string) {
 	empty_profile := config.Config_Controller_Profile{
 		Name: "My new profile",
 		Controller: &config.Config_Controller_Profile_Controller{
-			UsbID: &usbid,
+			UsbID: &usb_id,
 		},
 		Controls: []config.Config_Controller_Profile_Control{},
 	}

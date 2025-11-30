@@ -94,8 +94,12 @@ export function OpenConfigDirectory() {
   return window['go']['main']['App']['OpenConfigDirectory']();
 }
 
-export function OpenNewProfileBuilder(arg1) {
-  return window['go']['main']['App']['OpenNewProfileBuilder'](arg1);
+export function OpenNewProfileBuilder() {
+  return window['go']['main']['App']['OpenNewProfileBuilder']();
+}
+
+export function OpenNewProfileBuilderForUsbID(arg1) {
+  return window['go']['main']['App']['OpenNewProfileBuilderForUsbID'](arg1);
 }
 
 export function OpenProfileBuilder(arg1) {
@@ -114,8 +118,12 @@ export function SaveLogs(arg1) {
   return window['go']['main']['App']['SaveLogs'](arg1);
 }
 
-export function SaveProfileForSharing(arg1, arg2) {
-  return window['go']['main']['App']['SaveProfileForSharing'](arg1, arg2);
+export function SaveProfileForSharing(arg1) {
+  return window['go']['main']['App']['SaveProfileForSharing'](arg1);
+}
+
+export function SaveProfileForSharingWithControllerInformation(arg1, arg2) {
+  return window['go']['main']['App']['SaveProfileForSharingWithControllerInformation'](arg1, arg2);
 }
 
 export function SelectProfile(arg1, arg2) {
