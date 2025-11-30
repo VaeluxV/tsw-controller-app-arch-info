@@ -8,6 +8,7 @@ declare class JSONEditor {
   getValue(): Record<string, unknown>;
   setValue(input: unknown): void;
   validate(): void;
+  showValidationErrors(): void;
 }
 
 export const ProfileEditor = () => {
@@ -44,6 +45,7 @@ export const ProfileEditor = () => {
       const json = JSON.parse(reader.result?.toString() ?? "{}");
       editorRef.current?.setValue(json);
       editorRef.current?.validate();
+      editorRef.current?.showValidationErrors();
     });
     reader.readAsText(file);
   };
