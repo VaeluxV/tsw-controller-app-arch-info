@@ -14,9 +14,18 @@ export const LogsTab = () => {
 
   useEffect(() => {
     /* add initial logs once */
+    if (logsRef.current) {
+      logsRef.current.innerHTML = "";
+    }
     if (logsRef.current && logs.length) {
-      const logsSlice = logs.slice(-1000)
-      const textNode = document.createTextNode(logsSlice.join("\n") + "\n");
+      const LOGS_LIMIT = 1000;
+      const logsSlice = logs.slice(-LOGS_LIMIT);
+      const textNode = document.createTextNode(
+        (logs.length > LOGS_LIMIT
+          ? "\n...only showing the last 1000 logs, for all logs please save them as a file...\n\n" +
+            logsSlice.join("\n")
+          : logs.join("\n")) + "\n",
+      );
       logsRef.current.appendChild(textNode);
     }
   }, []);
@@ -26,10 +35,16 @@ export const LogsTab = () => {
       /* add new logs as they come in */
       requestAnimationFrame(() => {
         if (logsRef.current) {
+          const isNearBottom =
+            document.documentElement.scrollTop + window.innerHeight >=
+            document.documentElement.scrollHeight - window.innerHeight * 0.1;
           const textNode = document.createTextNode(msg + "\n");
           logsRef.current.appendChild(textNode);
-          document.documentElement.scrollTop =
-            document.documentElement.scrollHeight;
+          if (isNearBottom) {
+            /* scroll bottom if near bottom */
+            document.documentElement.scrollTop =
+              document.documentElement.scrollHeight;
+          }
         }
       });
     });
