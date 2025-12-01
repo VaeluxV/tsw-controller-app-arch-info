@@ -14,8 +14,9 @@ export const LogsTab = () => {
 
   useEffect(() => {
     /* add initial logs once */
-    if (logsRef.current) {
-      const textNode = document.createTextNode(logs.join("\n"));
+    if (logsRef.current && logs.length) {
+      const logsSlice = logs.slice(-1000)
+      const textNode = document.createTextNode(logsSlice.join("\n") + "\n");
       logsRef.current.appendChild(textNode);
     }
   }, []);
