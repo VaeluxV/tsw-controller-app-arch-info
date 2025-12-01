@@ -1,6 +1,9 @@
 
 # CHANGELOG
 
+## 1.3.7
+- Cab Debugger can connect
+
 ## 1.3.6
 - Fix bug when saving calibration files
 - Add way to select profile for all controllers
