@@ -112,7 +112,13 @@ func (cd *CabDebugger) Start(ctx context.Context) {
 	go func() {
 		socket_channel, unsubscribe_socket_channel := cd.Connector.Subscribe()
 		ticker := time.NewTicker(333 * time.Millisecond)
+		slow_ticker := time.NewTicker(time.Second)
 		for {
+			tick_channel := ticker.C
+			if !cd.TSWAPI.CanConnect() {
+				tick_channel = slow_ticker.C
+			}
+
 			select {
 			case msg := <-socket_channel:
 				if msg.EventName == "current_drivable_actor" && msg.Properties["name"] != cd.State.DrivableActorName {
@@ -133,10 +139,11 @@ func (cd *CabDebugger) Start(ctx context.Context) {
 					control_state.CurrentNormalizedValue = current_normalized_value
 					cd.State.Controls.Set(msg.Properties["property"], control_state)
 				}
-			case <-ticker.C:
+			case <-tick_channel:
 				go cd.updateControlStateFromAPI()
 			case <-ctx.Done():
 				ticker.Stop()
+				slow_ticker.Stop()
 				unsubscribe_socket_channel()
 				return
 			}
