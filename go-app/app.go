@@ -84,9 +84,8 @@ type Remote_SharedProfilesIndex struct {
 }
 
 type AppRawSubscriber struct {
-	Channel   chan controller_mgr.ControllerManager_RawEvent
-	Cancel    func()
-	LastEvent *controller_mgr.ControllerManager_RawEvent
+	Channel chan controller_mgr.ControllerManager_RawEvent
+	Cancel  func()
 }
 
 type AppConfig_ProxySettings struct {
@@ -117,6 +116,15 @@ type App struct {
 	profile_runner     *profile_runner.ProfileRunner
 
 	raw_subscriber *AppRawSubscriber
+}
+
+/* these are just wails type stubs */
+func (a *App) TypestubGetSelectedProfile() *Interop_SelectedProfileInfo {
+	return nil
+}
+
+func (a *App) TypestubGetRawEvent() *Interop_RawEvent {
+	return nil
 }
 
 func NewApp(
@@ -444,11 +452,6 @@ func (a *App) GetProfiles() []Interop_Profile {
 	return profiles
 }
 
-/* this is just a type stub */
-func (a *App) GetSelectedProfile() *Interop_SelectedProfileInfo {
-	return nil
-}
-
 func (a *App) GetSelectedProfiles() map[controller_mgr.JoystickGUIDString]Interop_SelectedProfileInfo {
 	selected_profiles := map[controller_mgr.JoystickGUIDString]Interop_SelectedProfileInfo{}
 	a.profile_runner.Settings.GetSelectedProfiles().ForEach(func(value profile_runner.ProfileRunnerSettings_SelectedProfile, key controller_mgr.JoystickGUIDString) bool {
@@ -594,41 +597,6 @@ func (a *App) ClearProfile(guid controller_mgr.JoystickGUIDString) {
 	a.profile_runner.ClearProfile(guid)
 }
 
-func (a *App) LastRawEvent() *Interop_RawEvent {
-	if a.raw_subscriber != nil {
-		switch e := a.raw_subscriber.LastEvent.Event.(type) {
-		case *sdl.JoyAxisEvent:
-			return &Interop_RawEvent{
-				GUID:      a.raw_subscriber.LastEvent.Joystick.GUID,
-				UsbID:     a.raw_subscriber.LastEvent.Joystick.ToString(),
-				Kind:      sdl_mgr.SDLMgr_Control_Kind_Axis,
-				Index:     int(e.Axis),
-				Value:     float64(e.Value),
-				Timestamp: int(e.Timestamp),
-			}
-		case *sdl.JoyButtonEvent:
-			return &Interop_RawEvent{
-				GUID:      a.raw_subscriber.LastEvent.Joystick.GUID,
-				UsbID:     a.raw_subscriber.LastEvent.Joystick.ToString(),
-				Kind:      sdl_mgr.SDLMgr_Control_Kind_Button,
-				Index:     int(e.Button),
-				Value:     float64(e.State),
-				Timestamp: int(e.Timestamp),
-			}
-		case *sdl.JoyHatEvent:
-			return &Interop_RawEvent{
-				GUID:      a.raw_subscriber.LastEvent.Joystick.GUID,
-				UsbID:     a.raw_subscriber.LastEvent.Joystick.ToString(),
-				Kind:      sdl_mgr.SDLMgr_Control_Kind_Hat,
-				Index:     int(e.Hat),
-				Value:     float64(e.Value),
-				Timestamp: int(e.Timestamp),
-			}
-		}
-	}
-	return nil
-}
-
 func (a *App) UnsubscribeRaw() {
 	if a.raw_subscriber != nil {
 		a.raw_subscriber.Cancel()
@@ -662,10 +630,26 @@ func (a *App) SubscribeRaw(guid string) error {
 	go func() {
 		for e := range channel {
 			if e.Joystick.GUID == joystick.GUID {
-				raw_subscriber.LastEvent = &e
-				if event := a.LastRawEvent(); event != nil {
-					runtime.EventsEmit(a.ctx, AppEventType_RawEvent, event)
+				raw_event := Interop_RawEvent{
+					GUID:      joystick.GUID,
+					UsbID:     joystick.ToString(),
+					Timestamp: int(e.Event.GetTimestamp()),
 				}
+				switch event := e.Event.(type) {
+				case *sdl.JoyAxisEvent:
+					raw_event.Kind = sdl_mgr.SDLMgr_Control_Kind_Axis
+					raw_event.Index = int(event.Axis)
+					raw_event.Value = float64(event.Value)
+				case *sdl.JoyButtonEvent:
+					raw_event.Kind = sdl_mgr.SDLMgr_Control_Kind_Button
+					raw_event.Index = int(event.Button)
+					raw_event.Value = float64(event.State)
+				case *sdl.JoyHatEvent:
+					raw_event.Kind = sdl_mgr.SDLMgr_Control_Kind_Hat
+					raw_event.Index = int(event.Hat)
+					raw_event.Value = float64(event.Value)
+				}
+				go runtime.EventsEmit(a.ctx, AppEventType_RawEvent, raw_event)
 			}
 		}
 	}()
