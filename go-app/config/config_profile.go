@@ -33,7 +33,7 @@ type Config_Controller_Profile_Control_Assignment_Action_Keys struct {
 
 type Config_Controller_Profile_Control_Assignment_Action_Virtual struct {
 	Type    string  `json:"type" validate:"oneof=virtual"`
-	Control string  `json:"control" validate:"required"`
+	Control string  `json:"control" validate:"required,startswith='virtual:'"`
 	Value   float64 `json:"value"`
 }
 

@@ -5,6 +5,10 @@ export const pages = {
     title: "Creating A Profile Quickstart - TSW Controller App",
     contents: () => fs.readFileSync("../CREATING_PROFILE_QUICKSTART.md", { encoding: 'utf8' }),
   },
+  "using-virtual-controls": {
+    title: "Using Virtual Controls - TSW Controller App",
+    contents: () => fs.readFileSync("../USING_VIRTUAL_CONTROLS.md", { encoding: 'utf8' }),
+  },
   "profile-explainer": {
     title: "Profile Explainer - TSW Controller App",
     contents: () => fs.readFileSync("../PROFILE_EXPLAINER.md", { encoding: 'utf8' }),

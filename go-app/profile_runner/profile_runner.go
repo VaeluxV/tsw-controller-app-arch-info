@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 	"tsw_controller_app/action_sequencer"
@@ -414,11 +415,18 @@ check_assignments_loop:
 		if source_event != nil && assigmment_conditions != nil && len(*assigmment_conditions) > 0 {
 			for _, condition := range *assigmment_conditions {
 				var dependecy_control controller_mgr.ControllerManager_Controller_Control = nil
-				if joy_control, has_dependency_control := source_event.Controller.Controls.Get(condition.Control); has_dependency_control {
-					dependecy_control = &joy_control
-				} else if virtual_control, has_dependency_control := source_event.Controller.VirtualControls.Get(condition.Control); has_dependency_control {
+				if strings.HasPrefix(condition.Control, "virtual:") {
+					/* virtual controls always exist - they just start at 0 */
+					virtual_control, has_dependency_control := source_event.Controller.VirtualControls.Get(condition.Control)
+					if !has_dependency_control {
+						source_event.Controller.RegisterVirtualControl(condition.Control, 0.0)
+						virtual_control, _ = source_event.Controller.VirtualControls.Get(condition.Control)
+					}
 					dependecy_control = &virtual_control
+				} else if joy_control, has_dependency_control := source_event.Controller.Controls.Get(condition.Control); has_dependency_control {
+					dependecy_control = &joy_control
 				}
+
 				if dependecy_control == nil {
 					logger.Logger.Error("[ProfileRunner::GetAssignments] skipping assignment because dependency control does not exist")
 					continue check_assignments_loop
