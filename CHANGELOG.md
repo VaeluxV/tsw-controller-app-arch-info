@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## 1.3.7
+- Fix raw events
+- Fix unique joystick IDs
+
 ## 1.3.6
 - Fix bug when saving calibration files
 - Add way to select profile for all controllers
