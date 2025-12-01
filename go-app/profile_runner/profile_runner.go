@@ -34,9 +34,9 @@ type ProfileRunnerSettings_SelectedProfile struct {
 }
 
 type ProfileRunnerSettings struct {
-	Mutex                  sync.RWMutex
-	SelectedProfilesByGUID *map_utils.LockMap[controller_mgr.JoystickGUIDString, ProfileRunnerSettings_SelectedProfile]
-	PreferredControlMode   config.PreferredControlMode
+	Mutex                      sync.RWMutex
+	SelectedProfilesByUniqueID *map_utils.LockMap[controller_mgr.JoystickUniqueID, ProfileRunnerSettings_SelectedProfile]
+	PreferredControlMode       config.PreferredControlMode
 }
 
 type ProfileRunnerAssignmentCall struct {
@@ -64,10 +64,10 @@ func (s *ProfileRunnerSettings) Update(mutator func(s *ProfileRunnerSettings)) {
 	mutator(s)
 }
 
-func (s *ProfileRunnerSettings) GetSelectedProfiles() *map_utils.LockMap[controller_mgr.JoystickGUIDString, ProfileRunnerSettings_SelectedProfile] {
+func (s *ProfileRunnerSettings) GetSelectedProfiles() *map_utils.LockMap[controller_mgr.JoystickUniqueID, ProfileRunnerSettings_SelectedProfile] {
 	s.Mutex.RLock()
 	defer s.Mutex.RUnlock()
-	return s.SelectedProfilesByGUID
+	return s.SelectedProfilesByUniqueID
 }
 
 func (s *ProfileRunnerSettings) GetPreferredControlMode() config.PreferredControlMode {
@@ -99,9 +99,9 @@ func New(
 		CabDebugger:       cab_debugger,
 		Profiles:          map_utils.NewLockMap[string, config.Config_Controller_Profile](),
 		Settings: ProfileRunnerSettings{
-			Mutex:                  sync.RWMutex{},
-			SelectedProfilesByGUID: map_utils.NewLockMap[controller_mgr.JoystickGUIDString, ProfileRunnerSettings_SelectedProfile](),
-			PreferredControlMode:   config.PreferredControlMode_DirectControl,
+			Mutex:                      sync.RWMutex{},
+			SelectedProfilesByUniqueID: map_utils.NewLockMap[controller_mgr.JoystickUniqueID, ProfileRunnerSettings_SelectedProfile](),
+			PreferredControlMode:       config.PreferredControlMode_DirectControl,
 		},
 		PreviousControlAssignmentCallList: map_utils.NewLockMap[string, *[]*ProfileRunnerAssignmentCall](),
 	}
@@ -121,13 +121,13 @@ func (pc *ProfileRunnerAssignmentCall) ToString() string {
 }
 
 func (p *ProfileRunner) getSelectedProfileForJoystick(joystick sdl_mgr.SDLMgr_Joystick) (ProfileRunnerSettings_SelectedProfile, bool) {
-	selected_profile, has_selected_profile := p.Settings.GetSelectedProfiles().Get(joystick.GUID)
+	selected_profile, has_selected_profile := p.Settings.GetSelectedProfiles().Get(joystick.UniqueID())
 
 	/* try auto-selection */
 	current_rail_class := p.CabDebugger.State.DrivableActorName
 	if !has_selected_profile && current_rail_class != "" {
 		p.Profiles.ForEach(func(profile config.Config_Controller_Profile, id string) bool {
-			if profile.AutoSelect != nil && *profile.AutoSelect && profile.Controller != nil && *profile.Controller.UsbID == joystick.ToString() && profile.RailClassInformation != nil {
+			if profile.AutoSelect != nil && *profile.AutoSelect && profile.Controller != nil && *profile.Controller.UsbID == joystick.UsbID() && profile.RailClassInformation != nil {
 				for _, rc_info := range *profile.RailClassInformation {
 					if *rc_info.ClassName == current_rail_class {
 						has_selected_profile = true
@@ -207,18 +207,18 @@ func (p *ProfileRunner) Resolve() {
 	}
 }
 
-func (p *ProfileRunner) ClearProfile(guid controller_mgr.JoystickGUIDString) {
+func (p *ProfileRunner) ClearProfile(unique_id controller_mgr.JoystickUniqueID) {
 	p.Settings.Update(func(s *ProfileRunnerSettings) {
-		s.SelectedProfilesByGUID.Delete(guid)
+		s.SelectedProfilesByUniqueID.Delete(unique_id)
 	})
 }
 
-func (p *ProfileRunner) SetProfile(guid controller_mgr.JoystickGUIDString, id string) error {
+func (p *ProfileRunner) SetProfile(unique_id controller_mgr.JoystickUniqueID, id string) error {
 	var err error = nil
 	p.Settings.Update(func(s *ProfileRunnerSettings) {
 		profile, is_valid_profile := p.Profiles.Get(id)
 		if is_valid_profile {
-			s.SelectedProfilesByGUID.Set(guid, ProfileRunnerSettings_SelectedProfile{
+			s.SelectedProfilesByUniqueID.Set(unique_id, ProfileRunnerSettings_SelectedProfile{
 				Profile: profile,
 			})
 		} else {

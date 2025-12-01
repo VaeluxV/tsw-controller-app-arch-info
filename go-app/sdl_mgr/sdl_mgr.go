@@ -2,6 +2,7 @@ package sdl_mgr
 
 import (
 	"context"
+	"crypto/sha1"
 	"fmt"
 	"time"
 	"tsw_controller_app/chan_utils"
@@ -77,12 +78,12 @@ func (mgr *SDLMgr) GetJoystickByIndex(index int) (*SDLMgr_Joystick, error) {
 	}
 
 	name := sdl.JoystickNameForIndex(index)
-	guid := sdl.JoystickGetDeviceGUID(index)
+	guid := sdl.JoystickGetGUIDString(sdl.JoystickGetDeviceGUID(index))
 	usb_vendor := sdl.JoystickGetDeviceVendor(index)
 	usb_product := sdl.JoystickGetDeviceProduct(index)
 
 	return &SDLMgr_Joystick{
-		GUID:      sdl.JoystickGetGUIDString(guid),
+		GUID:      guid,
 		Name:      name,
 		VendorID:  usb_vendor,
 		ProductID: usb_product,
@@ -152,8 +153,14 @@ func (mgr *SDLMgr) StartPolling(ctx context.Context) (chan sdl.Event, context.Ca
 	return event_channel, cancel
 }
 
-func (joystick *SDLMgr_Joystick) ToString() string {
+func (joystick *SDLMgr_Joystick) UsbID() string {
 	return fmt.Sprintf("%04X:%04X", joystick.VendorID, joystick.ProductID)
+}
+
+func (joystick *SDLMgr_Joystick) UniqueID() string {
+	unique_id := fmt.Sprintf("guid=%s,usb_id=%s,index=%d", joystick.GUID, joystick.UsbID(), joystick.Index)
+	hash := sha1.Sum([]byte(unique_id))
+	return fmt.Sprintf("%x", hash)
 }
 
 func (joystick *SDLMgr_Joystick) Open() error {
@@ -161,7 +168,7 @@ func (joystick *SDLMgr_Joystick) Open() error {
 		return nil
 	}
 
-	logger.Logger.Info("[SDLMgr_Joystick::Open] opening joystick", "joystick", joystick.ToString(), "name", joystick.Name)
+	logger.Logger.Info("[SDLMgr_Joystick::Open] opening joystick", "joystick", joystick.UsbID(), "name", joystick.Name)
 	joystick.InternalJoystick = sdl.JoystickOpen(joystick.Index)
 	if joystick.InternalJoystick == nil {
 		return fmt.Errorf("could not open joystick for use")
