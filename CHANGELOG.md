@@ -3,6 +3,8 @@
 
 ## 1.4.0
 - Implement virtual controls
+- Cab Debugger can connect
+- Only show last 1000 logs by default
 
 ## 1.3.6
 - Fix bug when saving calibration files

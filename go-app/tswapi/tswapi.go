@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"regexp"
 	"time"
+	"tsw_controller_app/logger"
 )
 
 type TSWAPIConfig struct {
@@ -17,9 +19,10 @@ type TSWAPIConfig struct {
 }
 
 type TSWAPI struct {
-	transport *http.Transport
-	client    *http.Client
-	Config    TSWAPIConfig
+	transport  *http.Transport
+	client     *http.Client
+	canConnect bool
+	Config     TSWAPIConfig
 }
 
 var ErrMissingCommAPIKey = errors.New("missing CommAPIKey")
@@ -52,8 +55,20 @@ func (c *TSWAPI) executeTswApiRequest(req *http.Request) (map[string]any, error)
 	for {
 		req.Header.Add("DTGCommKey", c.Config.CommAPIKey)
 		resp, err := c.client.Do(req)
+		c.canConnect = err == nil || (resp != nil && resp.StatusCode != 401 && resp.StatusCode != 403)
+
 		/* an error here generally always means some kind of connection error which we could retry */
 		if err != nil {
+			logger.Logger.Debug("[TSWAPI::executeTswApiRequest] API request failed", "error", err)
+
+			var op_err *net.OpError
+			if errors.As(err, &op_err) && op_err.Err != nil {
+				error_str := op_err.Err.Error()
+				if error_str == "connect: connection refused" {
+					return nil, fmt.Errorf("could not connect to API: %w", err)
+				}
+			}
+
 			if try_count < 3 {
 				try_count++
 				continue
@@ -61,7 +76,9 @@ func (c *TSWAPI) executeTswApiRequest(req *http.Request) (map[string]any, error)
 
 			return nil, fmt.Errorf("api error: %w", err)
 		}
+
 		if resp.StatusCode >= 300 {
+			logger.Logger.Debug("[TSWAPI::executeTswApiRequest] API request failed", "status", resp.StatusCode)
 			return nil, ErrNonSuccessStatusCode
 		}
 
@@ -248,8 +265,7 @@ func (c *TSWAPI) LoadAPIKey(path string) error {
 }
 
 func (c *TSWAPI) CanConnect() bool {
-	// @TODO
-	return true
+	return c.canConnect
 }
 
 func (c *TSWAPI) Enabled() bool {
@@ -261,9 +277,10 @@ func NewTSWAPI(config TSWAPIConfig) *TSWAPI {
 		DisableKeepAlives: true,
 	}
 	conn := TSWAPI{
-		transport: transport,
-		client:    &http.Client{Transport: transport, Timeout: 10 * time.Second},
-		Config:    config,
+		transport:  transport,
+		client:     &http.Client{Transport: transport, Timeout: 10 * time.Second},
+		canConnect: false,
+		Config:     config,
 	}
 	return &conn
 }
