@@ -43,7 +43,7 @@ export function MainTabProfileSelector({
   });
   const selectedValue = useMemo(() => {
     const selectedControllerProfiles = controllers.map(
-      (controller) => selectedProfiles?.[controller.GUID],
+      (controller) => selectedProfiles?.[controller.UniqueID],
     );
     const hasMixedValues = selectedControllerProfiles.every(
       (profile, index, list) =>
@@ -66,7 +66,7 @@ export function MainTabProfileSelector({
 
   const selectProfileForAll = (profile: ProfileInfo | null) => {
     for (const controller of controllers) {
-      form.setValue(`profiles.${controller.GUID}`, profile ?? undefined);
+      form.setValue(`profiles.${controller.UniqueID}`, profile ?? undefined);
     }
   };
 

@@ -6,7 +6,7 @@ import (
 )
 
 type Interop_GenericController struct {
-	GUID         string
+	UniqueID     string
 	UsbID        string
 	Name         string
 	IsConfigured bool
@@ -27,7 +27,7 @@ type Interop_Profile struct {
 }
 
 type Interop_RawEvent struct {
-	GUID      string
+	UniqueID  string
 	UsbID     string
 	Kind      sdl_mgr.SDLMgr_Control_Kind
 	Index     int

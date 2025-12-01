@@ -202,7 +202,7 @@ export namespace main {
 		}
 	}
 	export class Interop_GenericController {
-	    GUID: string;
+	    UniqueID: string;
 	    UsbID: string;
 	    Name: string;
 	    IsConfigured: boolean;
@@ -213,7 +213,7 @@ export namespace main {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.GUID = source["GUID"];
+	        this.UniqueID = source["UniqueID"];
 	        this.UsbID = source["UsbID"];
 	        this.Name = source["Name"];
 	        this.IsConfigured = source["IsConfigured"];
@@ -275,7 +275,7 @@ export namespace main {
 	}
 	
 	export class Interop_RawEvent {
-	    GUID: string;
+	    UniqueID: string;
 	    UsbID: string;
 	    Kind: string;
 	    Index: number;
@@ -288,7 +288,7 @@ export namespace main {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.GUID = source["GUID"];
+	        this.UniqueID = source["UniqueID"];
 	        this.UsbID = source["UsbID"];
 	        this.Kind = source["Kind"];
 	        this.Index = source["Index"];

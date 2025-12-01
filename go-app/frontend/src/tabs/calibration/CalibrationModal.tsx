@@ -27,7 +27,7 @@ export const CalibrationModal = ({ dialogRef, controller }: Props) => {
       <div className="modal-box w-11/12 max-w-5xl">
         {!!controller && (
           <CalibrationModalForm
-            key={controller.GUID}
+            key={controller.UniqueID}
             controller={controller}
             onClose={handleClose}
           />

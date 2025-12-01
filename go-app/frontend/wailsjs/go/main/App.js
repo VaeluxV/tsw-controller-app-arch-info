@@ -42,10 +42,6 @@ export function GetProfiles() {
   return window['go']['main']['App']['GetProfiles']();
 }
 
-export function GetSelectedProfile() {
-  return window['go']['main']['App']['GetSelectedProfile']();
-}
-
 export function GetSelectedProfiles() {
   return window['go']['main']['App']['GetSelectedProfiles']();
 }
@@ -80,10 +76,6 @@ export function ImportSharedProfile(arg1) {
 
 export function InstallTrainSimWorldMod() {
   return window['go']['main']['App']['InstallTrainSimWorldMod']();
-}
-
-export function LastRawEvent() {
-  return window['go']['main']['App']['LastRawEvent']();
 }
 
 export function LoadConfiguration() {
@@ -152,6 +144,14 @@ export function SetTheme(arg1) {
 
 export function SubscribeRaw(arg1) {
   return window['go']['main']['App']['SubscribeRaw'](arg1);
+}
+
+export function TypestubGetRawEvent() {
+  return window['go']['main']['App']['TypestubGetRawEvent']();
+}
+
+export function TypestubGetSelectedProfile() {
+  return window['go']['main']['App']['TypestubGetSelectedProfile']();
 }
 
 export function UnsubscribeRaw() {

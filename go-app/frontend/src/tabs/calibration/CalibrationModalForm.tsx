@@ -27,7 +27,7 @@ export const CalibrationModalForm = ({ controller, onClose }: Props) => {
 
   const handleStart = () => {
     if (controller) {
-      SubscribeRaw(controller.GUID).then(() => {
+      SubscribeRaw(controller.UniqueID).then(() => {
         setIsRunning(true);
       });
     }
@@ -77,7 +77,7 @@ export const CalibrationModalForm = ({ controller, onClose }: Props) => {
   };
 
   useEffect(() => {
-    GetControllerConfiguration(controller.GUID).then((configuration) => {
+    GetControllerConfiguration(controller.UniqueID).then((configuration) => {
       form.reset({
         name: configuration.Calibration.Name,
         controls: configuration.Calibration.Controls.map(
