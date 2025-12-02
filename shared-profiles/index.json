@@ -1,6 +1,15 @@
 {
   "profiles": [
     {
+      "usb_id": "33DD:0002",
+      "file": "./class170o_zuiki_mascon.tswprofile",
+      "name": "Class 170 - ZUIKI MASCON",
+      "author": {
+        "name": "WaylonMao",
+        "url": "https://github.com/WaylonMao"
+      }
+    },
+    {
       "usb_id": "044F:040A",
       "file": "./1972mk2tubestock.tswprofile",
       "name": "1972mk2tubestock - TCA Quadrant Boeing",
