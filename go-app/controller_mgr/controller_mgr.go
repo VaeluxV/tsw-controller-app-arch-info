@@ -424,14 +424,9 @@ func (mgr *ControllerManager) RegisterConfig(sdl_map config.Config_Controller_SD
 }
 
 func (mgr *ControllerManager) Handler_JoyDeviceAdded(event *sdl.JoyDeviceAddedEvent) error {
-	joystick, err := mgr.SDL.GetJoystickByIndex(int(event.Which))
+	/* for joy device added -> Which is the index; this differs from other SDL events */
+	joystick, err := mgr.SDL.GetJoystickByInstanceID(event.Which)
 	if err != nil {
-		return err
-	}
-
-	logger.Logger.Info("[ControllerManager:Handler_JoyDeviceAdded] Registering new joy device", "name", joystick.Name)
-	if err := joystick.Open(); err != nil {
-		logger.Logger.Error("[ControllerManager:Handler_JoyDeviceAdded] failed to open joystick", "error", err)
 		return err
 	}
 
@@ -462,7 +457,7 @@ func (mgr *ControllerManager) Handler_JoyDeviceAdded(event *sdl.JoyDeviceAddedEv
 
 func (mgr *ControllerManager) Handler_JoyDeviceRemoved(event *sdl.JoyDeviceRemovedEvent) error {
 	mgr.ConfiguredControllers.Mutate(func(configured_controller ControllerManager_ConfiguredController, unique_id JoystickUniqueID) map_utils.LockMapMutateAction[JoystickUniqueID, ControllerManager_ConfiguredController] {
-		if configured_controller.Joystick.Index == int(event.Which) {
+		if configured_controller.Joystick.InstanceID == event.Which {
 			logger.Logger.Info("[ControllerManager:Handler_JoyDeviceRemoved] Removing joy device", "name", configured_controller.Joystick.Name)
 			defer func() {
 				mgr.JoyDevicesUpdatedChannels.EmitTimeout(time.Second, ControllerManager_Control_JoyDevicesUpdated{})
@@ -478,7 +473,7 @@ func (mgr *ControllerManager) Handler_JoyDeviceRemoved(event *sdl.JoyDeviceRemov
 	})
 
 	mgr.UnconfiguredControllers.Mutate(func(unconfigured_controller ControllerManager_UnconfiguredController, unique_id JoystickUniqueID) map_utils.LockMapMutateAction[JoystickUniqueID, ControllerManager_UnconfiguredController] {
-		if unconfigured_controller.Joystick.Index == int(event.Which) {
+		if unconfigured_controller.Joystick.InstanceID == event.Which {
 			logger.Logger.Info("[ControllerManager:Handler_JoyDeviceRemoved] Removing joy device", "name", unconfigured_controller.Joystick.Name)
 			defer func() {
 				mgr.JoyDevicesUpdatedChannels.EmitTimeout(time.Second, ControllerManager_Control_JoyDevicesUpdated{})
@@ -497,7 +492,7 @@ func (mgr *ControllerManager) Handler_JoyDeviceRemoved(event *sdl.JoyDeviceRemov
 }
 
 func (mgr *ControllerManager) Handler_JoyAxisEvent(event *sdl.JoyAxisEvent) error {
-	joystick, err := mgr.SDL.GetJoystickByIndex(int(event.Which))
+	joystick, err := mgr.SDL.GetJoystickByInstanceID(event.Which)
 	if err != nil {
 		logger.Logger.Error("[ControllerManager::Handler_JoyAxisEvent] could not get joystick", "error", err)
 		return err
@@ -519,7 +514,7 @@ func (mgr *ControllerManager) Handler_JoyAxisEvent(event *sdl.JoyAxisEvent) erro
 }
 
 func (mgr *ControllerManager) Handler_JoyButtonEvent(event *sdl.JoyButtonEvent) error {
-	joystick, err := mgr.SDL.GetJoystickByIndex(int(event.Which))
+	joystick, err := mgr.SDL.GetJoystickByInstanceID(event.Which)
 	if err != nil {
 		logger.Logger.Error("[ControllerManager::Handler_JoyButtonEvent] could not get joystick", "error", err)
 		return err
@@ -544,7 +539,7 @@ func (mgr *ControllerManager) Handler_JoyButtonEvent(event *sdl.JoyButtonEvent) 
 }
 
 func (mgr *ControllerManager) Handler_JoyHatEvent(event *sdl.JoyHatEvent) error {
-	joystick, err := mgr.SDL.GetJoystickByIndex(int(event.Which))
+	joystick, err := mgr.SDL.GetJoystickByInstanceID(event.Which)
 	if err != nil {
 		logger.Logger.Error("[ControllerManager::Handler_JoyHatEvent] could not get joystick", "error", err)
 		return err
@@ -569,9 +564,6 @@ func (mgr *ControllerManager) Attach(ctx context.Context) context.CancelFunc {
 	ctx_with_cancel, cancel := context.WithCancel(ctx)
 
 	go func() {
-		// SDL on windows sends some initial movement events which causes issues
-		initial_events_threshold := uint32(500)
-
 		/* returns a cancel but will be cancelled by it's parent context */
 		events_channel, _ := mgr.SDL.StartPolling(ctx_with_cancel)
 		for {
@@ -584,17 +576,11 @@ func (mgr *ControllerManager) Attach(ctx context.Context) context.CancelFunc {
 				case *sdl.JoyDeviceRemovedEvent:
 					mgr.Handler_JoyDeviceRemoved(e)
 				case *sdl.JoyAxisEvent:
-					if e.GetTimestamp() > initial_events_threshold {
-						mgr.Handler_JoyAxisEvent(e)
-					}
+					mgr.Handler_JoyAxisEvent(e)
 				case *sdl.JoyButtonEvent:
-					if e.GetTimestamp() > initial_events_threshold {
-						mgr.Handler_JoyButtonEvent(e)
-					}
+					mgr.Handler_JoyButtonEvent(e)
 				case *sdl.JoyHatEvent:
-					if e.GetTimestamp() > initial_events_threshold {
-						mgr.Handler_JoyHatEvent(e)
-					}
+					mgr.Handler_JoyHatEvent(e)
 				case *sdl.QuitEvent:
 					cancel()
 				}
