@@ -128,20 +128,44 @@ func (p *ProfileRunner) getSelectedProfileForJoystick(joystick sdl_mgr.SDLMgr_Jo
 	/* try auto-selection */
 	current_rail_class := p.CabDebugger.State.DrivableActorName
 	if !has_selected_profile && current_rail_class != "" {
+		type ScoredProfile struct {
+			Id    string
+			Score int
+		}
+		scored_profiles := []ScoredProfile{}
+
 		p.Profiles.ForEach(func(profile config.Config_Controller_Profile, id string) bool {
-			if profile.AutoSelect != nil && *profile.AutoSelect && profile.Controller != nil && *profile.Controller.UsbID == joystick.UsbID() && profile.RailClassInformation != nil {
-				for _, rc_info := range *profile.RailClassInformation {
-					if *rc_info.ClassName == current_rail_class {
-						has_selected_profile = true
-						selected_profile = ProfileRunnerSettings_SelectedProfile{
-							Profile: profile,
-						}
-						return false
+			if profile.AutoSelect == nil ||
+				profile.RailClassInformation == nil ||
+				(profile.Controller != nil && *profile.Controller.UsbID != joystick.UsbID()) {
+				/* skip if not-autoselect, rail class information is missing or the controller doesn't match */
+				return true
+			}
+
+			for _, rc_info := range *profile.RailClassInformation {
+				if *rc_info.ClassName == current_rail_class {
+					is_controller_match := profile.Controller != nil && *profile.Controller.UsbID == joystick.UsbID()
+					if is_controller_match {
+						scored_profiles = append(scored_profiles, ScoredProfile{Id: id, Score: 20})
+					} else {
+						scored_profiles = append(scored_profiles, ScoredProfile{Id: id, Score: 10})
 					}
+					break
 				}
 			}
+
 			return true
 		})
+		sort.Slice(scored_profiles, func(i, j int) bool {
+			return scored_profiles[i].Score > scored_profiles[j].Score
+		})
+
+		if len(scored_profiles) > 0 {
+			profile, _ := p.Profiles.Get(scored_profiles[0].Id)
+			selected_profile = ProfileRunnerSettings_SelectedProfile{
+				Profile: profile,
+			}
+		}
 	}
 
 	return selected_profile, has_selected_profile

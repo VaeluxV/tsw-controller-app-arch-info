@@ -7,6 +7,7 @@
 - Only show last 1000 logs by default
 - Fix raw events
 - Fix unique joystick IDs
+- Allow auto-selecting with only rail class information
 
 ## 1.3.6
 - Fix bug when saving calibration files
