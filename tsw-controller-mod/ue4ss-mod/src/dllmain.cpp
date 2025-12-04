@@ -108,10 +108,11 @@ struct GameplayStatistics_GetPlayerControllerParams
 class TSWControllerMod : public RC::CppUserModBase
 {
   private:
+    static inline std::shared_mutex CURRENT_DRIVABLE_ACTOR_CLASS_NAME_MUTEX;
     static inline RC::StringType CURRENT_DRIVABLE_ACTOR_CLASS_NAME = STR("");
 
-    static inline std::shared_mutex DIRECT_CONTROL_TARGET_STATE_MUTEX;
     /* map of control names and their target value and flags */
+    static inline std::shared_mutex DIRECT_CONTROL_TARGET_STATE_MUTEX;
     static inline std::unordered_map<RC::StringType, std::tuple<float, std::vector<RC::StringType>>> DIRECT_CONTROL_TARGET_STATE;
 
     static bool is_within_margin_of_error(float current, float target)
@@ -121,6 +122,7 @@ class TSWControllerMod : public RC::CppUserModBase
 
     static bool is_player_controller(Unreal::UObject* controller)
     {
+        if (!controller) return false;
         PlayerController_IsPlayerControllerParams is_player_controller_result;
         Unreal::UFunction* is_player_function = controller->GetFunctionByNameInChain(STR("IsPlayerController"));
         if (is_player_function)
@@ -129,33 +131,6 @@ class TSWControllerMod : public RC::CppUserModBase
             return is_player_controller_result.IsPlayerController;
         }
         return false;
-    }
-
-    static Unreal::UObject* get_player_controller_from(Unreal::UObject* from)
-    {
-        Unreal::UGameplayStatics* statistics =
-                Unreal::UObjectGlobals::StaticFindObject<Unreal::UGameplayStatics*>(nullptr, nullptr, STR("/Script/Engine.Default__GameplayStatics"));
-        Unreal::UFunction* get_player_controller_func = statistics ? statistics->GetFunctionByNameInChain(STR("GetPlayerController")) : nullptr;
-        if (from && statistics && get_player_controller_func)
-        {
-            GameplayStatistics_GetPlayerControllerParams params{from->GetWorld()};
-            statistics->ProcessEvent(get_player_controller_func, &params);
-            if (params.PlayerController)
-            {
-                return params.PlayerController;
-            }
-        }
-
-        std::vector<Unreal::UObject*> player_controllers{};
-        Unreal::UObjectGlobals::FindAllOf(STR("PlayerController"), player_controllers);
-        for (Unreal::UObject* controller : player_controllers)
-        {
-            if (TSWControllerMod::is_player_controller(controller))
-            {
-                return controller;
-            }
-        }
-        return nullptr;
     }
 
     static Unreal::UObject* get_driver_pawn_from_controller(Unreal::UObject* controller)
@@ -281,27 +256,15 @@ class TSWControllerMod : public RC::CppUserModBase
         return res;
     }
 
-    static void on_process_event_pre_callback(Unreal::UObject* context, Unreal::UFunction* function, void* params)
+    static void on_tick(Unreal::AActor* controller, float delta_secs)
     {
-        static auto NAME_Tick = Unreal::FName(STR("PlayerTick"));
-        if (function->GetNamePrivate() != NAME_Tick)
-        {
-            /* only run on ticks to prevent clogging*/
-            return;
-        }
+        if (!TSWControllerMod::is_player_controller(controller)) return;
 
-        std::shared_lock<std::shared_mutex> direct_control_queue_lock(TSWControllerMod::DIRECT_CONTROL_TARGET_STATE_MUTEX);
-
-        /* skip if no controller, pawn or drivable */
-        Unreal::UObject* controller = TSWControllerMod::get_player_controller_from(context);
+        // get pawn
         Unreal::UObject* pawn = TSWControllerMod::get_driver_pawn_from_controller(controller);
-        if (!controller || !pawn) {
-            Output::send<LogLevel::Verbose>(STR("[TSWControllerMod] Missing player controller or pawn\n"));
-            return;
-        }
         Unreal::UFunction* get_drivable_actor_fn = controller->GetFunctionByNameInChain(STR("GetDrivableActor"));
-        if (!get_drivable_actor_fn) {
-            Output::send<LogLevel::Verbose>(STR("[TSWControllerMod] Can't find GetDrivableActor function\n"));
+        if (!pawn || !get_drivable_actor_fn) {
+            Output::send<LogLevel::Verbose>(STR("[TSWControllerMod] Missing driver pawn or GetDrivableActor function\n"));
             return;
         }
         DriverController_GetDrivableActorParams drivable_actor_result;
@@ -312,14 +275,18 @@ class TSWControllerMod : public RC::CppUserModBase
         Unreal::UFunction* find_virtual_hid_component_func = drivable_actor_result.DrivableActor->GetFunctionByNameInChain(STR("FindVirtualHIDComponent"));
         if (!find_virtual_hid_component_func) return;
 
+        std::unique_lock<std::shared_mutex> current_drivable_actor_lock(TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME_MUTEX);
         auto drivable_actor_name = drivable_actor_result.DrivableActor->GetClassPrivate()->GetName();
         if (TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME != drivable_actor_name) {
             TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME = drivable_actor_name;
             auto message = STR("current_drivable_actor,name=") + drivable_actor_name;
+            auto message_str = std::string(message.begin(), message.end());
             Output::send<LogLevel::Default>(STR("[TSWControllerMod] sending current drivable actor information {}\n"), message);
-            tsw_controller_mod_send_message((char*)std::string(message.begin(), message.end()).c_str());
+            tsw_controller_mod_send_message((char*)message_str.c_str());
         }
+        current_drivable_actor_lock.unlock();
 
+        std::unique_lock<std::shared_mutex> direct_control_target_state_lock(TSWControllerMod::DIRECT_CONTROL_TARGET_STATE_MUTEX);
         for (const auto& control_pair : TSWControllerMod::DIRECT_CONTROL_TARGET_STATE)
         {
             RC::StringType control_name = TSWControllerMod::format_direct_control_name(pawn, control_pair.first);
@@ -376,6 +343,7 @@ class TSWControllerMod : public RC::CppUserModBase
                 }
             }
         }
+        direct_control_target_state_lock.unlock();
     }
 
     static void on_direct_control_message_received(const char* raw_message)
@@ -446,8 +414,9 @@ class TSWControllerMod : public RC::CppUserModBase
             VirtualHIDComponent_InputValueChangedParams input_value_changed_params = context.GetParams<VirtualHIDComponent_InputValueChangedParams>();
             /* message format = sync_control,name={name},property={control_property_name},value={value},normal_value={normal_value} */
             auto message = STR("sync_control_value,name=") + input_identifier->ToString() + STR(",property=") + control_property_name + STR(",value=") + std::to_wstring(input_value_changed_params.NewValue) + STR(",normalized_value=") + std::to_wstring(normalized_value);
+            auto message_str = std::string(message.begin(), message.end());
             Output::send<LogLevel::Default>(STR("[TSWControllerMod] sending updated control value {}\n"), message);
-            tsw_controller_mod_send_message((char*)std::string(message.begin(), message.end()).c_str());
+            tsw_controller_mod_send_message((char*)message_str.c_str());
         }
     }
 
@@ -471,8 +440,8 @@ class TSWControllerMod : public RC::CppUserModBase
         if (!input_value_changed_func) return;
 
         Output::send<LogLevel::Verbose>(STR("[TSWControllerMod] Registering hooks and callbacks"));
-        Unreal::Hook::RegisterProcessEventPreCallback(TSWControllerMod::on_process_event_pre_callback);
         input_value_changed_func->RegisterPostHook(TSWControllerMod::on_ts2_virtualhidcomponent_inputvaluechanged);
+        Unreal::Hook::RegisterAActorTickPreCallback(TSWControllerMod::on_tick);
         tsw_controller_mod_set_receive_message_callback(TSWControllerMod::on_direct_control_message_received);
     }
 
