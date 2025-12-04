@@ -8,6 +8,8 @@
 - Fix raw events
 - Fix unique joystick IDs
 - Allow auto-selecting with only rail class information
+- Fix SDL events
+- Improvements to DLL mod for memory safety and performance
 
 ## 1.3.6
 - Fix bug when saving calibration files
