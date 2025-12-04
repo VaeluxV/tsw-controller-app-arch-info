@@ -135,7 +135,7 @@ func (p *ProfileRunner) getSelectedProfileForJoystick(joystick sdl_mgr.SDLMgr_Jo
 		scored_profiles := []ScoredProfile{}
 
 		p.Profiles.ForEach(func(profile config.Config_Controller_Profile, id string) bool {
-			if profile.AutoSelect == nil ||
+			if (profile.AutoSelect == nil || !*profile.AutoSelect) ||
 				profile.RailClassInformation == nil ||
 				(profile.Controller != nil && *profile.Controller.UsbID != joystick.UsbID()) {
 				/* skip if not-autoselect, rail class information is missing or the controller doesn't match */
@@ -162,6 +162,7 @@ func (p *ProfileRunner) getSelectedProfileForJoystick(joystick sdl_mgr.SDLMgr_Jo
 
 		if len(scored_profiles) > 0 {
 			profile, _ := p.Profiles.Get(scored_profiles[0].Id)
+			has_selected_profile = true
 			selected_profile = ProfileRunnerSettings_SelectedProfile{
 				Profile: profile,
 			}
@@ -319,6 +320,7 @@ func (p *ProfileRunner) CallAssignmentActionForControl(
 				virtual_control, _ = controller.VirtualControls.Get(action.VirtualAction.Control)
 			}
 			virtual_control.UpdateValue(action.VirtualAction.Value, false)
+			controller.VirtualControls.Set(action.VirtualAction.Control, virtual_control)
 		} else if action.DirectControlCommand != nil {
 			logger.Logger.Debug("[ProfileRunner::CallAssignmentActionForControl] sending direct control command", "command", action.DirectControlCommand)
 			chan_utils.SendTimeout(p.DirectController.ControlChannel, time.Second, *action.DirectControlCommand)
