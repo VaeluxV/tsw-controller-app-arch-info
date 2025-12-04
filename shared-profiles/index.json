@@ -10,6 +10,33 @@
       }
     },
     {
+      "usb_id": "33DD:0002",
+      "file": "./m7_m9_zuiki_mascon.tswprofile",
+      "name": "M7/M9 - ZUIKI MASCON",
+      "author": {
+        "name": "WaylonMao",
+        "url": "https://github.com/WaylonMao"
+      }
+    },
+    {
+      "usb_id": "33DD:0002",
+      "file": "./class150_zuiki_mascon.tswprofile",
+      "name": "Class 150 - ZUIKI MASCON",
+      "author": {
+        "name": "WaylonMao",
+        "url": "https://github.com/WaylonMao"
+      }
+    },
+    {
+      "usb_id": "33DD:0002",
+      "file": "./class220_zuiki_mascon.tswprofile",
+      "name": "Class 220 - ZUIKI MASCON",
+      "author": {
+        "name": "WaylonMao",
+        "url": "https://github.com/WaylonMao"
+      }
+    },
+    {
       "usb_id": "044F:040A",
       "file": "./1972mk2tubestock.tswprofile",
       "name": "1972mk2tubestock - TCA Quadrant Boeing",
