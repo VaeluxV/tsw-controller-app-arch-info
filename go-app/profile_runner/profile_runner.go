@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 	"tsw_controller_app/action_sequencer"
@@ -34,14 +35,15 @@ type ProfileRunnerSettings_SelectedProfile struct {
 }
 
 type ProfileRunnerSettings struct {
-	Mutex                  sync.RWMutex
-	SelectedProfilesByGUID *map_utils.LockMap[controller_mgr.JoystickGUIDString, ProfileRunnerSettings_SelectedProfile]
-	PreferredControlMode   config.PreferredControlMode
+	Mutex                      sync.RWMutex
+	SelectedProfilesByUniqueID *map_utils.LockMap[controller_mgr.JoystickUniqueID, ProfileRunnerSettings_SelectedProfile]
+	PreferredControlMode       config.PreferredControlMode
 }
 
 type ProfileRunnerAssignmentCall struct {
 	ControlState          controller_mgr.ControllerManager_Controller_ControlState
 	ActionSequencerAction *action_sequencer.ActionSequencerAction
+	VirtualAction         *config.Config_Controller_Profile_Control_Assignment_Action_Virtual
 	DirectControlCommand  *DirectController_Command
 	ApiControlCommand     *ApiController_Command
 }
@@ -64,10 +66,10 @@ func (s *ProfileRunnerSettings) Update(mutator func(s *ProfileRunnerSettings)) {
 	mutator(s)
 }
 
-func (s *ProfileRunnerSettings) GetSelectedProfiles() *map_utils.LockMap[controller_mgr.JoystickGUIDString, ProfileRunnerSettings_SelectedProfile] {
+func (s *ProfileRunnerSettings) GetSelectedProfiles() *map_utils.LockMap[controller_mgr.JoystickUniqueID, ProfileRunnerSettings_SelectedProfile] {
 	s.Mutex.RLock()
 	defer s.Mutex.RUnlock()
-	return s.SelectedProfilesByGUID
+	return s.SelectedProfilesByUniqueID
 }
 
 func (s *ProfileRunnerSettings) GetPreferredControlMode() config.PreferredControlMode {
@@ -99,9 +101,9 @@ func New(
 		CabDebugger:       cab_debugger,
 		Profiles:          map_utils.NewLockMap[string, config.Config_Controller_Profile](),
 		Settings: ProfileRunnerSettings{
-			Mutex:                  sync.RWMutex{},
-			SelectedProfilesByGUID: map_utils.NewLockMap[controller_mgr.JoystickGUIDString, ProfileRunnerSettings_SelectedProfile](),
-			PreferredControlMode:   config.PreferredControlMode_DirectControl,
+			Mutex:                      sync.RWMutex{},
+			SelectedProfilesByUniqueID: map_utils.NewLockMap[controller_mgr.JoystickUniqueID, ProfileRunnerSettings_SelectedProfile](),
+			PreferredControlMode:       config.PreferredControlMode_DirectControl,
 		},
 		PreviousControlAssignmentCallList: map_utils.NewLockMap[string, *[]*ProfileRunnerAssignmentCall](),
 	}
@@ -121,25 +123,49 @@ func (pc *ProfileRunnerAssignmentCall) ToString() string {
 }
 
 func (p *ProfileRunner) getSelectedProfileForJoystick(joystick sdl_mgr.SDLMgr_Joystick) (ProfileRunnerSettings_SelectedProfile, bool) {
-	selected_profile, has_selected_profile := p.Settings.GetSelectedProfiles().Get(joystick.GUID)
+	selected_profile, has_selected_profile := p.Settings.GetSelectedProfiles().Get(joystick.UniqueID())
 
 	/* try auto-selection */
 	current_rail_class := p.CabDebugger.State.DrivableActorName
 	if !has_selected_profile && current_rail_class != "" {
+		type ScoredProfile struct {
+			Id    string
+			Score int
+		}
+		scored_profiles := []ScoredProfile{}
+
 		p.Profiles.ForEach(func(profile config.Config_Controller_Profile, id string) bool {
-			if profile.AutoSelect != nil && *profile.AutoSelect && profile.Controller != nil && *profile.Controller.UsbID == joystick.ToString() && profile.RailClassInformation != nil {
-				for _, rc_info := range *profile.RailClassInformation {
-					if *rc_info.ClassName == current_rail_class {
-						has_selected_profile = true
-						selected_profile = ProfileRunnerSettings_SelectedProfile{
-							Profile: profile,
-						}
-						return false
+			if profile.AutoSelect == nil ||
+				profile.RailClassInformation == nil ||
+				(profile.Controller != nil && *profile.Controller.UsbID != joystick.UsbID()) {
+				/* skip if not-autoselect, rail class information is missing or the controller doesn't match */
+				return true
+			}
+
+			for _, rc_info := range *profile.RailClassInformation {
+				if *rc_info.ClassName == current_rail_class {
+					is_controller_match := profile.Controller != nil && *profile.Controller.UsbID == joystick.UsbID()
+					if is_controller_match {
+						scored_profiles = append(scored_profiles, ScoredProfile{Id: id, Score: 20})
+					} else {
+						scored_profiles = append(scored_profiles, ScoredProfile{Id: id, Score: 10})
 					}
+					break
 				}
 			}
+
 			return true
 		})
+		sort.Slice(scored_profiles, func(i, j int) bool {
+			return scored_profiles[i].Score > scored_profiles[j].Score
+		})
+
+		if len(scored_profiles) > 0 {
+			profile, _ := p.Profiles.Get(scored_profiles[0].Id)
+			selected_profile = ProfileRunnerSettings_SelectedProfile{
+				Profile: profile,
+			}
+		}
 	}
 
 	return selected_profile, has_selected_profile
@@ -207,18 +233,18 @@ func (p *ProfileRunner) Resolve() {
 	}
 }
 
-func (p *ProfileRunner) ClearProfile(guid controller_mgr.JoystickGUIDString) {
+func (p *ProfileRunner) ClearProfile(unique_id controller_mgr.JoystickUniqueID) {
 	p.Settings.Update(func(s *ProfileRunnerSettings) {
-		s.SelectedProfilesByGUID.Delete(guid)
+		s.SelectedProfilesByUniqueID.Delete(unique_id)
 	})
 }
 
-func (p *ProfileRunner) SetProfile(guid controller_mgr.JoystickGUIDString, id string) error {
+func (p *ProfileRunner) SetProfile(unique_id controller_mgr.JoystickUniqueID, id string) error {
 	var err error = nil
 	p.Settings.Update(func(s *ProfileRunnerSettings) {
 		profile, is_valid_profile := p.Profiles.Get(id)
 		if is_valid_profile {
-			s.SelectedProfilesByGUID.Set(guid, ProfileRunnerSettings_SelectedProfile{
+			s.SelectedProfilesByUniqueID.Set(unique_id, ProfileRunnerSettings_SelectedProfile{
 				Profile: profile,
 			})
 		} else {
@@ -237,6 +263,7 @@ func (p *ProfileRunner) SetPreferredControlMode(mode config.PreferredControlMode
 func (p *ProfileRunner) CallAssignmentActionForControl(
 	control_name string,
 	assignment_index int,
+	controller *controller_mgr.ControllerManager_ConfiguredController,
 	control_state_at_call controller_mgr.ControllerManager_Controller_ControlState,
 	assignment config.Config_Controller_Profile_Control_Assignment,
 	action *ProfileRunnerAssignmentCall,
@@ -262,16 +289,19 @@ func (p *ProfileRunner) CallAssignmentActionForControl(
 	assignment_call := &ProfileRunnerAssignmentCall{
 		ControlState:          control_state_at_call,
 		ActionSequencerAction: nil,
+		VirtualAction:         nil,
 		DirectControlCommand:  nil,
 		ApiControlCommand:     nil,
 	}
 	if action != nil {
 		assignment_call.ActionSequencerAction = action.ActionSequencerAction
+		assignment_call.VirtualAction = action.VirtualAction
 		assignment_call.DirectControlCommand = action.DirectControlCommand
 		assignment_call.ApiControlCommand = action.ApiControlCommand
 	} else {
 		/* should always be available - None action should only be set as none for deactivation calls */
 		assignment_call.ActionSequencerAction = (*previous_control_assignments_call_list)[assignment_index].ActionSequencerAction
+		assignment_call.VirtualAction = (*previous_control_assignments_call_list)[assignment_index].VirtualAction
 		assignment_call.DirectControlCommand = (*previous_control_assignments_call_list)[assignment_index].DirectControlCommand
 		assignment_call.ApiControlCommand = (*previous_control_assignments_call_list)[assignment_index].ApiControlCommand
 	}
@@ -281,6 +311,14 @@ func (p *ProfileRunner) CallAssignmentActionForControl(
 		if action.ActionSequencerAction != nil {
 			logger.Logger.Debug("[ProfileRunner::CallAssignmentActionForControl] queueing sequencer action", "action", action.ActionSequencerAction)
 			p.ActionSequencer.Enqueue(*action.ActionSequencerAction)
+		} else if action.VirtualAction != nil {
+			logger.Logger.Debug("[ProfileRunner::CallAssignmentActionForControl] updating virtual control", "action", action.VirtualAction)
+			virtual_control, has_virtual_control := controller.VirtualControls.Get(action.VirtualAction.Control)
+			if !has_virtual_control {
+				controller.RegisterVirtualControl(action.VirtualAction.Control, action.VirtualAction.Value)
+				virtual_control, _ = controller.VirtualControls.Get(action.VirtualAction.Control)
+			}
+			virtual_control.UpdateValue(action.VirtualAction.Value, false)
 		} else if action.DirectControlCommand != nil {
 			logger.Logger.Debug("[ProfileRunner::CallAssignmentActionForControl] sending direct control command", "command", action.DirectControlCommand)
 			chan_utils.SendTimeout(p.DirectController.ControlChannel, time.Second, *action.DirectControlCommand)
@@ -320,6 +358,16 @@ func (p *ProfileRunner) AssignmentActionToAssignmentCall(
 		return &ProfileRunnerAssignmentCall{
 			ControlState:          control_state,
 			ActionSequencerAction: &sequencer_action,
+			VirtualAction:         nil,
+			DirectControlCommand:  nil,
+			ApiControlCommand:     nil,
+		}
+	}
+	if action.Virtual != nil {
+		return &ProfileRunnerAssignmentCall{
+			ControlState:          control_state,
+			ActionSequencerAction: nil,
+			VirtualAction:         action.Virtual,
 			DirectControlCommand:  nil,
 			ApiControlCommand:     nil,
 		}
@@ -339,6 +387,7 @@ func (p *ProfileRunner) AssignmentActionToAssignmentCall(
 		return &ProfileRunnerAssignmentCall{
 			ControlState:          control_state,
 			ActionSequencerAction: nil,
+			VirtualAction:         nil,
 			ApiControlCommand:     nil,
 			DirectControlCommand: &DirectController_Command{
 				Controls:   action.DirectControl.Controls,
@@ -351,6 +400,7 @@ func (p *ProfileRunner) AssignmentActionToAssignmentCall(
 		return &ProfileRunnerAssignmentCall{
 			ControlState:          control_state,
 			ActionSequencerAction: nil,
+			VirtualAction:         nil,
 			DirectControlCommand:  nil,
 			ApiControlCommand: &ApiController_Command{
 				Controls:   action.ApiControl.Controls,
@@ -388,29 +438,43 @@ check_assignments_loop:
 		assigmment_conditions := assignment.Conditions()
 		if source_event != nil && assigmment_conditions != nil && len(*assigmment_conditions) > 0 {
 			for _, condition := range *assigmment_conditions {
-				dependency_control, has_dependency_control := source_event.Controller.Controls.Get(condition.Control)
-				if !has_dependency_control {
-					logger.Logger.Error("[ProfileRunner::GetAssignments] skipping condition because dependency control does not exist")
-					continue
+				var dependecy_control controller_mgr.ControllerManager_Controller_Control = nil
+				if strings.HasPrefix(condition.Control, "virtual:") {
+					/* virtual controls always exist - they just start at 0 */
+					virtual_control, has_dependency_control := source_event.Controller.VirtualControls.Get(condition.Control)
+					if !has_dependency_control {
+						source_event.Controller.RegisterVirtualControl(condition.Control, 0.0)
+						virtual_control, _ = source_event.Controller.VirtualControls.Get(condition.Control)
+					}
+					dependecy_control = &virtual_control
+				} else if joy_control, has_dependency_control := source_event.Controller.Controls.Get(condition.Control); has_dependency_control {
+					dependecy_control = &joy_control
 				}
+
+				if dependecy_control == nil {
+					logger.Logger.Error("[ProfileRunner::GetAssignments] skipping assignment because dependency control does not exist")
+					continue check_assignments_loop
+				}
+
+				state := dependecy_control.GetState()
 				switch condition.Operator {
 				case "gte":
-					if dependency_control.State.NormalizedValues.Value < condition.Value {
+					if state.NormalizedValues.Value < condition.Value {
 						/* condition doesn't match -> skip */
 						continue check_assignments_loop
 					}
 				case "lte":
-					if dependency_control.State.NormalizedValues.Value > condition.Value {
+					if state.NormalizedValues.Value > condition.Value {
 						/* condition doesn't match -> skip */
 						continue check_assignments_loop
 					}
 				case "gt":
-					if dependency_control.State.NormalizedValues.Value <= condition.Value {
+					if state.NormalizedValues.Value <= condition.Value {
 						/* condition doesn't match -> skip */
 						continue check_assignments_loop
 					}
 				case "lt":
-					if dependency_control.State.NormalizedValues.Value >= condition.Value {
+					if state.NormalizedValues.Value >= condition.Value {
 						/* condition doesn't match -> skip */
 						continue check_assignments_loop
 					}
@@ -473,11 +537,13 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 
 				control_name := change_event.ControlName
 				if selected_profile.Profile.Controller != nil && selected_profile.Profile.Controller.Mapping != nil {
-					root_mapping := change_event.Control.SDLMapping
-					override_mapping := selected_profile.Profile.Controller.Mapping
-					override_control, find_override_control_err := override_mapping.FindByKindAndIndex(root_mapping.Kind, root_mapping.Index)
-					if find_override_control_err == nil {
-						control_name = override_control.Name
+					if joy_control, is_joy_control := change_event.Control.(*controller_mgr.ControllerManager_Controller_JoyControl); is_joy_control {
+						root_mapping := joy_control.SDLMapping
+						override_mapping := selected_profile.Profile.Controller.Mapping
+						override_control, find_override_control_err := override_mapping.FindByKindAndIndex(root_mapping.Kind, root_mapping.Index)
+						if find_override_control_err == nil {
+							control_name = override_control.Name
+						}
 					}
 				}
 
@@ -502,20 +568,20 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 							should_call_activation := previous_assignment_call == nil || previous_assignment_call.ControlState.NormalizedValues.Value < control_assignment_item.Momentary.Threshold
 							if should_call_activation {
 								action_to_call := p.AssignmentActionToAssignmentCall(change_event.ControlState, control_assignment_item.Momentary.ActionActivate, false)
-								p.CallAssignmentActionForControl(control_name, assignment_index, change_event.ControlState, control_assignment_item, action_to_call)
+								p.CallAssignmentActionForControl(control_name, assignment_index, change_event.Controller, change_event.ControlState, control_assignment_item, action_to_call)
 							}
 						} else if previous_assignment_call != nil && previous_assignment_call.ControlState.NormalizedValues.Value >= control_assignment_item.Momentary.Threshold {
 							// when below the threshold only call action if the last call was above or equal to the threshold
 							if control_assignment_item.Momentary.ActionDeactivate != nil {
 								action_to_call := p.AssignmentActionToAssignmentCall(change_event.ControlState, *control_assignment_item.Momentary.ActionDeactivate, false)
-								p.CallAssignmentActionForControl(control_name, assignment_index, change_event.ControlState, control_assignment_item, action_to_call)
+								p.CallAssignmentActionForControl(control_name, assignment_index, change_event.Controller, change_event.ControlState, control_assignment_item, action_to_call)
 							} else if control_assignment_item.Momentary.ActionActivate.Keys != nil {
 								/* only release if keys -> can't "release" direct control actions */
 								action_to_call := p.AssignmentActionToAssignmentCall(change_event.ControlState, control_assignment_item.Momentary.ActionActivate, true)
-								p.CallAssignmentActionForControl(control_name, assignment_index, change_event.ControlState, control_assignment_item, action_to_call)
+								p.CallAssignmentActionForControl(control_name, assignment_index, change_event.Controller, change_event.ControlState, control_assignment_item, action_to_call)
 							} else {
 								/* clear previuous call so momentary can be re-triggered */
-								p.CallAssignmentActionForControl(control_name, assignment_index, change_event.ControlState, control_assignment_item, nil)
+								p.CallAssignmentActionForControl(control_name, assignment_index, change_event.Controller, change_event.ControlState, control_assignment_item, nil)
 							}
 						}
 					}
@@ -541,7 +607,7 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 							thresholds_to_activate := thresholds_currently_exceeding[len(thresholds_previously_passed):]
 							for _, threshold := range thresholds_to_activate {
 								action_to_call := p.AssignmentActionToAssignmentCall(change_event.ControlState, threshold.ActionActivate, false)
-								p.CallAssignmentActionForControl(control_name, assignment_index, change_event.ControlState, control_assignment_item, action_to_call)
+								p.CallAssignmentActionForControl(control_name, assignment_index, change_event.Controller, change_event.ControlState, control_assignment_item, action_to_call)
 							}
 						} else if len(thresholds_currently_exceeding) < len(thresholds_previously_passed) {
 							// deactivate the intermediate thresholds by iterating from end of previously passed up until but not including the currently exceeding threshold
@@ -549,14 +615,14 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 								threshold := thresholds_previously_passed[i]
 								if threshold.ActionDeactivate != nil {
 									action_to_call := p.AssignmentActionToAssignmentCall(change_event.ControlState, *threshold.ActionDeactivate, false)
-									p.CallAssignmentActionForControl(control_name, assignment_index, change_event.ControlState, control_assignment_item, action_to_call)
+									p.CallAssignmentActionForControl(control_name, assignment_index, change_event.Controller, change_event.ControlState, control_assignment_item, action_to_call)
 								} else if threshold.ActionActivate.Keys != nil {
 									/* only release if keys -> can't "release" direct control actions */
 									action_to_call := p.AssignmentActionToAssignmentCall(change_event.ControlState, threshold.ActionActivate, true)
-									p.CallAssignmentActionForControl(control_name, assignment_index, change_event.ControlState, control_assignment_item, action_to_call)
+									p.CallAssignmentActionForControl(control_name, assignment_index, change_event.Controller, change_event.ControlState, control_assignment_item, action_to_call)
 								} else {
 									/* clear previuous call so threshold can be re-triggered */
-									p.CallAssignmentActionForControl(control_name, assignment_index, change_event.ControlState, control_assignment_item, nil)
+									p.CallAssignmentActionForControl(control_name, assignment_index, change_event.Controller, change_event.ControlState, control_assignment_item, nil)
 								}
 							}
 						}
@@ -569,11 +635,11 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 								/* if the previous call is the same as the activation call -> toggle to deactivation action */
 								action_to_call = p.AssignmentActionToAssignmentCall(change_event.ControlState, control_assignment_item.Toggle.ActionDeactivate, false)
 							}
-							p.CallAssignmentActionForControl(control_name, assignment_index, change_event.ControlState, control_assignment_item, action_to_call)
+							p.CallAssignmentActionForControl(control_name, assignment_index, change_event.Controller, change_event.ControlState, control_assignment_item, action_to_call)
 						} else if previous_assignment_call != nil && previous_assignment_call.ControlState.NormalizedValues.Value >= control_assignment_item.Toggle.Threshold && previous_assignment_call.ActionSequencerAction != nil {
 							// when below the threshold only call action if the last call was above or equal to the threshold
 							// this is only used for releasing key actions
-							p.CallAssignmentActionForControl(control_name, assignment_index, change_event.ControlState, control_assignment_item, &ProfileRunnerAssignmentCall{
+							p.CallAssignmentActionForControl(control_name, assignment_index, change_event.Controller, change_event.ControlState, control_assignment_item, &ProfileRunnerAssignmentCall{
 								ControlState: change_event.ControlState,
 								ActionSequencerAction: &action_sequencer.ActionSequencerAction{
 									Keys:      previous_assignment_call.ActionSequencerAction.Keys,
@@ -587,12 +653,12 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 						}
 					}
 					if control_assignment_item.DirectControl != nil {
-						output_value := control_assignment_item.DirectControl.InputValue.CalculateOutputValue(change_event.Control.State.NormalizedValues.Value)
+						output_value := control_assignment_item.DirectControl.InputValue.CalculateOutputValue(change_event.Control.GetState().NormalizedValues.Value)
 						flags := []string{}
 						if control_assignment_item.DirectControl.Hold != nil && *control_assignment_item.DirectControl.Hold {
 							flags = append(flags, "hold")
 						}
-						p.CallAssignmentActionForControl(control_name, assignment_index, change_event.ControlState, control_assignment_item, &ProfileRunnerAssignmentCall{
+						p.CallAssignmentActionForControl(control_name, assignment_index, change_event.Controller, change_event.ControlState, control_assignment_item, &ProfileRunnerAssignmentCall{
 							ControlState:          change_event.ControlState,
 							ActionSequencerAction: nil,
 							ApiControlCommand:     nil,
@@ -604,8 +670,8 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 						})
 					}
 					if control_assignment_item.ApiControl != nil {
-						output_value := control_assignment_item.ApiControl.InputValue.CalculateOutputValue(change_event.Control.State.NormalizedValues.Value)
-						p.CallAssignmentActionForControl(control_name, assignment_index, change_event.ControlState, control_assignment_item, &ProfileRunnerAssignmentCall{
+						output_value := control_assignment_item.ApiControl.InputValue.CalculateOutputValue(change_event.Control.GetState().NormalizedValues.Value)
+						p.CallAssignmentActionForControl(control_name, assignment_index, change_event.Controller, change_event.ControlState, control_assignment_item, &ProfileRunnerAssignmentCall{
 							ControlState:          change_event.ControlState,
 							ActionSequencerAction: nil,
 							DirectControlCommand:  nil,
@@ -616,7 +682,7 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 						})
 					}
 					if control_assignment_item.SyncControl != nil {
-						output_value := control_assignment_item.SyncControl.InputValue.CalculateOutputValue(change_event.Control.State.NormalizedValues.Value)
+						output_value := control_assignment_item.SyncControl.InputValue.CalculateOutputValue(change_event.Control.GetState().NormalizedValues.Value)
 						p.SyncController.UpdateControlStateTargetValue(control_assignment_item.SyncControl.Identifier, output_value, control_assignment_item.SyncControl, &change_event)
 					}
 				}

@@ -2,7 +2,9 @@ package sdl_mgr
 
 import (
 	"context"
+	"crypto/sha1"
 	"fmt"
+	"sync"
 	"time"
 	"tsw_controller_app/chan_utils"
 	"tsw_controller_app/logger"
@@ -24,24 +26,64 @@ const (
 )
 
 type SDLMgr_Joystick struct {
-	GUID      SDLMgr_Guid_Str
-	Name      string
-	VendorID  int
-	ProductID int
-	Index     int
+	InstanceID sdl.JoystickID
+	Name       string
+	VendorID   int
+	ProductID  int
 
-	IsOpen           bool
 	InternalJoystick *sdl.Joystick
 }
 
 type SDLMgr struct {
 	Initialized bool
 	Timestamp   time.Time
+
+	joydevices_mutex sync.Mutex
+	joydevices       map[sdl.JoystickID]*SDLMgr_Joystick
 }
 
 func New() *SDLMgr {
 	return &SDLMgr{
-		Initialized: false,
+		Initialized:      false,
+		Timestamp:        time.Now(),
+		joydevices_mutex: sync.Mutex{},
+		joydevices:       map[sdl.JoystickID]*SDLMgr_Joystick{},
+	}
+}
+
+func (mgr *SDLMgr) joyDeviceAdded(event *sdl.JoyDeviceAddedEvent) (*SDLMgr_Joystick, error) {
+	mgr.joydevices_mutex.Lock()
+	defer mgr.joydevices_mutex.Unlock()
+
+	joy_index := int(event.Which)
+	instance_id := sdl.JoystickGetDeviceInstanceID(joy_index)
+	name := sdl.JoystickNameForIndex(joy_index)
+	usb_vendor := sdl.JoystickGetDeviceVendor(joy_index)
+	usb_product := sdl.JoystickGetDeviceProduct(joy_index)
+	joystick := SDLMgr_Joystick{
+		InstanceID:       instance_id,
+		Name:             name,
+		VendorID:         usb_vendor,
+		ProductID:        usb_product,
+		InternalJoystick: nil,
+	}
+
+	logger.Logger.Info("[SDLMgr_Joystick::Open] opening joystick", "joystick", joystick.UsbID(), "name", joystick.Name)
+	joystick.InternalJoystick = sdl.JoystickOpen(joy_index)
+	if joystick.InternalJoystick == nil {
+		return nil, fmt.Errorf("could not open joystick for use: %w", sdl.GetError())
+	}
+
+	mgr.joydevices[instance_id] = &joystick
+	return &joystick, nil
+}
+
+func (mgr *SDLMgr) joyDeviceRemoved(event *sdl.JoyDeviceRemovedEvent) {
+	mgr.joydevices_mutex.Lock()
+	defer mgr.joydevices_mutex.Unlock()
+	if joystick, has_device := mgr.joydevices[event.Which]; has_device {
+		joystick.InternalJoystick.Close()
+		delete(mgr.joydevices, event.Which)
 	}
 }
 
@@ -71,24 +113,13 @@ func (mgr *SDLMgr) Quit() {
 	sdl.Quit()
 }
 
-func (mgr *SDLMgr) GetJoystickByIndex(index int) (*SDLMgr_Joystick, error) {
-	if index >= sdl.NumJoysticks() {
-		return nil, fmt.Errorf("index is out of range for number of registered SDL joysticks")
+func (mgr *SDLMgr) GetJoystickByInstanceID(instance_id sdl.JoystickID) (*SDLMgr_Joystick, error) {
+	mgr.joydevices_mutex.Lock()
+	defer mgr.joydevices_mutex.Unlock()
+	if joydevice, has_joydevice := mgr.joydevices[instance_id]; has_joydevice {
+		return joydevice, nil
 	}
-
-	name := sdl.JoystickNameForIndex(index)
-	guid := sdl.JoystickGetDeviceGUID(index)
-	usb_vendor := sdl.JoystickGetDeviceVendor(index)
-	usb_product := sdl.JoystickGetDeviceProduct(index)
-
-	return &SDLMgr_Joystick{
-		GUID:      sdl.JoystickGetGUIDString(guid),
-		Name:      name,
-		VendorID:  usb_vendor,
-		ProductID: usb_product,
-		Index:     index,
-		IsOpen:    false,
-	}, nil
+	return nil, fmt.Errorf("could not find joystick by instance ID")
 }
 
 /*
@@ -110,17 +141,26 @@ func (mgr *SDLMgr) StartPolling(ctx context.Context) (chan sdl.Event, context.Ca
 			if event := sdl.WaitEventTimeout(SDL_RATE); event != nil {
 				switch e := event.(type) {
 				case *sdl.JoyDeviceAddedEvent:
-					chan_utils.SendTimeout[sdl.Event](event_channel, time.Second, &sdl.JoyDeviceAddedEvent{
+					if joystick, err := mgr.joyDeviceAdded(&sdl.JoyDeviceAddedEvent{
 						Type:      e.Type,
 						Timestamp: e.Timestamp,
 						Which:     e.Which,
-					})
+					}); err == nil {
+						chan_utils.SendTimeout[sdl.Event](event_channel, time.Second, &sdl.JoyDeviceAddedEvent{
+							Type:      e.Type,
+							Timestamp: e.Timestamp,
+							/* switching to instance ID once we're out of the SDL internals */
+							Which: joystick.InstanceID,
+						})
+					}
 				case *sdl.JoyDeviceRemovedEvent:
-					chan_utils.SendTimeout[sdl.Event](event_channel, time.Second, &sdl.JoyDeviceRemovedEvent{
+					removed_event := &sdl.JoyDeviceRemovedEvent{
 						Type:      e.Type,
 						Timestamp: e.Timestamp,
 						Which:     e.Which,
-					})
+					}
+					mgr.joyDeviceRemoved(removed_event)
+					chan_utils.SendTimeout[sdl.Event](event_channel, time.Second, removed_event)
 				case *sdl.JoyButtonEvent:
 					chan_utils.SendTimeout[sdl.Event](event_channel, time.Second, &sdl.JoyButtonEvent{
 						Type:      e.Type,
@@ -152,35 +192,12 @@ func (mgr *SDLMgr) StartPolling(ctx context.Context) (chan sdl.Event, context.Ca
 	return event_channel, cancel
 }
 
-func (joystick *SDLMgr_Joystick) ToString() string {
+func (joystick *SDLMgr_Joystick) UsbID() string {
 	return fmt.Sprintf("%04X:%04X", joystick.VendorID, joystick.ProductID)
 }
 
-func (joystick *SDLMgr_Joystick) Open() error {
-	if joystick.IsOpen {
-		return nil
-	}
-
-	logger.Logger.Info("[SDLMgr_Joystick::Open] opening joystick", "joystick", joystick.ToString(), "name", joystick.Name)
-	joystick.InternalJoystick = sdl.JoystickOpen(joystick.Index)
-	if joystick.InternalJoystick == nil {
-		return fmt.Errorf("could not open joystick for use")
-	}
-	joystick.IsOpen = true
-	return nil
-}
-
-func (joystick *SDLMgr_Joystick) Close() error {
-	if !joystick.IsOpen {
-		return fmt.Errorf("joystick is not open")
-	}
-
-	if joystick.InternalJoystick == nil {
-		return fmt.Errorf("internal joystick not assigned")
-	}
-
-	joystick.InternalJoystick.Close()
-	joystick.IsOpen = false
-	joystick.InternalJoystick = nil
-	return nil
+func (joystick *SDLMgr_Joystick) UniqueID() string {
+	unique_id := fmt.Sprintf("usb_id=%s,instance_id=%s", joystick.UsbID(), string(joystick.InstanceID))
+	hash := sha1.Sum([]byte(unique_id))
+	return fmt.Sprintf("%x", hash)
 }

@@ -126,7 +126,7 @@ export const MainTab = () => {
     controller: main.Interop_GenericController | null,
   ) => {
     (controller
-      ? SaveProfileForSharingWithControllerInformation(profile.Id, controller.GUID)
+      ? SaveProfileForSharingWithControllerInformation(profile.Id, controller.UniqueID)
       : SaveProfileForSharing(profile.Id)
     ).catch((err) => alert(String(err), "error"));
   };
@@ -201,7 +201,7 @@ export const MainTab = () => {
           />
         )}
         {controllers?.map((c) => (
-          <div key={c.GUID}>
+          <div key={c.UniqueID}>
             <MainTabControllerProfileSelector
               controller={c}
               profiles={profiles ?? []}

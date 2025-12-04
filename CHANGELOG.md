@@ -1,6 +1,16 @@
 
 # CHANGELOG
 
+## 1.4.0
+- Implement virtual controls
+- Cab Debugger can connect
+- Only show last 1000 logs by default
+- Fix raw events
+- Fix unique joystick IDs
+- Allow auto-selecting with only rail class information
+- Fix SDL events
+- Improvements to DLL mod for memory safety and performance
+
 ## 1.3.6
 - Fix bug when saving calibration files
 - Add way to select profile for all controllers

@@ -22,8 +22,6 @@ export function GetPreferredControlMode():Promise<string>;
 
 export function GetProfiles():Promise<Array<main.Interop_Profile>>;
 
-export function GetSelectedProfile():Promise<main.Interop_SelectedProfileInfo>;
-
 export function GetSelectedProfiles():Promise<Record<string, main.Interop_SelectedProfileInfo>>;
 
 export function GetSharedProfiles():Promise<Array<main.Interop_SharedProfile>>;
@@ -41,8 +39,6 @@ export function ImportProfile():Promise<void>;
 export function ImportSharedProfile(arg1:main.Interop_SharedProfile):Promise<void>;
 
 export function InstallTrainSimWorldMod():Promise<void>;
-
-export function LastRawEvent():Promise<main.Interop_RawEvent>;
 
 export function LoadConfiguration():Promise<void>;
 
@@ -77,6 +73,10 @@ export function SetTSWAPIKeyLocation(arg1:string):Promise<void>;
 export function SetTheme(arg1:string):Promise<void>;
 
 export function SubscribeRaw(arg1:string):Promise<void>;
+
+export function TypestubGetRawEvent():Promise<main.Interop_RawEvent>;
+
+export function TypestubGetSelectedProfile():Promise<main.Interop_SelectedProfileInfo>;
 
 export function UnsubscribeRaw():Promise<void>;
 

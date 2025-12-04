@@ -32,7 +32,7 @@ static STATE: Lazy<Arc<RwLock<DLLState>>> = Lazy::new(|| {
 pub extern "C" fn tsw_controller_mod_start() {
     println!("[socket_connection_lib][info] starting tsw_controller_mod");
 
-    let mut st = STATE.write().unwrap();
+    let mut st = STATE.write().unwrap_or_else(|poisoned| poisoned.into_inner());
     if st.rt.is_some() {
         return; // already running
     }
@@ -42,7 +42,7 @@ pub extern "C" fn tsw_controller_mod_start() {
 
     // create channels
     let (stop_tx, mut stop_rx) = mpsc::channel::<()>(1);
-    let (out_tx, mut out_rx) = mpsc::channel::<String>(50);
+    let (out_tx, mut out_rx) = mpsc::channel::<String>(64);
 
     let ws_url = "ws://127.0.0.1:63241".to_string();
     let state_clone = STATE.clone();
@@ -67,8 +67,8 @@ pub extern "C" fn tsw_controller_mod_start() {
                                 while let Some(Ok(msg)) = ws_read.next().await {
                                   match msg {
                                      tungstenite::Message::Text(text) => {
-                                       let guard = state_c.read().unwrap();
-                                      if let Some(cb) = guard.callback {
+                                        let guard = state_c.read().unwrap_or_else(|poisoned| poisoned.into_inner());
+                                        if let Some(cb) = guard.callback {
                                             if let Ok(cstr) = CString::new(text.to_string()) {
                                                 println!("[socket_connection_lib][info] received message from socket | {}", text);
                                                 cb(cstr.as_ptr());
@@ -127,7 +127,7 @@ pub extern "C" fn tsw_controller_mod_start() {
 /// Stop the module
 #[no_mangle]
 pub extern "C" fn tsw_controller_mod_stop() {
-    let mut st = STATE.write().unwrap();
+    let mut st = STATE.write().unwrap_or_else(|poisoned| poisoned.into_inner());
     if let Some(stop_tx) = st.stop_tx.take() {
         let _ = stop_tx.try_send(());
     }
@@ -137,7 +137,7 @@ pub extern "C" fn tsw_controller_mod_stop() {
 /// Register callback
 #[no_mangle]
 pub extern "C" fn tsw_controller_mod_set_receive_message_callback(cb: MessageCallback) {
-    let mut st = STATE.write().unwrap();
+    let mut st = STATE.write().unwrap_or_else(|poisoned| poisoned.into_inner());
     st.callback = Some(cb);
 }
 
@@ -150,7 +150,7 @@ pub extern "C" fn tsw_controller_mod_send_message(message: *const std::ffi::c_ch
 
     let cstr = unsafe { CStr::from_ptr(message) };
     if let Ok(msg) = cstr.to_str() {
-        let st = STATE.read().unwrap();
+        let st = STATE.read().unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some(tx) = &st.outgoing_tx {
           let message = msg.to_string();
             println!("[socket_connection_lib][info] sending message {}",message.clone());

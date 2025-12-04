@@ -84,9 +84,8 @@ type Remote_SharedProfilesIndex struct {
 }
 
 type AppRawSubscriber struct {
-	Channel   chan controller_mgr.ControllerManager_RawEvent
-	Cancel    func()
-	LastEvent *controller_mgr.ControllerManager_RawEvent
+	Channel chan controller_mgr.ControllerManager_RawEvent
+	Cancel  func()
 }
 
 type AppConfig_ProxySettings struct {
@@ -117,6 +116,15 @@ type App struct {
 	profile_runner     *profile_runner.ProfileRunner
 
 	raw_subscriber *AppRawSubscriber
+}
+
+/* these are just wails type stubs */
+func (a *App) TypestubGetSelectedProfile() *Interop_SelectedProfileInfo {
+	return nil
+}
+
+func (a *App) TypestubGetRawEvent() *Interop_RawEvent {
+	return nil
 }
 
 func NewApp(
@@ -378,26 +386,26 @@ func (a *App) LoadConfiguration() {
 
 func (a *App) GetControllers() []Interop_GenericController {
 	var controllers []Interop_GenericController
-	a.controller_manager.ConfiguredControllers.ForEach(func(c controller_mgr.ControllerManager_ConfiguredController, _ controller_mgr.JoystickGUIDString) bool {
+	a.controller_manager.ConfiguredControllers.ForEach(func(c controller_mgr.ControllerManager_ConfiguredController, _ controller_mgr.JoystickUniqueID) bool {
 		controllers = append(controllers, Interop_GenericController{
-			GUID:         c.Joystick.GUID,
-			UsbID:        c.Joystick.ToString(),
+			UniqueID:     c.Joystick.UniqueID(),
+			UsbID:        c.Joystick.UsbID(),
 			Name:         c.Joystick.Name,
 			IsConfigured: true,
 		})
 		return true
 	})
-	a.controller_manager.UnconfiguredControllers.ForEach(func(c controller_mgr.ControllerManager_UnconfiguredController, key controller_mgr.JoystickGUIDString) bool {
+	a.controller_manager.UnconfiguredControllers.ForEach(func(c controller_mgr.ControllerManager_UnconfiguredController, _ controller_mgr.JoystickUniqueID) bool {
 		controllers = append(controllers, Interop_GenericController{
-			GUID:         c.Joystick.GUID,
-			UsbID:        c.Joystick.ToString(),
+			UniqueID:     c.Joystick.UniqueID(),
+			UsbID:        c.Joystick.UsbID(),
 			Name:         c.Joystick.Name,
 			IsConfigured: false,
 		})
 		return true
 	})
 	sort.Slice(controllers, func(i, j int) bool {
-		return controllers[i].GUID < controllers[j].GUID
+		return controllers[i].Name < controllers[j].Name
 	})
 	return controllers
 }
@@ -444,15 +452,10 @@ func (a *App) GetProfiles() []Interop_Profile {
 	return profiles
 }
 
-/* this is just a type stub */
-func (a *App) GetSelectedProfile() *Interop_SelectedProfileInfo {
-	return nil
-}
-
-func (a *App) GetSelectedProfiles() map[controller_mgr.JoystickGUIDString]Interop_SelectedProfileInfo {
-	selected_profiles := map[controller_mgr.JoystickGUIDString]Interop_SelectedProfileInfo{}
-	a.profile_runner.Settings.GetSelectedProfiles().ForEach(func(value profile_runner.ProfileRunnerSettings_SelectedProfile, key controller_mgr.JoystickGUIDString) bool {
-		selected_profiles[key] = Interop_SelectedProfileInfo{
+func (a *App) GetSelectedProfiles() map[controller_mgr.JoystickUniqueID]Interop_SelectedProfileInfo {
+	selected_profiles := map[controller_mgr.JoystickUniqueID]Interop_SelectedProfileInfo{}
+	a.profile_runner.Settings.GetSelectedProfiles().ForEach(func(value profile_runner.ProfileRunnerSettings_SelectedProfile, unique_id controller_mgr.JoystickUniqueID) bool {
+		selected_profiles[unique_id] = Interop_SelectedProfileInfo{
 			Id:   value.Profile.Id(),
 			Name: value.Profile.Name,
 		}
@@ -461,16 +464,16 @@ func (a *App) GetSelectedProfiles() map[controller_mgr.JoystickGUIDString]Intero
 	return selected_profiles
 }
 
-func (a *App) GetControllerConfiguration(guid controller_mgr.JoystickGUIDString) *Interop_ControllerConfiguration {
-	if controller, has_controller := a.controller_manager.ConfiguredControllers.Get(guid); has_controller {
+func (a *App) GetControllerConfiguration(unique_id controller_mgr.JoystickUniqueID) *Interop_ControllerConfiguration {
+	if controller, has_controller := a.controller_manager.ConfiguredControllers.Get(unique_id); has_controller {
 		/* when configured the SDL map and calibration always exist */
-		sdl_mapping, _ := controller.Manager.Config.SDLMappingsByUsbID.Get(controller.Joystick.ToString())
+		sdl_mapping, _ := controller.Manager.Config.SDLMappingsByUsbID.Get(controller.Joystick.UsbID())
 		interop_calibration := Interop_ControllerCalibration{
 			Name:     sdl_mapping.Name,
 			UsbId:    sdl_mapping.UsbID,
 			Controls: []Interop_ControllerCalibration_Control{},
 		}
-		controller.Controls.ForEach(func(control controller_mgr.ControllerManager_Controller_Control, key string) bool {
+		controller.Controls.ForEach(func(control controller_mgr.ControllerManager_Controller_JoyControl, key string) bool {
 			calibration := Interop_ControllerCalibration_Control{
 				Kind:        control.SDLMapping.Kind,
 				Index:       control.SDLMapping.Index,
@@ -582,51 +585,16 @@ func (a *App) GetSharedProfiles() []Interop_SharedProfile {
 	return profiles
 }
 
-func (a *App) SelectProfile(guid controller_mgr.JoystickGUIDString, id string) error {
-	if err := a.profile_runner.SetProfile(guid, id); err != nil {
+func (a *App) SelectProfile(unique_id controller_mgr.JoystickUniqueID, id string) error {
+	if err := a.profile_runner.SetProfile(unique_id, id); err != nil {
 		logger.Logger.Error("failed to select profile by ID", "id", id, "error", err)
 		return err
 	}
 	return nil
 }
 
-func (a *App) ClearProfile(guid controller_mgr.JoystickGUIDString) {
-	a.profile_runner.ClearProfile(guid)
-}
-
-func (a *App) LastRawEvent() *Interop_RawEvent {
-	if a.raw_subscriber != nil {
-		switch e := a.raw_subscriber.LastEvent.Event.(type) {
-		case *sdl.JoyAxisEvent:
-			return &Interop_RawEvent{
-				GUID:      a.raw_subscriber.LastEvent.Joystick.GUID,
-				UsbID:     a.raw_subscriber.LastEvent.Joystick.ToString(),
-				Kind:      sdl_mgr.SDLMgr_Control_Kind_Axis,
-				Index:     int(e.Axis),
-				Value:     float64(e.Value),
-				Timestamp: int(e.Timestamp),
-			}
-		case *sdl.JoyButtonEvent:
-			return &Interop_RawEvent{
-				GUID:      a.raw_subscriber.LastEvent.Joystick.GUID,
-				UsbID:     a.raw_subscriber.LastEvent.Joystick.ToString(),
-				Kind:      sdl_mgr.SDLMgr_Control_Kind_Button,
-				Index:     int(e.Button),
-				Value:     float64(e.State),
-				Timestamp: int(e.Timestamp),
-			}
-		case *sdl.JoyHatEvent:
-			return &Interop_RawEvent{
-				GUID:      a.raw_subscriber.LastEvent.Joystick.GUID,
-				UsbID:     a.raw_subscriber.LastEvent.Joystick.ToString(),
-				Kind:      sdl_mgr.SDLMgr_Control_Kind_Hat,
-				Index:     int(e.Hat),
-				Value:     float64(e.Value),
-				Timestamp: int(e.Timestamp),
-			}
-		}
-	}
-	return nil
+func (a *App) ClearProfile(unique_id controller_mgr.JoystickUniqueID) {
+	a.profile_runner.ClearProfile(unique_id)
 }
 
 func (a *App) UnsubscribeRaw() {
@@ -636,16 +604,16 @@ func (a *App) UnsubscribeRaw() {
 	}
 }
 
-func (a *App) SubscribeRaw(guid string) error {
+func (a *App) SubscribeRaw(unique_id controller_mgr.JoystickUniqueID) error {
 	if a.raw_subscriber != nil {
 		logger.Logger.Error("already listening")
 		return fmt.Errorf("already listening")
 	}
 
 	var joystick *sdl_mgr.SDLMgr_Joystick
-	if j, has_unconfigured_joystick := a.controller_manager.UnconfiguredControllers.Get(guid); has_unconfigured_joystick {
+	if j, has_unconfigured_joystick := a.controller_manager.UnconfiguredControllers.Get(unique_id); has_unconfigured_joystick {
 		joystick = j.Joystick
-	} else if j, has_configured_joystick := a.controller_manager.ConfiguredControllers.Get(guid); has_configured_joystick {
+	} else if j, has_configured_joystick := a.controller_manager.ConfiguredControllers.Get(unique_id); has_configured_joystick {
 		joystick = j.Joystick
 	}
 
@@ -661,11 +629,27 @@ func (a *App) SubscribeRaw(guid string) error {
 	}
 	go func() {
 		for e := range channel {
-			if e.Joystick.GUID == joystick.GUID {
-				raw_subscriber.LastEvent = &e
-				if event := a.LastRawEvent(); event != nil {
-					runtime.EventsEmit(a.ctx, AppEventType_RawEvent, event)
+			if e.Joystick.UniqueID() == joystick.UniqueID() {
+				raw_event := Interop_RawEvent{
+					UniqueID:  joystick.UniqueID(),
+					UsbID:     joystick.UsbID(),
+					Timestamp: int(e.Event.GetTimestamp()),
 				}
+				switch event := e.Event.(type) {
+				case *sdl.JoyAxisEvent:
+					raw_event.Kind = sdl_mgr.SDLMgr_Control_Kind_Axis
+					raw_event.Index = int(event.Axis)
+					raw_event.Value = float64(event.Value)
+				case *sdl.JoyButtonEvent:
+					raw_event.Kind = sdl_mgr.SDLMgr_Control_Kind_Button
+					raw_event.Index = int(event.Button)
+					raw_event.Value = float64(event.State)
+				case *sdl.JoyHatEvent:
+					raw_event.Kind = sdl_mgr.SDLMgr_Control_Kind_Hat
+					raw_event.Index = int(event.Hat)
+					raw_event.Value = float64(event.Value)
+				}
+				go runtime.EventsEmit(a.ctx, AppEventType_RawEvent, raw_event)
 			}
 		}
 	}()
@@ -710,14 +694,14 @@ func (a *App) SaveProfileForSharing(id string) error {
 	}
 }
 
-func (a *App) SaveProfileForSharingWithControllerInformation(id string, guid controller_mgr.JoystickGUIDString) error {
+func (a *App) SaveProfileForSharingWithControllerInformation(id string, unique_id controller_mgr.JoystickUniqueID) error {
 	if profile, has_profile := a.profile_runner.Profiles.Get(id); has_profile {
-		controller, has_controller := a.controller_manager.ConfiguredControllers.Get(guid)
+		controller, has_controller := a.controller_manager.ConfiguredControllers.Get(unique_id)
 		if !has_controller {
 			return fmt.Errorf("could not find controller")
 		}
 
-		usb_id := controller.Joystick.ToString()
+		usb_id := controller.Joystick.UsbID()
 		profile_for_sharing := config.Config_Controller_Profile{
 			/*
 				this copy omits extends and the internal metadata since it's not appropriate for sharing,
@@ -741,7 +725,7 @@ func (a *App) SaveProfileForSharingWithControllerInformation(id string, guid con
 				UsbID: usb_id,
 				Data:  []config.Config_Controller_SDLMap_Control{},
 			}
-			controller.Controls.ForEach(func(value controller_mgr.ControllerManager_Controller_Control, key string) bool {
+			controller.Controls.ForEach(func(value controller_mgr.ControllerManager_Controller_JoyControl, key string) bool {
 				mapping.Data = append(mapping.Data, value.SDLMapping)
 				return true
 			})

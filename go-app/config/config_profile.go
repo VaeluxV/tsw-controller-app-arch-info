@@ -31,6 +31,12 @@ type Config_Controller_Profile_Control_Assignment_Action_Keys struct {
 	WaitTime  *float64 `json:"wait_time,omitempty"`
 }
 
+type Config_Controller_Profile_Control_Assignment_Action_Virtual struct {
+	Type    string  `json:"type" validate:"oneof=virtual"`
+	Control string  `json:"control" validate:"required,startswith=virtual:"`
+	Value   float64 `json:"value"`
+}
+
 type Config_Controller_Profile_Control_Assignment_Action_DirectControl struct {
 	Controls string  `json:"controls" validate:"required"`
 	Value    float64 `json:"value"`
@@ -49,6 +55,7 @@ type Config_Controller_Profile_Control_Assignment_Action_ApiControl struct {
 
 type Config_Controller_Profile_Control_Assignment_Action struct {
 	Keys          *Config_Controller_Profile_Control_Assignment_Action_Keys          `json:"-"`
+	Virtual       *Config_Controller_Profile_Control_Assignment_Action_Virtual       `json:"-"`
 	DirectControl *Config_Controller_Profile_Control_Assignment_Action_DirectControl `json:"-"`
 	ApiControl    *Config_Controller_Profile_Control_Assignment_Action_ApiControl    `json:"-"`
 }
@@ -184,6 +191,7 @@ type Config_Controller_Profile struct {
 
 func (c *Config_Controller_Profile_Control_Assignment_Action) UnmarshalJSON(data []byte) error {
 	var peek struct {
+		Type     *string  `json:"type,omitempty"`
 		Controls *string  `json:"controls,omitempty"`
 		ApiValue *float64 `json:"api_value,omitempty"`
 	}
@@ -192,6 +200,18 @@ func (c *Config_Controller_Profile_Control_Assignment_Action) UnmarshalJSON(data
 	}
 
 	v := validator.New()
+
+	if peek.Type != nil && *peek.Type == "virtual" {
+		var virtual_action Config_Controller_Profile_Control_Assignment_Action_Virtual
+		if err := json.Unmarshal(data, &virtual_action); err != nil {
+			return err
+		}
+		if err := v.Struct(virtual_action); err != nil {
+			return err
+		}
+		c.Virtual = &virtual_action
+		return nil
+	}
 
 	/* if api value is defined; try to unmarshall as API control action */
 	if peek.ApiValue != nil {
@@ -232,6 +252,9 @@ func (c *Config_Controller_Profile_Control_Assignment_Action) UnmarshalJSON(data
 }
 
 func (c Config_Controller_Profile_Control_Assignment_Action) MarshalJSON() ([]byte, error) {
+	if c.Virtual != nil {
+		return json.Marshal(c.Virtual)
+	}
 	if c.DirectControl != nil {
 		return json.Marshal(c.DirectControl)
 	}

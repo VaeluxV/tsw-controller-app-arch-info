@@ -38,7 +38,7 @@ export function MainTabControllerProfileSelector({
   onDeleteProfileForController,
 }: Props) {
   const { watch, control } = form;
-  const selectedProfile = watch(`profiles.${controller.GUID}`);
+  const selectedProfile = watch(`profiles.${controller.UniqueID}`);
   const supportedProfiles = useMemo(
     () =>
       profiles?.filter(
@@ -57,7 +57,7 @@ export function MainTabControllerProfileSelector({
   return (
     <fieldset className="fieldset w-full">
       <label
-        htmlFor={`controller_${controller.GUID}`}
+        htmlFor={`controller_${controller.UniqueID}`}
         className="fieldset-legend"
       >
         {controller.Name} ({controller.UsbID})
@@ -66,11 +66,11 @@ export function MainTabControllerProfileSelector({
       <div className="flex flex-row gap-2 items-center">
         <Controller
           control={control}
-          name={`profiles.${controller.GUID}`}
+          name={`profiles.${controller.UniqueID}`}
           render={({ field }) => (
             <div className="grow dropdown dropdown-start">
               <button
-                id={`controller_${controller.GUID}`}
+                id={`controller_${controller.UniqueID}`}
                 tabIndex={0}
                 role="button"
                 className="select w-full"

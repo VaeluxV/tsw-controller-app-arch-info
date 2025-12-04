@@ -130,6 +130,34 @@
                                     "controls",
                                     "api_value"
                                   ]
+                                },
+                                {
+                                  "type": "object",
+                                  "title": "Virtual Action",
+                                  "description": "A virtual control action",
+                                  "properties": {
+                                    "type": {
+                                      "enum": [
+                                        "virtual"
+                                      ]
+                                    },
+                                    "control": {
+                                      "type": "string",
+                                      "description": "The name of the virtual control to update. Should start with 'virtual:' for clear segmentation",
+                                      "examples": [
+                                        "virtual:Button1"
+                                      ],
+                                      "pattern": "^virtual:"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "control",
+                                    "value"
+                                  ]
                                 }
                               ]
                             },
@@ -216,6 +244,34 @@
                                   "required": [
                                     "controls",
                                     "api_value"
+                                  ]
+                                },
+                                {
+                                  "type": "object",
+                                  "title": "Virtual Action",
+                                  "description": "A virtual control action",
+                                  "properties": {
+                                    "type": {
+                                      "enum": [
+                                        "virtual"
+                                      ]
+                                    },
+                                    "control": {
+                                      "type": "string",
+                                      "description": "The name of the virtual control to update. Should start with 'virtual:' for clear segmentation",
+                                      "examples": [
+                                        "virtual:Button1"
+                                      ],
+                                      "pattern": "^virtual:"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "control",
+                                    "value"
                                   ]
                                 }
                               ]
@@ -363,6 +419,34 @@
                                     "controls",
                                     "api_value"
                                   ]
+                                },
+                                {
+                                  "type": "object",
+                                  "title": "Virtual Action",
+                                  "description": "A virtual control action",
+                                  "properties": {
+                                    "type": {
+                                      "enum": [
+                                        "virtual"
+                                      ]
+                                    },
+                                    "control": {
+                                      "type": "string",
+                                      "description": "The name of the virtual control to update. Should start with 'virtual:' for clear segmentation",
+                                      "examples": [
+                                        "virtual:Button1"
+                                      ],
+                                      "pattern": "^virtual:"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "control",
+                                    "value"
+                                  ]
                                 }
                               ]
                             },
@@ -449,6 +533,34 @@
                                   "required": [
                                     "controls",
                                     "api_value"
+                                  ]
+                                },
+                                {
+                                  "type": "object",
+                                  "title": "Virtual Action",
+                                  "description": "A virtual control action",
+                                  "properties": {
+                                    "type": {
+                                      "enum": [
+                                        "virtual"
+                                      ]
+                                    },
+                                    "control": {
+                                      "type": "string",
+                                      "description": "The name of the virtual control to update. Should start with 'virtual:' for clear segmentation",
+                                      "examples": [
+                                        "virtual:Button1"
+                                      ],
+                                      "pattern": "^virtual:"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "control",
+                                    "value"
                                   ]
                                 }
                               ]
@@ -614,6 +726,34 @@
                                           "controls",
                                           "api_value"
                                         ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "title": "Virtual Action",
+                                        "description": "A virtual control action",
+                                        "properties": {
+                                          "type": {
+                                            "enum": [
+                                              "virtual"
+                                            ]
+                                          },
+                                          "control": {
+                                            "type": "string",
+                                            "description": "The name of the virtual control to update. Should start with 'virtual:' for clear segmentation",
+                                            "examples": [
+                                              "virtual:Button1"
+                                            ],
+                                            "pattern": "^virtual:"
+                                          },
+                                          "value": {
+                                            "type": "number"
+                                          }
+                                        },
+                                        "required": [
+                                          "type",
+                                          "control",
+                                          "value"
+                                        ]
                                       }
                                     ]
                                   },
@@ -700,6 +840,34 @@
                                         "required": [
                                           "controls",
                                           "api_value"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "title": "Virtual Action",
+                                        "description": "A virtual control action",
+                                        "properties": {
+                                          "type": {
+                                            "enum": [
+                                              "virtual"
+                                            ]
+                                          },
+                                          "control": {
+                                            "type": "string",
+                                            "description": "The name of the virtual control to update. Should start with 'virtual:' for clear segmentation",
+                                            "examples": [
+                                              "virtual:Button1"
+                                            ],
+                                            "pattern": "^virtual:"
+                                          },
+                                          "value": {
+                                            "type": "number"
+                                          }
+                                        },
+                                        "required": [
+                                          "type",
+                                          "control",
+                                          "value"
                                         ]
                                       }
                                     ]
