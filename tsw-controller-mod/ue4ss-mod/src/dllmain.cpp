@@ -108,11 +108,10 @@ struct GameplayStatistics_GetPlayerControllerParams
 class TSWControllerMod : public RC::CppUserModBase
 {
   private:
-    static inline std::shared_mutex CURRENT_DRIVABLE_ACTOR_CLASS_NAME_MUTEX;
     static inline RC::StringType CURRENT_DRIVABLE_ACTOR_CLASS_NAME = STR("");
 
-    /* map of control names and their target value and flags */
     static inline std::shared_mutex DIRECT_CONTROL_TARGET_STATE_MUTEX;
+    /* map of control names and their target value and flags */
     static inline std::unordered_map<RC::StringType, std::tuple<float, std::vector<RC::StringType>>> DIRECT_CONTROL_TARGET_STATE;
 
     static bool is_within_margin_of_error(float current, float target)
@@ -284,12 +283,14 @@ class TSWControllerMod : public RC::CppUserModBase
 
     static void on_process_event_pre_callback(Unreal::UObject* context, Unreal::UFunction* function, void* params)
     {
-        static auto NAME_Tick = Unreal::FName(STR("Tick"));
+        static auto NAME_Tick = Unreal::FName(STR("PlayerTick"));
         if (function->GetNamePrivate() != NAME_Tick)
         {
             /* only run on ticks to prevent clogging*/
             return;
         }
+
+        std::shared_lock<std::shared_mutex> direct_control_queue_lock(TSWControllerMod::DIRECT_CONTROL_TARGET_STATE_MUTEX);
 
         /* skip if no controller, pawn or drivable */
         Unreal::UObject* controller = TSWControllerMod::get_player_controller_from(context);
@@ -308,8 +309,9 @@ class TSWControllerMod : public RC::CppUserModBase
         if (!drivable_actor_result.DrivableActor) {
             return;
         }
+        Unreal::UFunction* find_virtual_hid_component_func = drivable_actor_result.DrivableActor->GetFunctionByNameInChain(STR("FindVirtualHIDComponent"));
+        if (!find_virtual_hid_component_func) return;
 
-        std::shared_lock<std::shared_mutex> drivable_actor_name_lock(TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME_MUTEX);
         auto drivable_actor_name = drivable_actor_result.DrivableActor->GetClassPrivate()->GetName();
         if (TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME != drivable_actor_name) {
             TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME = drivable_actor_name;
@@ -317,12 +319,7 @@ class TSWControllerMod : public RC::CppUserModBase
             Output::send<LogLevel::Default>(STR("[TSWControllerMod] sending current drivable actor information {}\n"), message);
             tsw_controller_mod_send_message((char*)std::string(message.begin(), message.end()).c_str());
         }
-        drivable_actor_name_lock.unlock();
 
-        Unreal::UFunction* find_virtual_hid_component_func = drivable_actor_result.DrivableActor->GetFunctionByNameInChain(STR("FindVirtualHIDComponent"));
-        if (!find_virtual_hid_component_func) return;
-
-        std::shared_lock<std::shared_mutex> direct_control_queue_lock(TSWControllerMod::DIRECT_CONTROL_TARGET_STATE_MUTEX);
         for (const auto& control_pair : TSWControllerMod::DIRECT_CONTROL_TARGET_STATE)
         {
             RC::StringType control_name = TSWControllerMod::format_direct_control_name(pawn, control_pair.first);
