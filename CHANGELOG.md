@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## 1.4.1
+- Fixes auto-selection
+- Fixes virtual conditions
+
 ## 1.4.0
 - Implement virtual controls
 - Cab Debugger can connect
