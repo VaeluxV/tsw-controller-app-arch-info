@@ -1,6 +1,9 @@
 
 # CHANGELOG
 
+## v1.4.2
+- Fix virtual toggle
+
 ## 1.4.1
 - Fixes auto-selection
 - Fixes virtual conditions

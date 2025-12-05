@@ -112,7 +112,7 @@ func (cd *CabDebugger) Start(ctx context.Context) {
 	go func() {
 		socket_channel, unsubscribe_socket_channel := cd.Connector.Subscribe()
 		ticker := time.NewTicker(333 * time.Millisecond)
-		slow_ticker := time.NewTicker(time.Second)
+		slow_ticker := time.NewTicker(2 * time.Second)
 		for {
 			tick_channel := ticker.C
 			if !cd.TSWAPI.CanConnect() {

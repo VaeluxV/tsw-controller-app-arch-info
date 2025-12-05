@@ -109,17 +109,20 @@ func New(
 	}
 }
 
-func (pc *ProfileRunnerAssignmentCall) ToString() string {
-	if pc.ActionSequencerAction != nil {
-		return pc.ActionSequencerAction.Keys
+func (pc *ProfileRunnerAssignmentCall) IsSameAction(other *ProfileRunnerAssignmentCall) bool {
+	if pc.ActionSequencerAction != nil && other.ActionSequencerAction != nil {
+		return pc.ActionSequencerAction.Keys == other.ActionSequencerAction.Keys
 	}
-	if pc.DirectControlCommand != nil {
-		return pc.DirectControlCommand.ToSocketMessage().ToString()
+	if pc.VirtualAction != nil && other.VirtualAction != nil {
+		return pc.VirtualAction.Control == other.VirtualAction.Control && pc.VirtualAction.Value == other.VirtualAction.Value
 	}
-	if pc.ApiControlCommand != nil {
-		return pc.ApiControlCommand.ToString()
+	if pc.DirectControlCommand != nil && other.DirectControlCommand != nil {
+		return pc.DirectControlCommand.ToSocketMessage().ToString() == other.DirectControlCommand.ToSocketMessage().ToString()
 	}
-	return ""
+	if pc.ApiControlCommand != nil && other.ApiControlCommand != nil {
+		return pc.ApiControlCommand.Controls == other.ApiControlCommand.Controls && pc.ApiControlCommand.InputValue == other.ApiControlCommand.InputValue
+	}
+	return false
 }
 
 func (p *ProfileRunner) getSelectedProfileForJoystick(joystick sdl_mgr.SDLMgr_Joystick) (ProfileRunnerSettings_SelectedProfile, bool) {
@@ -633,7 +636,7 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 						if change_event.ControlState.NormalizedValues.Value >= control_assignment_item.Toggle.Threshold {
 							// call if there was no prior call or if the prior call was not this threshold
 							action_to_call := p.AssignmentActionToAssignmentCall(change_event.ControlState, control_assignment_item.Toggle.ActionActivate, false)
-							if previous_assignment_call != nil && previous_assignment_call.ToString() == action_to_call.ToString() {
+							if previous_assignment_call != nil && action_to_call.IsSameAction(previous_assignment_call) {
 								/* if the previous call is the same as the activation call -> toggle to deactivation action */
 								action_to_call = p.AssignmentActionToAssignmentCall(change_event.ControlState, control_assignment_item.Toggle.ActionDeactivate, false)
 							}
