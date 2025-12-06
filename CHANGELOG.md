@@ -1,6 +1,9 @@
 
 # CHANGELOG
 
+## v1.5.0
+- Add axis easing to calibration dialog
+
 ## v1.4.2
 - Fix virtual toggle
 
