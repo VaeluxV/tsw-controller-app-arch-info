@@ -65,7 +65,7 @@ export const CalibrationModalForm = ({ controller, onClose }: Props) => {
         SaveCalibration(data)
           .then(() => LoadConfiguration())
           .catch((err) => {
-            alert(String(err), 'error');
+            alert(String(err), "error");
           })
           .finally(() => {
             setIsRunning(false);
@@ -111,6 +111,7 @@ export const CalibrationModalForm = ({ controller, onClose }: Props) => {
             <input
               type="text"
               className="grow"
+              disabled={!isRunning}
               {...form.register(`name`, { required: true })}
             />
           </label>
@@ -123,12 +124,13 @@ export const CalibrationModalForm = ({ controller, onClose }: Props) => {
                 form={form}
                 index={index}
                 field={control}
+                isRunning={isRunning}
               />
             </div>
           ))}
         </div>
       </div>
-      <div className="modal-action">
+      <div className="modal-action sticky bottom-0 bg-base-100">
         <button className="btn btn-sm" onClick={handleCancel}>
           Cancel
         </button>
