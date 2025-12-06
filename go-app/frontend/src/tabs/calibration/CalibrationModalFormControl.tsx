@@ -1,10 +1,11 @@
 import "react-bezier-curve-editor/index.css";
+import { easings } from 'animejs';
 import { BezierCurveEditor, ValueType } from "react-bezier-curve-editor";
 import {
   CalibrationStateControl,
   UseCalibrationFormType,
 } from "./useCalibrationForm";
-import { CSSProperties, useRef } from "react";
+import { CSSProperties, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Controller } from "react-hook-form";
 
@@ -12,11 +13,29 @@ type Props = {
   form: UseCalibrationFormType;
   index: number;
   field: CalibrationStateControl;
-  isRunning: boolean
+  isRunning: boolean;
 };
 
-export const CalibrationModalFormControl = ({ form, index, field, isRunning }: Props) => {
+export const CalibrationModalFormControl = ({
+  form,
+  index,
+  field,
+  isRunning,
+}: Props) => {
   const curveDialogRef = useRef<HTMLDialogElement | null>(null);
+  const normalAxisValue = useMemo(() => {
+    const ease = easings.cubicBezier(...field.easingCurve)
+
+    if (!field.invert) {
+      return ease(
+        (field.value + Math.abs(field.min)) / (Math.abs(field.min) + field.max)
+      );
+    }
+    return ease(
+      (Math.abs(field.min) + field.max - (field.value + Math.abs(field.min))) /
+      (Math.abs(field.min) + field.max)
+    );
+  }, [field]);
 
   const handleEditAxisCurve = () => {
     curveDialogRef.current?.showModal();
@@ -40,24 +59,11 @@ export const CalibrationModalFormControl = ({ form, index, field, isRunning }: P
             </div>
             {field.kind === "axis" && (
               <div>
-                {field.invert && (
-                  <progress
-                    className="progress progress-primary w-full"
-                    value={
-                      Math.abs(field.min) +
-                      field.max -
-                      (field.value + Math.abs(field.min))
-                    }
-                    max={Math.abs(field.min) + field.max}
-                  ></progress>
-                )}
-                {!field.invert && (
-                  <progress
-                    className="progress progress-primary w-full"
-                    value={field.value + Math.abs(field.min)}
-                    max={Math.abs(field.min) + field.max}
-                  ></progress>
-                )}
+                <progress
+                  className="progress progress-primary w-full"
+                  value={normalAxisValue}
+                  max={1}
+                ></progress>
               </div>
             )}
             <div className="grid grid-cols-2 grid-flow-row auto-rows-max gap-2">
@@ -171,9 +177,7 @@ export const CalibrationModalFormControl = ({ form, index, field, isRunning }: P
               </button>
             </form>
             <div className="flex flex-col gap-4">
-              <h3 className="font-bold text-sm">
-                Editing {field.name} curve
-              </h3>
+              <h3 className="font-bold text-sm">Editing {field.name} curve</h3>
               <div
                 style={
                   {
