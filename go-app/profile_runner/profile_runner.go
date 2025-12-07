@@ -666,7 +666,7 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 						if control_assignment_item.DirectControl.Hold != nil && *control_assignment_item.DirectControl.Hold {
 							flags = append(flags, "hold")
 						}
-						if control_assignment_item.DirectControl.UseNormalized != nil && *control_assignment_item.DirectControl.UseNormalized {
+						if control_assignment_item.DirectControl.Notify != nil && *control_assignment_item.DirectControl.Notify {
 							flags = append(flags, "notify")
 						}
 						if control_assignment_item.DirectControl.UseNormalized != nil && *control_assignment_item.DirectControl.UseNormalized {
