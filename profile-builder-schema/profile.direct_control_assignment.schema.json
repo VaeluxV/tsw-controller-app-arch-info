@@ -18,6 +18,10 @@
       "type": "boolean",
       "description": "Whether to use the normalized value instead of the non-normalized value"
     },
+    "notify": {
+      "type": "boolean",
+      "description": "Enables showing the in-game notification when changing values"
+    },
     "input_value": {
       "type": "object",
       "properties": {
