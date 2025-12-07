@@ -388,6 +388,9 @@ func (p *ProfileRunner) AssignmentActionToAssignmentCall(
 		if action.DirectControl.UseNormalized != nil && *action.DirectControl.UseNormalized {
 			flags = append(flags, "normalized")
 		}
+		if action.DirectControl.Notify != nil && *action.DirectControl.Notify {
+			flags = append(flags, "notify")
+		}
 
 		return &ProfileRunnerAssignmentCall{
 			ControlState:          control_state,
@@ -662,6 +665,12 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 						flags := []string{}
 						if control_assignment_item.DirectControl.Hold != nil && *control_assignment_item.DirectControl.Hold {
 							flags = append(flags, "hold")
+						}
+						if control_assignment_item.DirectControl.Notify != nil && *control_assignment_item.DirectControl.Notify {
+							flags = append(flags, "notify")
+						}
+						if control_assignment_item.DirectControl.UseNormalized != nil && *control_assignment_item.DirectControl.UseNormalized {
+							flags = append(flags, "normalized")
 						}
 						p.CallAssignmentActionForControl(control_name, assignment_index, change_event.Controller, change_event.ControlState, control_assignment_item, &ProfileRunnerAssignmentCall{
 							ControlState:          change_event.ControlState,

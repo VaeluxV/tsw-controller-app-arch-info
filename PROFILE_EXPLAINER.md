@@ -6,7 +6,7 @@ This document describes the structure and semantics of the configuration system 
 
 ## 📦 Overview
 
-Each control on a game controller can be assigned an **action**. Assignments describe *when* and *how* the actions are triggered based on the input. Actions describe *what* happens when triggered.
+Each control on a game controller can be assigned an **action**. Assignments describe _when_ and _how_ the actions are triggered based on the input. Actions describe _what_ happens when triggered.
 
 All assignments conform to a top-level enum `ControllerProfileControlAssignment`, which contains the following variants:
 
@@ -24,6 +24,7 @@ Each assignment type has a specific use case and behavior, described below.
 ## 🧩 Assignment Types
 
 ### 🔘 Momentary
+
 Used for buttons that act while held.
 
 ```json
@@ -40,6 +41,7 @@ Used for buttons that act while held.
 - Ideal for **press-and-hold** style controls.
 
 ### 🔁 Toggle
+
 Used for toggle switches that alternate between two states.
 
 ```json
@@ -56,6 +58,7 @@ Used for toggle switches that alternate between two states.
 - Useful for switches like headlights, engine start, etc.
 
 ### 📈 Linear
+
 Used for analog levers or sliders with multiple threshold points.
 
 ```json
@@ -72,6 +75,7 @@ Used for analog levers or sliders with multiple threshold points.
 - Ideal for **brake levers**, **throttles**, etc.
 
 ### 🎚️ DirectControl
+
 Maps an analog controller input to a continuous value in-game.
 
 ```json
@@ -83,7 +87,7 @@ Maps an analog controller input to a continuous value in-game.
     "max": 1.0,
     "invert": true
   },
-  "hold": true
+  "notify": true
 }
 ```
 
@@ -92,7 +96,15 @@ Maps an analog controller input to a continuous value in-game.
 - Supports `step` or `steps` to quantize values.
 - Can be used with the `{SIDE}` placeholder to automatically select the correct side of the cab. This is specifically for controls named `Throttle_F` or `Throttle_B` where the `F` and `B` mark the side of the cab.
 
+#### Options
+
+| Name     | Description                                                                                                                           |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `hold`   | Whether to continuously hold this value. Useful for levers which automatically reset. (such as the Tube Deadman or some brake levers) |
+| `notify` | Whether to enable the in-game notifier when changing values to display the current value                                              |
+
 ### 🧭 SyncControl
+
 A safer alternative to `DirectControl` for unstable locos.
 
 ```json
@@ -113,6 +125,7 @@ A safer alternative to `DirectControl` for unstable locos.
 - Ideal for **syncing with controls that don’t respond well to direct manipulation**.
 
 ### 🎚️ ApiControl
+
 Maps an analog controller input to a continuous value in-game using the HTTP API.
 
 ```json
@@ -138,6 +151,7 @@ Maps an analog controller input to a continuous value in-game using the HTTP API
 Each assignment triggers an action when activated (and optionally when deactivated). Actions can be:
 
 ### 🖱️ Key Presses
+
 ```json
 {
   "keys": "W",
@@ -145,10 +159,12 @@ Each assignment triggers an action when activated (and optionally when deactivat
   "wait_time": 0.05
 }
 ```
+
 - Simulates a key press.
 - Optional timing controls for holding and releasing.
 
 ### 🎛️ Direct Control Action
+
 ```json
 {
   "controls": "Throttle1",
@@ -157,17 +173,20 @@ Each assignment triggers an action when activated (and optionally when deactivat
   "relative": false
 }
 ```
+
 - Sends a value directly to a UE4SS control.
 - Can be held or pulsed.
 - Can be defined as a relative value (instead of sending the absolute value)
 
 ### 🎛️ Api Control Action
+
 ```json
 {
   "controls": "Throttle1",
   "api_value": 0.5
 }
 ```
+
 - Sends a value directly to a control using the HTTP API.
 
 ---
@@ -194,8 +213,10 @@ Used by `DirectControl`, `SyncControl` and `ApiControl` to map axis input to con
 ---
 
 ## 🔁 Conditional assignments
+
 It is also possible to only execute assignments depending on one or more conditions. This can be used to create multi-key assignments. (eg: the action of a button changes depending on the position of a lever).
 This can be added to any assignment using the `conditions` key:
+
 ```
 {
   "type": "momentary",
@@ -208,10 +229,10 @@ This can be added to any assignment using the `conditions` key:
   ]
 }
 ```
+
 In the above example, the assignment will only execute if `mylever` exceeds 0.5. At this time the supported operators are `gte`, `lte`, `gt` and `lt`.
 
 ---
-
 
 ## ✅ Best Practices
 
@@ -225,6 +246,7 @@ In the above example, the assignment will only execute if `mylever` exceeds 0.5.
 ---
 
 ## 📝 Example Full Assignment
+
 ```json
 {
   "type": "momentary",
@@ -241,4 +263,3 @@ In the above example, the assignment will only execute if `mylever` exceeds 0.5.
 ---
 
 Happy simming! 🚂
-

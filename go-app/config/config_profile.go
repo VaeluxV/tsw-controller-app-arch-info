@@ -46,6 +46,8 @@ type Config_Controller_Profile_Control_Assignment_Action_DirectControl struct {
 	Hold *bool `json:"hold,omitempty"`
 	/* whether to apply raw or normalized values */
 	UseNormalized *bool `json:"use_normalized,omitempty"`
+	/* whether to notify the game for value changes */
+	Notify *bool `json:"notify,omitempty"`
 }
 
 type Config_Controller_Profile_Control_Assignment_Action_ApiControl struct {
@@ -120,12 +122,13 @@ type Config_Controller_Profile_Control_Assignment_DirectControl struct {
 	Config_Controller_Profile_Control_Assignment_Shared
 	Type string `json:"type" validate:"required,eq=direct_control"`
 	/* the HID control component as per the UE4SS API */
-	Controls string `json:"controls" validate:"required"`
+	Controls   string                                                             `json:"controls" validate:"required"`
+	InputValue Config_Controller_Profile_Control_Assignment_DirectLike_InputValue `json:"input_value" validate:"required"`
 	/* will hold the control in changing */
 	Hold *bool `json:"hold,omitempty"`
 	/* whether to apply raw or normalized values */
-	UseNormalized *bool                                                              `json:"use_normalized,omitempty"`
-	InputValue    Config_Controller_Profile_Control_Assignment_DirectLike_InputValue `json:"input_value" validate:"required"`
+	UseNormalized *bool `json:"use_normalized,omitempty"`
+	Notify        *bool `json:"notify,omitempty"`
 }
 
 type Config_Controller_Profile_Control_Assignment_ApiControl struct {
