@@ -278,13 +278,8 @@ class TSWControllerMod : public RC::CppUserModBase
             return;
         }
         Unreal::UFunction* find_virtual_hid_component_func = drivable_actor_result.DrivableActor->GetFunctionByNameInChain(STR("FindVirtualHIDComponent"));
-<<<<<<< Updated upstream
         Unreal::UFunction* notify_begin_interaction_func = controller->GetFunctionByNameInChain(STR("NotifyBeginInteraction"));
         if (!find_virtual_hid_component_func || !notify_begin_interaction_func) return;
-=======
-        // Unreal::UFunction* notify_begin_interaction_func = controller->GetFunctionByNameInChain(STR("NotifyBeginInteraction"));
-        if (!find_virtual_hid_component_func) return;
->>>>>>> Stashed changes
 
         std::unique_lock<std::shared_mutex> current_drivable_actor_lock(TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME_MUTEX);
         auto drivable_actor_name = drivable_actor_result.DrivableActor->GetClassPrivate()->GetName();
