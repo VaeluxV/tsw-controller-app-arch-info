@@ -1,6 +1,9 @@
 
 # CHANGELOG
 
+## v1.5.1
+- Add `notify` flag to enable value changes being displayed in-game.
+
 ## v1.5.0
 - Add axis easing to calibration dialog
 

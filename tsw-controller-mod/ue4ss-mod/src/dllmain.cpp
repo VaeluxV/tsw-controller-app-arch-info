@@ -98,11 +98,13 @@ struct VirtualVHIDComponent_GetNormalisedInputValueParams
 {
     float InputValue;
 };
-struct GameplayStatistics_GetPlayerControllerParams
+struct Controller_NotifyBeginInteractionParams
 {
-    Unreal::UWorld* World;
-    int32_t PlayerIndex;
-    Unreal::UObject* PlayerController;
+    Unreal::UObject* Component;
+};
+struct PlayerController_EndUsingVHIDComponentParams
+{
+    Unreal::UObject* Component;
 };
 
 class TSWControllerMod : public RC::CppUserModBase
@@ -114,6 +116,9 @@ class TSWControllerMod : public RC::CppUserModBase
     /* map of control names and their target value and flags */
     static inline std::shared_mutex DIRECT_CONTROL_TARGET_STATE_MUTEX;
     static inline std::unordered_map<RC::StringType, std::tuple<float, std::vector<RC::StringType>>> DIRECT_CONTROL_TARGET_STATE;
+
+    static inline std::shared_mutex VHID_COMPONENTS_TO_RELEASE_MUTEX;
+    static inline std::unordered_map<RC::StringType, Unreal::TWeakObjectPtr<Unreal::UObject>> VHID_COMPONENTS_TO_RELEASE;
 
     static bool is_within_margin_of_error(float current, float target)
     {
@@ -157,7 +162,7 @@ class TSWControllerMod : public RC::CppUserModBase
         {
             Unreal::FProperty* seat_side_prop = get_attached_seat_component_result.SeatComponent->GetPropertyByNameInChain(STR("SeatSide"));
             uint8_t* seat_side_num = seat_side_prop->ContainerPtrToValuePtr<uint8_t>(get_attached_seat_component_result.SeatComponent);
-            if (*seat_side_num == 1)
+            if (*seat_side_num > 0)
             {
                 train_side = 1;
             }
@@ -273,7 +278,8 @@ class TSWControllerMod : public RC::CppUserModBase
             return;
         }
         Unreal::UFunction* find_virtual_hid_component_func = drivable_actor_result.DrivableActor->GetFunctionByNameInChain(STR("FindVirtualHIDComponent"));
-        if (!find_virtual_hid_component_func) return;
+        Unreal::UFunction* notify_begin_interaction_func = controller->GetFunctionByNameInChain(STR("NotifyBeginInteraction"));
+        if (!find_virtual_hid_component_func || !notify_begin_interaction_func) return;
 
         std::unique_lock<std::shared_mutex> current_drivable_actor_lock(TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME_MUTEX);
         auto drivable_actor_name = drivable_actor_result.DrivableActor->GetClassPrivate()->GetName();
@@ -287,6 +293,32 @@ class TSWControllerMod : public RC::CppUserModBase
         current_drivable_actor_lock.unlock();
 
         std::unique_lock<std::shared_mutex> direct_control_target_state_lock(TSWControllerMod::DIRECT_CONTROL_TARGET_STATE_MUTEX);
+        std::unique_lock<std::shared_mutex> vhid_components_to_release_lock(TSWControllerMod::VHID_COMPONENTS_TO_RELEASE_MUTEX);
+
+        if (!TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.empty())
+        {
+            Unreal::UFunction* notify_end_interaction_func = controller->GetFunctionByNameInChain(STR("NotifyEndInteraction"));
+            if (!notify_end_interaction_func) return;
+
+            for (auto it = TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.begin(); it != TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.end();)
+            {
+                if (TSWControllerMod::DIRECT_CONTROL_TARGET_STATE.find(it->first) == TSWControllerMod::DIRECT_CONTROL_TARGET_STATE.end())
+                {
+                    Unreal::UObject* vhid_component = it->second.Get();
+                    if (vhid_component)
+                    {
+                        PlayerController_EndUsingVHIDComponentParams params{vhid_component};
+                        controller->ProcessEvent(notify_end_interaction_func, &params);
+                    }
+                    it = TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.erase(it);
+                }
+                else
+                {
+                    ++it;
+                }
+            }
+        }
+
         for (const auto& control_pair : TSWControllerMod::DIRECT_CONTROL_TARGET_STATE)
         {
             RC::StringType control_name = TSWControllerMod::format_direct_control_name(pawn, control_pair.first);
@@ -307,6 +339,7 @@ class TSWControllerMod : public RC::CppUserModBase
             bool should_hold = std::find(flags.begin(), flags.end(), STR("hold")) != flags.end();
             bool should_be_relative = std::find(flags.begin(), flags.end(), STR("relative")) != flags.end();
             bool should_use_normalized = std::find(flags.begin(), flags.end(), STR("normalized")) != flags.end();
+            bool should_notify = std::find(flags.begin(), flags.end(), STR("notify")) != flags.end();
             auto get_current_value_func = should_use_normalized ? TSWControllerMod::get_current_vhid_component_normalized_input_value :  TSWControllerMod::get_current_vhid_component_input_value;
             auto set_input_value_func = should_use_normalized ? set_normlised_input_value_fn : set_current_input_value_fn;
 
@@ -317,6 +350,12 @@ class TSWControllerMod : public RC::CppUserModBase
                 target_value = current_input_value + target_value;
                 /* can't currently be used with hold */
                 should_hold = false;
+            }
+
+            if (should_notify && TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.find(control_name) == TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.end())
+            {
+                Controller_NotifyBeginInteractionParams begin_interaction_params{find_virtualhid_component_params.VirtualHIDComponent};
+                controller->ProcessEvent(notify_begin_interaction_func, &begin_interaction_params);
             }
 
             /* apply incoming value */
