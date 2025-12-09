@@ -158,16 +158,14 @@ func (ctrl *ControllerManager_Controller_JoyControl) UpdateValue(value float64, 
 
 	/* update normal values */
 	normalized_value := ctrl.Calibration.NormalizeRawValue(value)
-	if !normalized_value.IsWithinDeadzone {
-		rounded_value := math_utils.RoundToMarginOfError(normalized_value.Value)
-		if is_reset {
-			ctrl.State.NormalizedValues.InitialValue = rounded_value
-			ctrl.State.NormalizedValues.PreviousValue = rounded_value
-		} else {
-			ctrl.State.NormalizedValues.PreviousValue = ctrl.State.NormalizedValues.Value
-		}
-		ctrl.State.NormalizedValues.Value = rounded_value
+	rounded_value := math_utils.RoundToMarginOfError(normalized_value.Value)
+	if is_reset {
+		ctrl.State.NormalizedValues.InitialValue = rounded_value
+		ctrl.State.NormalizedValues.PreviousValue = rounded_value
+	} else {
+		ctrl.State.NormalizedValues.PreviousValue = ctrl.State.NormalizedValues.Value
 	}
+	ctrl.State.NormalizedValues.Value = rounded_value
 
 	/* update direction */
 	if is_reset {

@@ -117,6 +117,17 @@ export const CalibrationModalForm = ({ controller, onClose }: Props) => {
           </label>
         </div>
 
+        <div className="alert alert-sm">
+          <p className="text-sm">
+            Note: by default when configuring controller axes a deadzone near
+            the idle value of 1% will be applied. At the minimum and maximum
+            ends of the axis a deadzone of 1% is also applied by default. This
+            is because most axes can not hold their extreme values consistently.
+            If 1% is not sufficient you can override the calibrated values and
+            idle deadzone as necessary.
+          </p>
+        </div>
+
         <div>
           {controls.map((control, index) => (
             <div key={`${control.kind}_${control.index}`}>

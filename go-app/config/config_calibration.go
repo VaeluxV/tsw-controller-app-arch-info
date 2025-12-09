@@ -74,10 +74,10 @@ func (calibration *Config_Controller_CalibrationData) NormalizeRawValue(raw_valu
 	}
 
 	/* actual normalization logic starts here */
-	deadzone_range := []float64{
+	idle_range := []float64{
 		/* deadzone is optional so it will be initialized as 0 (no deadzone) */
-		idle_value - deadzone_value,
-		idle_value + deadzone_value,
+		math.Max(idle_value-deadzone_value, calibration.Min),
+		math.Min(idle_value+deadzone_value, calibration.Max),
 	}
 
 	easing_curve_value := []float64{0.0, 0.0, 1.0, 1.0}
@@ -90,18 +90,21 @@ func (calibration *Config_Controller_CalibrationData) NormalizeRawValue(raw_valu
 		value = -value
 	}
 
-	if value >= deadzone_range[0] && value <= deadzone_range[1] {
+	if value >= idle_range[0] && value <= idle_range[1] {
 		return NormalizedValue{Value: 0, IsWithinDeadzone: true}
 	}
 
 	ease_func := easing.NewCustomEasing(easing_curve_value[0], easing_curve_value[1], easing_curve_value[2], easing_curve_value[3])
 
-	/* below idle value -- negative value */
-	if value < idle_value && calibration.Min != idle_value {
-		abs_value := math.Abs(math_utils.Clamp((value-idle_value)/(calibration.Min-idle_value), 0.0, 1.0))
+	/**
+	Value will only be normalized to a negative value if the idle value is not the same as the minimum value
+	AND the value is less than the lower idle range
+	*/
+	if calibration.Min != idle_value && value < idle_range[0] {
+		abs_value := math.Abs(math_utils.Clamp((value-idle_range[0])/(calibration.Min-idle_range[0]), 0.0, 1.0))
 		return NormalizedValue{Value: ease_func(abs_value) * -1.0, IsWithinDeadzone: false}
 	}
 
-	abs_value := math.Abs(math_utils.Clamp((value-idle_value)/(calibration.Max-idle_value), 0.0, 1.0))
+	abs_value := math.Abs(math_utils.Clamp((value-idle_range[1])/(calibration.Max-idle_range[1]), 0.0, 1.0))
 	return NormalizedValue{Value: ease_func(abs_value), IsWithinDeadzone: false}
 }
