@@ -92,7 +92,7 @@ export const CalibrationModalForm = ({ controller, onClose }: Props) => {
             invert: control.Invert,
             value: control.Idle,
             easingCurve: control.EasingCurve,
-            override: false,
+            override: true,
           }),
         ).toSorted((a, b) =>
           `${a.kind}_${a.index}`.localeCompare(`${b.kind}_${b.index}`),
