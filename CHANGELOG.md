@@ -7,6 +7,7 @@
 - Apply default deadzones and min/max limit adjustment when configuring new controllers
 - Don't override previously configured controls automatically
 - Update smoothing logic when processing raw events
+- Interpret `notify` to true by default
 
 ## v1.5.1
 - Add `notify` flag to enable value changes being displayed in-game when using direct control.
