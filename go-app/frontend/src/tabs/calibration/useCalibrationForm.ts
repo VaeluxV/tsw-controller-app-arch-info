@@ -39,6 +39,17 @@ const EMPTY_CONTROL_STATE: Omit<CalibrationStateControl, 'kind' | 'index'> = {
   override: false,
 }
 
+const roundToFactor = (value: number) => {
+  const ROUNDING_FACTOR = 100
+  if (Math.abs(value) < 1) return Math.round(value * ROUNDING_FACTOR) / ROUNDING_FACTOR
+  return Math.round(value)
+}
+
+const applyDefaultDeadzoneToRawValue = (value: number) => {
+  /* apply a default edge deadzone of 1% */
+  return roundToFactor(value * 0.99)
+}
+
 export const useCalibrationForm = () => {
   const form = useForm<CalibrationState>({
     defaultValues: {
@@ -59,12 +70,15 @@ export const useCalibrationForm = () => {
         : { ...controls[existingIndex] }
 
       if (!controlState.override) {
-        Object.assign(controlState, {
+        const nextState = {
           value: data.Value,
-          min: Math.min(controlState.min, data.Value),
-          max: Math.max(controlState.max, data.Value),
-          idle: Math.min(controlState.min, data.Value),
-        } as Partial<CalibrationStateControl>)
+          deadzone: controlState.deadzone,
+          min: Math.min(controlState.min, applyDefaultDeadzoneToRawValue(data.Value)),
+          max: Math.max(controlState.max, applyDefaultDeadzoneToRawValue(data.Value)),
+          idle: Math.min(controlState.min, applyDefaultDeadzoneToRawValue(data.Value)),
+        } as Partial<CalibrationStateControl>
+        nextState.deadzone = roundToFactor(Math.abs(controlState.max - controlState.min) * 0.01)
+        Object.assign(controlState, nextState)
       } else {
         controlState.value = data.Value
       }

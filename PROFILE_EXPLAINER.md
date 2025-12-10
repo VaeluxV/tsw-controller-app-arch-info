@@ -98,10 +98,10 @@ Maps an analog controller input to a continuous value in-game.
 
 #### Options
 
-| Name     | Description                                                                                                                           |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `hold`   | Whether to continuously hold this value. Useful for levers which automatically reset. (such as the Tube Deadman or some brake levers) |
-| `notify` | Whether to enable the in-game notifier when changing values to display the current value                                              |
+| Name     | Description                                                                                                                                  |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hold`   | Whether to continuously hold this value. Useful for levers which automatically reset. (such as the Tube Deadman or some brake levers)        |
+| `notify` | Whether to enable the in-game notifier when changing values to display the current value (defaults to `true` but can be explicitly disabled) |
 
 ### 🧭 SyncControl
 

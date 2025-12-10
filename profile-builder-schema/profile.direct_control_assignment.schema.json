@@ -20,7 +20,8 @@
     },
     "notify": {
       "type": "boolean",
-      "description": "Enables showing the in-game notification when changing values"
+      "description": "Enables showing the in-game notification when changing values",
+      "default": true
     },
     "input_value": {
       "type": "object",

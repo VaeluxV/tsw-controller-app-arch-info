@@ -46,7 +46,7 @@ type Config_Controller_Profile_Control_Assignment_Action_DirectControl struct {
 	Hold *bool `json:"hold,omitempty"`
 	/* whether to apply raw or normalized values */
 	UseNormalized *bool `json:"use_normalized,omitempty"`
-	/* whether to notify the game for value changes */
+	/* whether to notify the game for value changes (defaults to true) */
 	Notify *bool `json:"notify,omitempty"`
 }
 
