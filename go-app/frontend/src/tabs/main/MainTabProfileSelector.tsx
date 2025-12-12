@@ -114,7 +114,7 @@ export function MainTabProfileSelector({
                 <ProfileSelectionListItem
                   key={profile.Id}
                   profile={profile}
-                  disabled="Does not support all controllers"
+                  disabled="Not supported by all controllers"
                 />
               ))}
             </ul>

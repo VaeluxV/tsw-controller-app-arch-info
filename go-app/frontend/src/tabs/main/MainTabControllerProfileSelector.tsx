@@ -3,7 +3,11 @@ import { main } from "../../../wailsjs/go/models";
 import { useCallback, useMemo } from "react";
 import { ProfileSelectionListItem } from "./_components/ProfileSelectionListItem";
 import { unfocus } from "../../utils/unfocus";
-import { ProfileInfo, ProfileSelectionMoreMenu } from "./_components/ProfileSelectionMoreMenu";
+import {
+  ProfileInfo,
+  ProfileSelectionMoreMenu,
+} from "./_components/ProfileSelectionMoreMenu";
+import clsx from "clsx";
 
 type Props = {
   form: UseFormReturn<{
@@ -18,12 +22,8 @@ type Props = {
     profile: ProfileInfo,
     controller: main.Interop_GenericController | null,
   ) => void;
-  onEditProfile: (
-    profile: ProfileInfo
-  ) => void;
-  onDeleteProfileForController: (
-    profile: ProfileInfo
-  ) => void;
+  onEditProfile: (profile: ProfileInfo) => void;
+  onDeleteProfileForController: (profile: ProfileInfo) => void;
 };
 
 export function MainTabControllerProfileSelector({
@@ -68,12 +68,15 @@ export function MainTabControllerProfileSelector({
           control={control}
           name={`profiles.${controller.UniqueID}`}
           render={({ field }) => (
-            <div className="grow dropdown dropdown-start">
+            <div className="grow dropdown dropdown-start disabled">
               <button
                 id={`controller_${controller.UniqueID}`}
                 tabIndex={0}
                 role="button"
-                className="select w-full"
+                className={clsx(
+                  "select w-full",
+                  !controller.IsConfigured && "pointer-events-none opacity-50",
+                )}
               >
                 {selectedProfile?.Name ?? "Auto-Detect"}
               </button>
@@ -121,6 +124,12 @@ export function MainTabControllerProfileSelector({
           onDeleteProfile={onDeleteProfileForController}
         />
       </div>
+
+      {!controller.IsConfigured && (
+        <div className="alert alert-warning alert-soft p-2">
+          This controller has not been configured yet.
+        </div>
+      )}
     </fieldset>
   );
 }
