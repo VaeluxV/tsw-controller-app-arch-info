@@ -1,6 +1,9 @@
 
 # CHANGELOG
 
+## v1.5.3
+- Add notice for unconfigured controllers
+
 ## v1.5.2
 - Change deadzone logic to update the value but set it to 0
 - Update deadzone logic to start 0 at the deadzone limit instead
