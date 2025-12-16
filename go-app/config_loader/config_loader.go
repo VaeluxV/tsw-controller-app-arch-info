@@ -8,6 +8,10 @@ import (
 	"tsw_controller_app/config"
 )
 
+const DIR_CALIBRATION_NAME = "calibration"
+const DIR_SDL_MAPPINGS_NAME = "sdl_mappings"
+const DIR_PROFILES_NAME = "profiles"
+
 type ConfigLoader struct{}
 
 func New() *ConfigLoader {
@@ -17,9 +21,9 @@ func New() *ConfigLoader {
 func (c *ConfigLoader) FromDirectory(dir string) ([]config.Config_Controller_SDLMap, []config.Config_Controller_Calibration, []config.Config_Controller_Profile, []error) {
 	var errors []error
 
-	calibration_files_dir := filepath.Join(dir, "calibration")
-	sdl_mapping_files_dir := filepath.Join(dir, "sdl_mappings")
-	profiles_files_dir := filepath.Join(dir, "profiles")
+	calibration_files_dir := filepath.Join(dir, DIR_CALIBRATION_NAME)
+	sdl_mapping_files_dir := filepath.Join(dir, DIR_SDL_MAPPINGS_NAME)
+	profiles_files_dir := filepath.Join(dir, DIR_PROFILES_NAME)
 
 	calibration_file_entries, err := os.ReadDir(calibration_files_dir)
 	var parsed_calibration_files []config.Config_Controller_Calibration

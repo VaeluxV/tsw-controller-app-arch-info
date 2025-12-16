@@ -72,11 +72,12 @@ type Remote_SharedProfilesIndex_Profile_Author struct {
 }
 
 type Remote_SharedProfilesIndex_Profile struct {
-	File       string                                     `json:"file"`
-	Name       string                                     `json:"name"`
-	UsbID      string                                     `json:"usb_id"`
-	AutoSelect *bool                                      `json:"auto_select,omitempty"`
-	Author     *Remote_SharedProfilesIndex_Profile_Author `json:"author,omitempty"`
+	File                string                                     `json:"file"`
+	Name                string                                     `json:"name"`
+	UsbID               string                                     `json:"usb_id"`
+	AutoSelect          *bool                                      `json:"auto_select,omitempty"`
+	ContainsCalibration *bool                                      `json:"contains_calibration,omitempty"`
+	Author              *Remote_SharedProfilesIndex_Profile_Author `json:"author,omitempty"`
 }
 
 type Remote_SharedProfilesIndex struct {
@@ -574,11 +575,12 @@ func (a *App) GetSharedProfiles() []Interop_SharedProfile {
 			}
 		}
 		profiles = append(profiles, Interop_SharedProfile{
-			Name:       profile.Name,
-			UsbID:      profile.UsbID,
-			Url:        fmt.Sprintf("https://raw.githubusercontent.com/LiamMartens/tsw-controller-app/refs/heads/main/shared-profiles/%s", profile.File),
-			AutoSelect: profile.AutoSelect,
-			Author:     author,
+			Name:                profile.Name,
+			UsbID:               profile.UsbID,
+			Url:                 fmt.Sprintf("https://raw.githubusercontent.com/LiamMartens/tsw-controller-app/refs/heads/main/shared-profiles/%s", profile.File),
+			AutoSelect:          profile.AutoSelect,
+			ContainsCalibration: profile.ContainsCalibration,
+			Author:              author,
 		})
 	}
 
@@ -832,7 +834,7 @@ func (a *App) SaveCalibration(data Interop_ControllerCalibration) error {
 	sdl_mapping_filepath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:            "Select SDL mapping file save location",
 		DefaultFilename:  fmt.Sprintf("%s.sdl.json", string_utils.Sluggify(data.Name)),
-		DefaultDirectory: filepath.Join(a.config.GlobalConfigDir, "sdl_mappings"),
+		DefaultDirectory: filepath.Join(a.config.GlobalConfigDir, config_loader.DIR_SDL_MAPPINGS_NAME),
 	})
 	if err != nil {
 		return err
@@ -841,7 +843,7 @@ func (a *App) SaveCalibration(data Interop_ControllerCalibration) error {
 	calibration_filepath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:            "Select calibration file save location",
 		DefaultFilename:  fmt.Sprintf("%s.calibration.json", string_utils.Sluggify(data.Name)),
-		DefaultDirectory: filepath.Join(a.config.GlobalConfigDir, "calibration"),
+		DefaultDirectory: filepath.Join(a.config.GlobalConfigDir, config_loader.DIR_CALIBRATION_NAME),
 	})
 	if err != nil {
 		return err
@@ -990,6 +992,62 @@ func (a *App) InstallTrainSimWorldMod() error {
 	return nil
 }
 
+func (a *App) tryWriteStructAsJSON(path string, data any) error {
+	data_to_write, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	target_file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer target_file.Sync()
+	defer target_file.Close()
+	if _, err := target_file.Write(data_to_write); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) importProfileJSON(
+	json_data []byte,
+	metadata config.Config_Controller_Profile_Metadata,
+) (*config.Config_Controller_Profile, error) {
+	profile, err := config.ControllerProfileFromJSON(string(json_data), metadata)
+	if err != nil {
+		return nil, err
+	}
+	if err = os.MkdirAll(filepath.Dir(metadata.Path), 0o755); err != nil {
+		return nil, fmt.Errorf("could not create target location to save profile: %w", err)
+	}
+
+	/*
+		check if the profile contains complete calibration and mapping information;
+		if available and our calibration and mapping is missing; we should load it as well
+	*/
+	if profile.Controller != nil &&
+		profile.Controller.Mapping != nil &&
+		profile.Controller.Calibration != nil &&
+		!a.controller_manager.IsConfigured(profile.Controller.Mapping.UsbID) {
+		usb_id_slug := string_utils.Sluggify(profile.Controller.Mapping.UsbID)
+		sdl_mappings_filepath := filepath.Join(a.config.GlobalConfigDir, config_loader.DIR_SDL_MAPPINGS_NAME, fmt.Sprintf("%s.sdl.json", usb_id_slug))
+		calibration_filepath := filepath.Join(a.config.GlobalConfigDir, config_loader.DIR_CALIBRATION_NAME, fmt.Sprintf("%s.calibration.json", usb_id_slug))
+		if err := a.tryWriteStructAsJSON(sdl_mappings_filepath, profile.Controller.Mapping); err != nil {
+			return nil, fmt.Errorf("failed to import embedded SDL mapping: %w", err)
+		}
+		if err := a.tryWriteStructAsJSON(calibration_filepath, profile.Controller.Calibration); err != nil {
+			return nil, fmt.Errorf("failed to import embedded calibration: %w", err)
+		}
+	}
+
+	if err := a.tryWriteStructAsJSON(metadata.Path, profile); err != nil {
+		return nil, fmt.Errorf("could not save profile at location %s: %w", metadata.Path, err)
+	}
+	return profile, nil
+}
+
 func (a *App) ImportProfile() error {
 	import_profile_path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "Select a profile (.tswprofile)",
@@ -1008,26 +1066,21 @@ func (a *App) ImportProfile() error {
 		return fmt.Errorf("selected an invalid profile")
 	}
 
-	import_profile_file, err := os.Open(import_profile_path)
+	file_bytes, err := os.ReadFile(import_profile_path)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not read profile from location %s: %w", import_profile_path, err)
 	}
-	defer import_profile_file.Close()
 
 	original_filename, _ := strings.CutSuffix(filepath.Base(import_profile_path), ".tswprofile")
 	target_file_path := filepath.Join(a.config.GlobalConfigDir, "profiles", fmt.Sprintf("%s_%d.json", original_filename, time.Now().Unix()))
-	os.MkdirAll(filepath.Dir(target_file_path), 0o755)
-
-	target_file, err := os.OpenFile(target_file_path, os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
+	if _, err = a.importProfileJSON(file_bytes, config.Config_Controller_Profile_Metadata{
+		Path:      target_file_path,
+		UpdatedAt: time.Now(),
+	}); err != nil {
+		return fmt.Errorf("could not import profile: %w", err)
 	}
-	defer target_file.Close()
 
-	if _, err = io.Copy(target_file, import_profile_file); err != nil {
-		return err
-	}
-	return target_file.Sync()
+	return nil
 }
 
 func (a *App) ImportSharedProfile(profile Interop_SharedProfile) error {
@@ -1043,11 +1096,11 @@ func (a *App) ImportSharedProfile(profile Interop_SharedProfile) error {
 	}
 
 	target_file_path := filepath.Join(a.config.GlobalConfigDir, "profiles", fmt.Sprintf("%s_%d.json", string_utils.Sluggify(profile.Name), time.Now().Unix()))
-	os.MkdirAll(filepath.Dir(target_file_path), 0o755)
-
-	err = os.WriteFile(target_file_path, body, 0644)
-	if err != nil {
-		return fmt.Errorf("could not save profile (%e)", err)
+	if _, err = a.importProfileJSON(body, config.Config_Controller_Profile_Metadata{
+		Path:      target_file_path,
+		UpdatedAt: time.Now(),
+	}); err != nil {
+		return fmt.Errorf("could not import profile from repository: %w", err)
 	}
 
 	return nil

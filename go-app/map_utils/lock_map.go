@@ -38,6 +38,15 @@ func (m *LockMap[T, V]) Clear() {
 	}
 }
 
+func (m *LockMap[T, V]) Contains(key T) bool {
+	m.Mutex.RLock()
+	defer m.Mutex.RUnlock()
+	if _, contains := m.Map[key]; contains {
+		return true
+	}
+	return false
+}
+
 func (m *LockMap[T, V]) Get(key T) (V, bool) {
 	m.Mutex.RLock()
 	defer m.Mutex.RUnlock()

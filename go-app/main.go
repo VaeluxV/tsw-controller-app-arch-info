@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"tsw_controller_app/config_loader"
 	"tsw_controller_app/logger"
 
 	"github.com/wailsapp/wails/v2"
@@ -38,7 +39,7 @@ func main() {
 
 	global_config_dir := filepath.Join(config_dir, "tswcontrollerapp/config")
 	local_config_dir := filepath.Join(filepath.Dir(exec_file), "config")
-	required_subpaths := []string{"sdl_mappings", "calibration", "profiles"}
+	required_subpaths := []string{config_loader.DIR_SDL_MAPPINGS_NAME, config_loader.DIR_CALIBRATION_NAME, config_loader.DIR_PROFILES_NAME}
 
 	os.MkdirAll(global_config_dir, 0o755)
 	os.MkdirAll(local_config_dir, 0o755)
