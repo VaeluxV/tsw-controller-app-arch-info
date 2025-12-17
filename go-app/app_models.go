@@ -76,11 +76,12 @@ type Interop_SharedProfile_Author struct {
 }
 
 type Interop_SharedProfile struct {
-	Name       string
-	UsbID      string
-	Url        string
-	AutoSelect *bool
-	Author     *Interop_SharedProfile_Author
+	Name                string
+	UsbID               string
+	Url                 string
+	AutoSelect          *bool
+	ContainsCalibration *bool
+	Author              *Interop_SharedProfile_Author
 }
 
 type Interop_SelectedProfileInfo struct {

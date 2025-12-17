@@ -47,11 +47,28 @@ export const ExploreTabProfile = ({ profile }: Props) => {
             </div>
           )}
         </div>
-        {!!profile.AutoSelect && (
-          <div>
-            <div className="badge badge-sm badge-soft badge-info">
-              Supports Auto-Select
-            </div>
+        {!!(profile.AutoSelect || profile.ContainsCalibration) && (
+          <div className="flex justify-start items-center gap-2 flex-wrap">
+            {!!profile.AutoSelect && (
+              <div className="badge badge-sm badge-soft badge-info tooltip tooltip-bottom">
+                <div className="tooltip-content max-w-3xs ml-10">
+                  This profile has been configured to support auto-detection.
+                  This is enabled per locomotive class-type and may not be
+                  enabled on all variants of the same locomotive.
+                </div>
+                Supports Auto-Detection
+              </div>
+            )}
+            {!!profile.ContainsCalibration && (
+              <div className="badge badge-sm badge-soft badge-info tooltip tooltip-bottom">
+                <div className="tooltip-content max-w-3xs ml-10">
+                  This profile embeds SDL and calibration data which means you
+                  may not need to manually calibrate your controller after
+                  importing
+                </div>
+                Fully Configured
+              </div>
+            )}
           </div>
         )}
       </div>

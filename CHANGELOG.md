@@ -1,6 +1,9 @@
 
 # CHANGELOG
 
+## v1.6.0
+- Allow embedding calibration into shared profiles to enable fully pre-configured profiles
+
 ## v1.5.3
 - Add notice for unconfigured controllers
 

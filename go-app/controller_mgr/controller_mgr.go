@@ -307,6 +307,18 @@ func New(sdlmgr *sdl_mgr.SDLMgr) *ControllerManager {
 	}
 }
 
+func (mgr *ControllerManager) IsConfigured(UsbID string) bool {
+	is_configured := false
+	mgr.ConfiguredControllers.ForEach(func(value ControllerManager_ConfiguredController, key JoystickUniqueID) bool {
+		if value.Joystick.UsbID() == UsbID {
+			is_configured = true
+			return false
+		}
+		return true
+	})
+	return is_configured
+}
+
 func (mgr *ControllerManager) ConfigureJoystick(joystick *sdl_mgr.SDLMgr_Joystick, sdl_map config.Config_Controller_SDLMap, calibration config.Config_Controller_Calibration) ControllerManager_ConfiguredController {
 	controller := ControllerManager_ConfiguredController{
 		Manager:         mgr,

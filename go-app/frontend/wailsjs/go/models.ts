@@ -329,6 +329,7 @@ export namespace main {
 	    UsbID: string;
 	    Url: string;
 	    AutoSelect?: boolean;
+	    ContainsCalibration?: boolean;
 	    Author?: Interop_SharedProfile_Author;
 	
 	    static createFrom(source: any = {}) {
@@ -341,6 +342,7 @@ export namespace main {
 	        this.UsbID = source["UsbID"];
 	        this.Url = source["Url"];
 	        this.AutoSelect = source["AutoSelect"];
+	        this.ContainsCalibration = source["ContainsCalibration"];
 	        this.Author = this.convertValues(source["Author"], Interop_SharedProfile_Author);
 	    }
 	
