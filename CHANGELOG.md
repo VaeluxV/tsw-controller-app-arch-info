@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## v1.6.1
+- Clarify exe selection
+- Add select CommAPIKey.txt option
+
 ## v1.6.0
 - Allow embedding calibration into shared profiles to enable fully pre-configured profiles
 

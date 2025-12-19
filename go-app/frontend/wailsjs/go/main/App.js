@@ -118,6 +118,10 @@ export function SaveProfileForSharingWithControllerInformation(arg1, arg2) {
   return window['go']['main']['App']['SaveProfileForSharingWithControllerInformation'](arg1, arg2);
 }
 
+export function SelectCommAPIKeyFile() {
+  return window['go']['main']['App']['SelectCommAPIKeyFile']();
+}
+
 export function SelectProfile(arg1, arg2) {
   return window['go']['main']['App']['SelectProfile'](arg1, arg2);
 }
