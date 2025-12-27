@@ -438,7 +438,11 @@ func (p *ProfileRunner) GetAssignments(
 	scored_control_assignments[config.PreferredControlMode_DirectControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 3, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
 	scored_control_assignments[config.PreferredControlMode_ApiControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 2, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
 	scored_control_assignments[config.PreferredControlMode_SyncControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 1, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
-	scored_control_assignments[preferred_control_mode].Score = scored_control_assignments[preferred_control_mode].Score + 10
+	if preferred_control_mode == config.PreferredControlMode_DirectControl && p.DirectController.Connector.IsActive() ||
+		preferred_control_mode == config.PreferredControlMode_ApiControl && p.ApiController.API.CanConnect() ||
+		preferred_control_mode == config.PreferredControlMode_SyncControl {
+		scored_control_assignments[preferred_control_mode].Score = scored_control_assignments[preferred_control_mode].Score + 10
+	}
 
 check_assignments_loop:
 	for _, assignment := range assignments {
