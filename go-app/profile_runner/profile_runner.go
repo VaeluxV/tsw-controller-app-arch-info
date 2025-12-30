@@ -433,11 +433,15 @@ func (p *ProfileRunner) GetAssignments(
 
 	/* filter out conditional assignments */
 	preferred_control_mode := p.Settings.GetPreferredControlMode()
+	can_use_direct_control_mode := p.DirectController.Connector.IsActive()
+	can_use_sync_control_mode := p.SyncController.Connector.IsActive()
+	can_use_api_control_mode := p.ApiController.API.CanConnect()
+
 	non_control_asssignments := []config.Config_Controller_Profile_Control_Assignment{}
 	scored_control_assignments := map[config.PreferredControlMode]*ProfileRunner_ScoredAssignmentsListEntry{}
-	scored_control_assignments[config.PreferredControlMode_DirectControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 3, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
-	scored_control_assignments[config.PreferredControlMode_ApiControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 2, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
-	scored_control_assignments[config.PreferredControlMode_SyncControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 1, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
+	scored_control_assignments[config.PreferredControlMode_DirectControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 0, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
+	scored_control_assignments[config.PreferredControlMode_ApiControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 0, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
+	scored_control_assignments[config.PreferredControlMode_SyncControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 0, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
 
 check_assignments_loop:
 	for _, assignment := range assignments {
@@ -500,11 +504,36 @@ check_assignments_loop:
 		}
 	}
 
+	/*
+		the scoring is very simple;
+		- DC gets 3 points if available
+		- API gets 2 points if available
+		- Sync gets 1 point if available
+		-- Any of these gets 5 points if available and preferred
+		--> this means that whichever is preferred and available always gets the most points
+		--> if the preferred mode is not available it will fallback to the internally preferred methods of DC, API and Sync
+	*/
+	if can_use_direct_control_mode {
+		scored_control_assignments[config.PreferredControlMode_DirectControl].Score += 3
+		if preferred_control_mode == config.PreferredControlMode_DirectControl {
+			scored_control_assignments[config.PreferredControlMode_DirectControl].Score += 5
+		}
+	}
+	if can_use_api_control_mode {
+		scored_control_assignments[config.PreferredControlMode_ApiControl].Score += 2
+		if preferred_control_mode == config.PreferredControlMode_ApiControl {
+			scored_control_assignments[config.PreferredControlMode_ApiControl].Score += 5
+		}
+	}
+	if can_use_sync_control_mode {
+		scored_control_assignments[config.PreferredControlMode_SyncControl].Score += 1
+		if preferred_control_mode == config.PreferredControlMode_SyncControl {
+			scored_control_assignments[config.PreferredControlMode_SyncControl].Score += 5
+		}
+	}
+
 	/* only check control type assignments if the connector is alive or the API is available */
-	if preferred_control_mode == config.PreferredControlMode_DirectControl && p.DirectController.Connector.IsActive() ||
-		preferred_control_mode == config.PreferredControlMode_ApiControl && p.ApiController.API.CanConnect() ||
-		preferred_control_mode == config.PreferredControlMode_SyncControl && p.SyncController.Connector.IsActive() {
-		scored_control_assignments[preferred_control_mode].Score = scored_control_assignments[preferred_control_mode].Score + 10
+	if can_use_api_control_mode || can_use_direct_control_mode || can_use_sync_control_mode {
 		scored_control_assignments_values_list := []*ProfileRunner_ScoredAssignmentsListEntry{}
 		for _, entry := range scored_control_assignments {
 			if len(entry.Assignments) > 0 {
