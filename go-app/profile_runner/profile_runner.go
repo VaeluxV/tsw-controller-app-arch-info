@@ -438,11 +438,6 @@ func (p *ProfileRunner) GetAssignments(
 	scored_control_assignments[config.PreferredControlMode_DirectControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 3, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
 	scored_control_assignments[config.PreferredControlMode_ApiControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 2, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
 	scored_control_assignments[config.PreferredControlMode_SyncControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 1, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
-	if preferred_control_mode == config.PreferredControlMode_DirectControl && p.DirectController.Connector.IsActive() ||
-		preferred_control_mode == config.PreferredControlMode_ApiControl && p.ApiController.API.CanConnect() ||
-		preferred_control_mode == config.PreferredControlMode_SyncControl {
-		scored_control_assignments[preferred_control_mode].Score = scored_control_assignments[preferred_control_mode].Score + 10
-	}
 
 check_assignments_loop:
 	for _, assignment := range assignments {
@@ -505,17 +500,25 @@ check_assignments_loop:
 		}
 	}
 
-	scored_control_assignments_values_list := []*ProfileRunner_ScoredAssignmentsListEntry{}
-	for _, entry := range scored_control_assignments {
-		if len(entry.Assignments) > 0 {
-			scored_control_assignments_values_list = append(scored_control_assignments_values_list, entry)
+	/* only check control type assignments if the connector is alive or the API is available */
+	if preferred_control_mode == config.PreferredControlMode_DirectControl && p.DirectController.Connector.IsActive() ||
+		preferred_control_mode == config.PreferredControlMode_ApiControl && p.ApiController.API.CanConnect() ||
+		preferred_control_mode == config.PreferredControlMode_SyncControl && p.SyncController.Connector.IsActive() {
+		scored_control_assignments[preferred_control_mode].Score = scored_control_assignments[preferred_control_mode].Score + 10
+		scored_control_assignments_values_list := []*ProfileRunner_ScoredAssignmentsListEntry{}
+		for _, entry := range scored_control_assignments {
+			if len(entry.Assignments) > 0 {
+				scored_control_assignments_values_list = append(scored_control_assignments_values_list, entry)
+			}
 		}
-	}
-	sort.Slice(scored_control_assignments_values_list, func(i, j int) bool {
-		return scored_control_assignments_values_list[i].Score > scored_control_assignments_values_list[j].Score
-	})
-	if len(scored_control_assignments_values_list) > 0 {
-		return append(scored_control_assignments_values_list[0].Assignments, non_control_asssignments...)
+		sort.Slice(scored_control_assignments_values_list, func(i, j int) bool {
+			return scored_control_assignments_values_list[i].Score > scored_control_assignments_values_list[j].Score
+		})
+		if len(scored_control_assignments_values_list) > 0 {
+			return append(scored_control_assignments_values_list[0].Assignments, non_control_asssignments...)
+		}
+	} else {
+		logger.Logger.Info("no socket or API connection is available - skipping direct/sync and API control")
 	}
 
 	return non_control_asssignments
