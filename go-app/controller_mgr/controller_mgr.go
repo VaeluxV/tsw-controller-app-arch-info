@@ -17,53 +17,12 @@ const DEFAULT_CHANNEL_BUFFER_SIZE = 50
 const DIRECTION_CHANGE_THRESHOLD = 0.05
 
 type JoystickUniqueID = string
-type ControllerManager_RawEvent struct {
-	Joystick *sdl_mgr.SDLMgr_Joystick
-	Event    sdl.Event
-}
-
-type ControllerManager_Control_ChangeEvent struct {
-	Joystick     *sdl_mgr.SDLMgr_Joystick
-	Controller   *ControllerManager_ConfiguredController
-	Control      ControllerManager_Controller_Control
-	ControlName  string
-	ControlState ControllerManager_Controller_ControlState
-}
 
 type ControllerManager_Control_JoyDevicesUpdated struct {
 }
 
-type ControllerManager_Controller_ControlState_DirectionChangeMarker struct {
-	/* the actual direction of travel; -1 | 0 | 1 depending on the direction */
-	Direction int8
-	/* the value at which the direction changed */
-	ChangeValue float64
-}
-
-type ControllerManager_Controller_ControlStateValues struct {
-	/* the current value of the control state */
-	Value float64
-	/* the previous value of the control state */
-	PreviousValue float64
-	/* the value at which the control was initialized */
-	InitialValue float64
-}
-
-type ControllerManager_Controller_ControlState struct {
-	Direction ControllerManager_Controller_ControlState_DirectionChangeMarker
-	/* the normalized value states are in 0-1 format */
-	NormalizedValues ControllerManager_Controller_ControlStateValues
-	/* the raw values are in their raw value format coming from sdl */
-	RawValues ControllerManager_Controller_ControlStateValues
-}
-
-type ControllerManager_Controller_Control interface {
-	UpdateValue(value float64, is_reset bool)
-	GetState() ControllerManager_Controller_ControlState
-}
-
 type ControllerManager_Controller_VirtualControl struct {
-	ControllerManager_Controller_Control
+	IControllerManager_Controller_Control
 	Manager    *ControllerManager
 	Controller *ControllerManager_ConfiguredController
 	Joystick   *sdl_mgr.SDLMgr_Joystick
@@ -72,7 +31,7 @@ type ControllerManager_Controller_VirtualControl struct {
 }
 
 type ControllerManager_Controller_JoyControl struct {
-	ControllerManager_Controller_Control
+	IControllerManager_Controller_Control
 	ControllerManager_Controller_VirtualControl
 	Kind        sdl_mgr.SDLMgr_Control_Kind
 	Index       int
@@ -80,11 +39,14 @@ type ControllerManager_Controller_JoyControl struct {
 	Calibration config.Config_Controller_CalibrationData
 }
 
+var _ IControllerManager_Controller_Control = &ControllerManager_Controller_JoyControl{}
+var _ IControllerManager_Controller_Control = &ControllerManager_Controller_VirtualControl{}
+
 type ControllerManager_ConfiguredController struct {
 	Manager         *ControllerManager
 	Joystick        *sdl_mgr.SDLMgr_Joystick
-	Controls        *map_utils.LockMap[string, ControllerManager_Controller_JoyControl]
-	VirtualControls *map_utils.LockMap[string, ControllerManager_Controller_VirtualControl]
+	controls        *map_utils.LockMap[string, IControllerManager_Controller_Control]
+	virtualControls *map_utils.LockMap[string, IControllerManager_Controller_Control]
 }
 
 type ControllerManager_UnconfiguredController struct {
@@ -107,7 +69,7 @@ type ControllerManager struct {
 	ConfiguredControllers   *map_utils.LockMap[JoystickUniqueID, ControllerManager_ConfiguredController]
 	UnconfiguredControllers *map_utils.LockMap[JoystickUniqueID, ControllerManager_UnconfiguredController]
 
-	RawEventChannels          *pubsub_utils.PubSubSlice[ControllerManager_RawEvent]
+	RawEventChannels          *pubsub_utils.PubSubSlice[IControllerManager_RawEvent]
 	ChangeEventChannels       *pubsub_utils.PubSubSlice[ControllerManager_Control_ChangeEvent]
 	JoyDevicesUpdatedChannels *pubsub_utils.PubSubSlice[ControllerManager_Control_JoyDevicesUpdated]
 }
@@ -179,7 +141,10 @@ func (ctrl *ControllerManager_Controller_JoyControl) UpdateValue(value float64, 
 	}
 
 	ctrl.Manager.ChangeEventChannels.EmitTimeout(time.Second, ControllerManager_Control_ChangeEvent{
-		Joystick:     ctrl.Joystick,
+		Device: &ControllerManager_ChangeEvent_Device{
+			UniqueID: ctrl.Joystick.UniqueID(),
+			DeviceID: ctrl.Joystick.UsbID(),
+		},
 		Controller:   ctrl.Controller,
 		Control:      ctrl,
 		ControlName:  ctrl.Name,
@@ -215,7 +180,10 @@ func (ctrl *ControllerManager_Controller_VirtualControl) UpdateValue(value float
 	}
 
 	ctrl.Manager.ChangeEventChannels.EmitTimeout(time.Second, ControllerManager_Control_ChangeEvent{
-		Joystick:     ctrl.Joystick,
+		Device: &ControllerManager_ChangeEvent_Device{
+			UniqueID: ctrl.Joystick.UniqueID(),
+			DeviceID: ctrl.Joystick.UsbID(),
+		},
 		Controller:   ctrl.Controller,
 		Control:      ctrl,
 		ControlName:  ctrl.Name,
@@ -239,8 +207,16 @@ func (ctrl *ControllerManager_Controller_JoyControl) ProcessEvent(event sdl.Even
 	}
 }
 
+func (controller *ControllerManager_ConfiguredController) Controls() *map_utils.LockMap[string, IControllerManager_Controller_Control] {
+	return controller.controls
+}
+
+func (controller *ControllerManager_ConfiguredController) VirtualControls() *map_utils.LockMap[string, IControllerManager_Controller_Control] {
+	return controller.virtualControls
+}
+
 func (controller *ControllerManager_ConfiguredController) RegisterVirtualControl(name string, initial_value float64) {
-	controller.VirtualControls.Set(name, ControllerManager_Controller_VirtualControl{
+	controller.virtualControls.Set(name, &ControllerManager_Controller_VirtualControl{
 		Manager:    controller.Manager,
 		Controller: controller,
 		Joystick:   controller.Joystick,
@@ -267,25 +243,32 @@ func (controller *ControllerManager_ConfiguredController) RegisterVirtualControl
 func (controller *ControllerManager_ConfiguredController) ProcessEvent(event sdl.Event) {
 	switch e := event.(type) {
 	case *sdl.JoyAxisEvent:
-		controller.Controls.ForEachMap(func(maybe_axis ControllerManager_Controller_JoyControl, _ string) ControllerManager_Controller_JoyControl {
-			if maybe_axis.SDLMapping.Kind == sdl_mgr.SDLMgr_Control_Kind_Axis && maybe_axis.SDLMapping.Index == int(e.Axis) {
-				maybe_axis.ProcessEvent(event)
+		controller.controls.ForEach(func(maybe_axis IControllerManager_Controller_Control, _ string) bool {
+			if axis, ok := maybe_axis.(*ControllerManager_Controller_JoyControl); ok {
+				if axis.SDLMapping.Kind == sdl_mgr.SDLMgr_Control_Kind_Axis && axis.SDLMapping.Index == int(e.Axis) {
+					axis.ProcessEvent(event)
+				}
 			}
-			return maybe_axis
+
+			return true
 		})
 	case *sdl.JoyButtonEvent:
-		controller.Controls.ForEachMap(func(maybe_button ControllerManager_Controller_JoyControl, _ string) ControllerManager_Controller_JoyControl {
-			if maybe_button.SDLMapping.Kind == sdl_mgr.SDLMgr_Control_Kind_Button && maybe_button.SDLMapping.Index == int(e.Button) {
-				maybe_button.ProcessEvent(event)
+		controller.controls.ForEach(func(maybe_axis IControllerManager_Controller_Control, _ string) bool {
+			if axis, ok := maybe_axis.(*ControllerManager_Controller_JoyControl); ok {
+				if axis.SDLMapping.Kind == sdl_mgr.SDLMgr_Control_Kind_Button && axis.SDLMapping.Index == int(e.Button) {
+					axis.ProcessEvent(event)
+				}
 			}
-			return maybe_button
+			return true
 		})
 	case *sdl.JoyHatEvent:
-		controller.Controls.ForEachMap(func(maybe_hat ControllerManager_Controller_JoyControl, _ string) ControllerManager_Controller_JoyControl {
-			if maybe_hat.SDLMapping.Kind == sdl_mgr.SDLMgr_Control_Kind_Hat && maybe_hat.SDLMapping.Index == int(e.Hat) {
-				maybe_hat.ProcessEvent(event)
+		controller.controls.ForEach(func(maybe_axis IControllerManager_Controller_Control, _ string) bool {
+			if axis, ok := maybe_axis.(*ControllerManager_Controller_JoyControl); ok {
+				if axis.SDLMapping.Kind == sdl_mgr.SDLMgr_Control_Kind_Hat && axis.SDLMapping.Index == int(e.Hat) {
+					axis.ProcessEvent(event)
+				}
 			}
-			return maybe_hat
+			return true
 		})
 	}
 }
@@ -301,7 +284,7 @@ func New(sdlmgr *sdl_mgr.SDLMgr) *ControllerManager {
 		ConfiguredControllers:   map_utils.NewLockMap[JoystickUniqueID, ControllerManager_ConfiguredController](),
 		UnconfiguredControllers: map_utils.NewLockMap[JoystickUniqueID, ControllerManager_UnconfiguredController](),
 
-		RawEventChannels:          pubsub_utils.NewPubSubSlice[ControllerManager_RawEvent](),
+		RawEventChannels:          pubsub_utils.NewPubSubSlice[IControllerManager_RawEvent](),
 		ChangeEventChannels:       pubsub_utils.NewPubSubSlice[ControllerManager_Control_ChangeEvent](),
 		JoyDevicesUpdatedChannels: pubsub_utils.NewPubSubSlice[ControllerManager_Control_JoyDevicesUpdated](),
 	}
@@ -323,8 +306,8 @@ func (mgr *ControllerManager) ConfigureJoystick(joystick *sdl_mgr.SDLMgr_Joystic
 	controller := ControllerManager_ConfiguredController{
 		Manager:         mgr,
 		Joystick:        joystick,
-		Controls:        map_utils.NewLockMap[string, ControllerManager_Controller_JoyControl](),
-		VirtualControls: map_utils.NewLockMap[string, ControllerManager_Controller_VirtualControl](),
+		controls:        map_utils.NewLockMap[string, IControllerManager_Controller_Control](),
+		virtualControls: map_utils.NewLockMap[string, IControllerManager_Controller_Control](),
 	}
 	for _, control := range sdl_map.Data {
 		var calibration_data config.Config_Controller_CalibrationData = config.Config_Controller_CalibrationData{
@@ -384,7 +367,7 @@ func (mgr *ControllerManager) ConfigureJoystick(joystick *sdl_mgr.SDLMgr_Joystic
 			Calibration: calibration_data,
 		}
 		control.Reset()
-		controller.Controls.Set(control.Name, control)
+		controller.controls.Set(control.Name, &control)
 	}
 
 	return controller
@@ -510,9 +493,14 @@ func (mgr *ControllerManager) Handler_JoyAxisEvent(event *sdl.JoyAxisEvent) erro
 	}
 
 	/* only send if the channel is being read */
-	mgr.RawEventChannels.EmitTimeout(time.Second, ControllerManager_RawEvent{
-		Joystick: joystick,
-		Event:    event,
+	mgr.RawEventChannels.EmitTimeout(time.Second, &ControllerManager_RawEvent_Axis{
+		device: &ControllerManager_RawEvent_Device{
+			UniqueID: joystick.UniqueID(),
+			DeviceID: joystick.UsbID(),
+		},
+		timestamp: int(event.GetTimestamp()),
+		axis:      int(event.Axis),
+		value:     float64(event.Value),
 	})
 
 	/* send for processing if configured */
@@ -532,9 +520,14 @@ func (mgr *ControllerManager) Handler_JoyButtonEvent(event *sdl.JoyButtonEvent) 
 	}
 
 	/* only send if the channel is being read */
-	mgr.RawEventChannels.EmitTimeout(time.Second, ControllerManager_RawEvent{
-		Joystick: joystick,
-		Event:    event,
+	mgr.RawEventChannels.EmitTimeout(time.Second, &ControllerManager_RawEvent_Button{
+		device: &ControllerManager_RawEvent_Device{
+			UniqueID: joystick.UniqueID(),
+			DeviceID: joystick.UsbID(),
+		},
+		timestamp: int(event.GetTimestamp()),
+		button:    int(event.Button),
+		value:     float64(event.State),
 	})
 
 	/* send for processing if configured */
@@ -557,9 +550,14 @@ func (mgr *ControllerManager) Handler_JoyHatEvent(event *sdl.JoyHatEvent) error 
 	}
 
 	/* only send if the channel is being read */
-	mgr.RawEventChannels.EmitTimeout(time.Second, ControllerManager_RawEvent{
-		Joystick: joystick,
-		Event:    event,
+	mgr.RawEventChannels.EmitTimeout(time.Second, &ControllerManager_RawEvent_Hat{
+		device: &ControllerManager_RawEvent_Device{
+			UniqueID: joystick.UniqueID(),
+			DeviceID: joystick.UsbID(),
+		},
+		timestamp: int(event.GetTimestamp()),
+		hat:       int(event.Hat),
+		value:     float64(event.Value),
 	})
 
 	/* send for processing if configured */
@@ -603,7 +601,7 @@ func (mgr *ControllerManager) Attach(ctx context.Context) context.CancelFunc {
 	return cancel
 }
 
-func (mgr *ControllerManager) SubscribeRaw() (chan ControllerManager_RawEvent, func()) {
+func (mgr *ControllerManager) SubscribeRaw() (chan IControllerManager_RawEvent, func()) {
 	return mgr.RawEventChannels.Subscribe()
 }
 

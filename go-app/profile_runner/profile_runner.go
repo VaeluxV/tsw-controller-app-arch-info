@@ -15,7 +15,6 @@ import (
 	"tsw_controller_app/controller_mgr"
 	"tsw_controller_app/logger"
 	"tsw_controller_app/map_utils"
-	"tsw_controller_app/sdl_mgr"
 )
 
 type ProfileRunner_AssignmentScore = int
@@ -125,8 +124,8 @@ func (pc *ProfileRunnerAssignmentCall) IsSameAction(other *ProfileRunnerAssignme
 	return false
 }
 
-func (p *ProfileRunner) getSelectedProfileForJoystick(joystick sdl_mgr.SDLMgr_Joystick) (ProfileRunnerSettings_SelectedProfile, bool) {
-	selected_profile, has_selected_profile := p.Settings.GetSelectedProfiles().Get(joystick.UniqueID())
+func (p *ProfileRunner) getSelectedProfileForDevice(device *controller_mgr.ControllerManager_ChangeEvent_Device) (ProfileRunnerSettings_SelectedProfile, bool) {
+	selected_profile, has_selected_profile := p.Settings.GetSelectedProfiles().Get(device.UniqueID)
 
 	/* try auto-selection */
 	current_rail_class := p.CabDebugger.State.DrivableActorName
@@ -140,14 +139,14 @@ func (p *ProfileRunner) getSelectedProfileForJoystick(joystick sdl_mgr.SDLMgr_Jo
 		p.Profiles.ForEach(func(profile config.Config_Controller_Profile, id string) bool {
 			if (profile.AutoSelect == nil || !*profile.AutoSelect) ||
 				profile.RailClassInformation == nil ||
-				(profile.Controller != nil && *profile.Controller.UsbID != joystick.UsbID()) {
+				(profile.Controller != nil && *profile.Controller.UsbID != device.DeviceID) {
 				/* skip if not-autoselect, rail class information is missing or the controller doesn't match */
 				return true
 			}
 
 			for _, rc_info := range *profile.RailClassInformation {
 				if *rc_info.ClassName == current_rail_class {
-					is_controller_match := profile.Controller != nil && *profile.Controller.UsbID == joystick.UsbID()
+					is_controller_match := profile.Controller != nil && *profile.Controller.UsbID == device.DeviceID
 					if is_controller_match {
 						scored_profiles = append(scored_profiles, ScoredProfile{Id: id, Score: 20})
 					} else {
@@ -267,7 +266,7 @@ func (p *ProfileRunner) SetPreferredControlMode(mode config.PreferredControlMode
 func (p *ProfileRunner) CallAssignmentActionForControl(
 	control_name string,
 	assignment_index int,
-	controller *controller_mgr.ControllerManager_ConfiguredController,
+	controller controller_mgr.IControllerManager_Controller,
 	control_state_at_call controller_mgr.ControllerManager_Controller_ControlState,
 	assignment config.Config_Controller_Profile_Control_Assignment,
 	action *ProfileRunnerAssignmentCall,
@@ -317,13 +316,13 @@ func (p *ProfileRunner) CallAssignmentActionForControl(
 			p.ActionSequencer.Enqueue(*action.ActionSequencerAction)
 		} else if action.VirtualAction != nil {
 			logger.Logger.Debug("[ProfileRunner::CallAssignmentActionForControl] updating virtual control", "action", action.VirtualAction)
-			virtual_control, has_virtual_control := controller.VirtualControls.Get(action.VirtualAction.Control)
+			virtual_control, has_virtual_control := controller.VirtualControls().Get(action.VirtualAction.Control)
 			if !has_virtual_control {
 				controller.RegisterVirtualControl(action.VirtualAction.Control, action.VirtualAction.Value)
-				virtual_control, _ = controller.VirtualControls.Get(action.VirtualAction.Control)
+				virtual_control, _ = controller.VirtualControls().Get(action.VirtualAction.Control)
 			}
 			virtual_control.UpdateValue(action.VirtualAction.Value, false)
-			controller.VirtualControls.Set(action.VirtualAction.Control, virtual_control)
+			controller.VirtualControls().Set(action.VirtualAction.Control, virtual_control)
 		} else if action.DirectControlCommand != nil {
 			logger.Logger.Debug("[ProfileRunner::CallAssignmentActionForControl] sending direct control command", "command", action.DirectControlCommand)
 			chan_utils.SendTimeout(p.DirectController.ControlChannel, time.Second, *action.DirectControlCommand)
@@ -449,17 +448,17 @@ check_assignments_loop:
 		assigmment_conditions := assignment.Conditions()
 		if source_event != nil && assigmment_conditions != nil && len(*assigmment_conditions) > 0 {
 			for _, condition := range *assigmment_conditions {
-				var dependecy_control controller_mgr.ControllerManager_Controller_Control = nil
+				var dependecy_control controller_mgr.IControllerManager_Controller_Control = nil
 				if strings.HasPrefix(condition.Control, "virtual:") {
 					/* virtual controls always exist - they just start at 0 */
-					virtual_control, has_dependency_control := source_event.Controller.VirtualControls.Get(condition.Control)
+					virtual_control, has_dependency_control := source_event.Controller.VirtualControls().Get(condition.Control)
 					if !has_dependency_control {
 						source_event.Controller.RegisterVirtualControl(condition.Control, 0.0)
-						virtual_control, _ = source_event.Controller.VirtualControls.Get(condition.Control)
+						virtual_control, _ = source_event.Controller.VirtualControls().Get(condition.Control)
 					}
-					dependecy_control = &virtual_control
-				} else if joy_control, has_dependency_control := source_event.Controller.Controls.Get(condition.Control); has_dependency_control {
-					dependecy_control = &joy_control
+					dependecy_control = virtual_control
+				} else if joy_control, has_dependency_control := source_event.Controller.Controls().Get(condition.Control); has_dependency_control {
+					dependecy_control = joy_control
 				}
 
 				if dependecy_control == nil {
@@ -573,7 +572,7 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 			case change_event := <-channel:
 				logger.Logger.Debug("[ProfileRunner::Run] received change event", "event", change_event)
 
-				selected_profile, has_selected_profile := p.getSelectedProfileForJoystick(*change_event.Joystick)
+				selected_profile, has_selected_profile := p.getSelectedProfileForDevice(change_event.Device)
 				if !has_selected_profile {
 					logger.Logger.Debug("[ProfileRunner::Run] skipping event, no profile selected", "event", change_event)
 					continue
@@ -755,7 +754,7 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 					continue
 				}
 
-				selected_profile, has_selected_profile := p.getSelectedProfileForJoystick(*sync_control_state.SourceEvent.Joystick)
+				selected_profile, has_selected_profile := p.getSelectedProfileForDevice(sync_control_state.SourceEvent.Device)
 				if !has_selected_profile {
 					/* skip if no profile selected for controller */
 					continue

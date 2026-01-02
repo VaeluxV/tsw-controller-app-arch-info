@@ -27,7 +27,6 @@ import (
 	"tsw_controller_app/tswapi"
 	"tsw_controller_app/tswconnector"
 
-	"github.com/veandco/go-sdl2/sdl"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -85,7 +84,7 @@ type Remote_SharedProfilesIndex struct {
 }
 
 type AppRawSubscriber struct {
-	Channel chan controller_mgr.ControllerManager_RawEvent
+	Channel chan controller_mgr.IControllerManager_RawEvent
 	Cancel  func()
 }
 
@@ -474,31 +473,33 @@ func (a *App) GetControllerConfiguration(unique_id controller_mgr.JoystickUnique
 			UsbId:    sdl_mapping.UsbID,
 			Controls: []Interop_ControllerCalibration_Control{},
 		}
-		controller.Controls.ForEach(func(control controller_mgr.ControllerManager_Controller_JoyControl, key string) bool {
-			calibration := Interop_ControllerCalibration_Control{
-				Kind:        control.SDLMapping.Kind,
-				Index:       control.SDLMapping.Index,
-				Name:        control.Name,
-				Min:         control.Calibration.Min,
-				Max:         control.Calibration.Max,
-				Idle:        0,
-				Deadzone:    0,
-				Invert:      false,
-				EasingCurve: []float64{0.0, 0.0, 1.0, 1.0},
+		controller.Controls().ForEach(func(c controller_mgr.IControllerManager_Controller_Control, key string) bool {
+			if control, ok := c.(*controller_mgr.ControllerManager_Controller_JoyControl); ok {
+				calibration := Interop_ControllerCalibration_Control{
+					Kind:        control.SDLMapping.Kind,
+					Index:       control.SDLMapping.Index,
+					Name:        control.Name,
+					Min:         control.Calibration.Min,
+					Max:         control.Calibration.Max,
+					Idle:        0,
+					Deadzone:    0,
+					Invert:      false,
+					EasingCurve: []float64{0.0, 0.0, 1.0, 1.0},
+				}
+				if control.Calibration.Idle != nil {
+					calibration.Idle = *control.Calibration.Idle
+				}
+				if control.Calibration.Deadzone != nil {
+					calibration.Deadzone = *control.Calibration.Deadzone
+				}
+				if control.Calibration.Invert != nil {
+					calibration.Invert = *control.Calibration.Invert
+				}
+				if control.Calibration.EasingCurve != nil {
+					calibration.EasingCurve = *control.Calibration.EasingCurve
+				}
+				interop_calibration.Controls = append(interop_calibration.Controls, calibration)
 			}
-			if control.Calibration.Idle != nil {
-				calibration.Idle = *control.Calibration.Idle
-			}
-			if control.Calibration.Deadzone != nil {
-				calibration.Deadzone = *control.Calibration.Deadzone
-			}
-			if control.Calibration.Invert != nil {
-				calibration.Invert = *control.Calibration.Invert
-			}
-			if control.Calibration.EasingCurve != nil {
-				calibration.EasingCurve = *control.Calibration.EasingCurve
-			}
-			interop_calibration.Controls = append(interop_calibration.Controls, calibration)
 			return true
 		})
 		return &Interop_ControllerConfiguration{
@@ -631,25 +632,25 @@ func (a *App) SubscribeRaw(unique_id controller_mgr.JoystickUniqueID) error {
 	}
 	go func() {
 		for e := range channel {
-			if e.Joystick.UniqueID() == joystick.UniqueID() {
+			if e.Device().UniqueID == joystick.UniqueID() {
 				raw_event := Interop_RawEvent{
 					UniqueID:  joystick.UniqueID(),
 					UsbID:     joystick.UsbID(),
-					Timestamp: int(e.Event.GetTimestamp()),
+					Timestamp: e.Timestamp(),
 				}
-				switch event := e.Event.(type) {
-				case *sdl.JoyAxisEvent:
+				switch event := e.(type) {
+				case *controller_mgr.ControllerManager_RawEvent_Axis:
 					raw_event.Kind = sdl_mgr.SDLMgr_Control_Kind_Axis
-					raw_event.Index = int(event.Axis)
-					raw_event.Value = float64(event.Value)
-				case *sdl.JoyButtonEvent:
+					raw_event.Index = event.Axis()
+					raw_event.Value = event.Value()
+				case *controller_mgr.ControllerManager_RawEvent_Button:
 					raw_event.Kind = sdl_mgr.SDLMgr_Control_Kind_Button
-					raw_event.Index = int(event.Button)
-					raw_event.Value = float64(event.State)
-				case *sdl.JoyHatEvent:
+					raw_event.Index = event.Button()
+					raw_event.Value = event.Value()
+				case *controller_mgr.ControllerManager_RawEvent_Hat:
 					raw_event.Kind = sdl_mgr.SDLMgr_Control_Kind_Hat
-					raw_event.Index = int(event.Hat)
-					raw_event.Value = float64(event.Value)
+					raw_event.Index = event.Hat()
+					raw_event.Value = event.Value()
 				}
 				go runtime.EventsEmit(a.ctx, AppEventType_RawEvent, raw_event)
 			}
@@ -727,8 +728,10 @@ func (a *App) SaveProfileForSharingWithControllerInformation(id string, unique_i
 				UsbID: usb_id,
 				Data:  []config.Config_Controller_SDLMap_Control{},
 			}
-			controller.Controls.ForEach(func(value controller_mgr.ControllerManager_Controller_JoyControl, key string) bool {
-				mapping.Data = append(mapping.Data, value.SDLMapping)
+			controller.Controls().ForEach(func(c controller_mgr.IControllerManager_Controller_Control, key string) bool {
+				if control, ok := c.(*controller_mgr.ControllerManager_Controller_JoyControl); ok {
+					mapping.Data = append(mapping.Data, control.SDLMapping)
+				}
 				return true
 			})
 			profile_for_sharing.Controller.Mapping = &mapping
