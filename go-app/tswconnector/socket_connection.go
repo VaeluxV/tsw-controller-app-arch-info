@@ -86,6 +86,12 @@ func (c *SocketConnection) Subscribe() (chan TSWConnector_Message, func()) {
 	return c.Subscribers.Subscribe()
 }
 
+func (c *SocketConnection) IsActive() bool {
+	c.OutgoingChannels.Mutex.RLock()
+	defer c.OutgoingChannels.Mutex.RUnlock()
+	return len(c.OutgoingChannels.Map) > 0
+}
+
 func (c *SocketConnection) Stop() error {
 	return c.Server.Close()
 }

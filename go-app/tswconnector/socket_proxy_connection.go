@@ -32,6 +32,7 @@ type SocketProxyConnection_MessageResult struct {
 type SocketProxyConnection struct {
 	context         context.Context
 	cancel          context.CancelFunc
+	connection      *websocket.Conn
 	ServerAddr      string
 	OutgoingChannel chan TSWConnector_Message
 	Subscribers     *pubsub_utils.PubSubSlice[TSWConnector_Message]
@@ -75,25 +76,41 @@ func (c *SocketProxyConnection) waitForMessage(conn *websocket.Conn) chan Socket
 	return received
 }
 
+func (c *SocketProxyConnection) IsActive() bool {
+	return c.connection != nil
+}
+
 func (c *SocketProxyConnection) Subscribe() (chan TSWConnector_Message, func()) {
 	return c.Subscribers.Subscribe()
 }
 
 func (c *SocketProxyConnection) Start() error {
+	var closeexisting func() error
+	closeexisting = func() error {
+		if c.connection != nil {
+			connection := c.connection
+			c.connection = nil
+			return connection.Close()
+		}
+		return nil
+	}
+	/* make sure the connection will always be closed at the end */
+	defer closeexisting()
+
 	for {
-		var connection *websocket.Conn
+		closeexisting()
 		select {
 		case conn := <-c.dial():
 			if conn.err != nil {
 				<-time.After(5 * time.Second)
 				continue
 			}
-			connection = conn.connection
+			c.connection = conn.connection
 		case <-c.context.Done():
 			return nil
 		}
-		defer connection.Close()
 
+		connection := c.connection
 		sender_ctx, cancel_sender := context.WithCancel(c.context)
 		go func() {
 			for {
@@ -140,6 +157,7 @@ func NewSocketProxyConnection(ctx context.Context, addr string) *SocketProxyConn
 	return &SocketProxyConnection{
 		context:         child_ctx,
 		cancel:          child_cancel,
+		connection:      nil,
 		ServerAddr:      addr,
 		OutgoingChannel: make(chan TSWConnector_Message, SOCKET_PROXY_CONNECTION_OUTGOING_QUEUE_BUFFER_SIZE),
 		Subscribers:     pubsub_utils.NewPubSubSlice[TSWConnector_Message](),

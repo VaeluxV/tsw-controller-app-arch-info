@@ -14,6 +14,7 @@ type TSWConnector_Message struct {
 type TSWConnector interface {
 	Start() error
 	Stop() error
+	IsActive() bool
 	Subscribe() (chan TSWConnector_Message, func())
 	Send(m TSWConnector_Message) error
 }

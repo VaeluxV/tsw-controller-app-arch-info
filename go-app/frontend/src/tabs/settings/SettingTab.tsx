@@ -8,6 +8,7 @@ import {
   SetAlwaysOnTop,
   GetTheme,
   SetTheme,
+  SelectCommAPIKeyFile,
 } from "../../../wailsjs/go/main/App";
 import { alert } from "../../utils/alert";
 import { BrowserOpenURL } from "../../../wailsjs/runtime/runtime";
@@ -29,9 +30,18 @@ const getRemoteFormValues = async () => ({
 });
 
 export const SettingsTab = () => {
-  const { register, formState, reset, handleSubmit } = useForm<FormValues>({
-    defaultValues: async () => getRemoteFormValues(),
-  });
+  const { register, formState, reset, setValue, handleSubmit } =
+    useForm<FormValues>({
+      defaultValues: async () => getRemoteFormValues(),
+    });
+
+  const handleSelectCommAPIKey = () => {
+    SelectCommAPIKeyFile()
+      .then((path) => {
+        setValue("tswApiKeyLocation", path);
+      })
+      .catch((err) => alert(String(err), "error"));
+  };
 
   const handleOpenForumLink = () => {
     BrowserOpenURL(
@@ -43,14 +53,12 @@ export const SettingsTab = () => {
     const promises: Promise<void>[] = [];
     const currentValues = await getRemoteFormValues();
 
-    if (values.theme  !== currentValues.theme) {
-      updateTheme(values.theme)
-      promises.push(SetTheme(values.theme))
+    if (values.theme !== currentValues.theme) {
+      updateTheme(values.theme);
+      promises.push(SetTheme(values.theme));
     }
 
-    if (
-      values.tswApiKeyLocation !== currentValues.tswApiKeyLocation
-    ) {
+    if (values.tswApiKeyLocation !== currentValues.tswApiKeyLocation) {
       promises.push(SetTSWAPIKeyLocation(values.tswApiKeyLocation));
     }
 
@@ -82,11 +90,7 @@ export const SettingsTab = () => {
         <label htmlFor="ui-theme" className="fieldset-legend">
           Theme
         </label>
-        <select
-          id="ui-theme"
-          className="select w-full"
-          {...register("theme")}
-        >
+        <select id="ui-theme" className="select w-full" {...register("theme")}>
           <option value="system">System</option>
           <option value="light">Light</option>
           <option value="dark">Dark</option>
@@ -113,11 +117,20 @@ export const SettingsTab = () => {
         <label htmlFor="tsw-api-key-location" className="fieldset-legend">
           TSW API Key Location
         </label>
-        <input
-          id="tsw-api-key-location"
-          className="input w-full"
-          {...register("tswApiKeyLocation")}
-        />
+        <div className="grid grid-cols-[minmax(0,1fr)_max-content] gap-2">
+          <input
+            id="tsw-api-key-location"
+            className="input w-full"
+            {...register("tswApiKeyLocation")}
+          />
+          <button
+            className="btn"
+            type="button"
+            onClick={handleSelectCommAPIKey}
+          >
+            Select File
+          </button>
+        </div>
         <p className="fieldset-label whitespace-normal">
           If the location has not been auto-detected you will need to enter it
           manually here. The API key is only requred for the "api_control"

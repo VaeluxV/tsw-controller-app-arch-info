@@ -60,6 +60,8 @@ export function SaveProfileForSharing(arg1:string):Promise<void>;
 
 export function SaveProfileForSharingWithControllerInformation(arg1:string,arg2:string):Promise<void>;
 
+export function SelectCommAPIKeyFile():Promise<string>;
+
 export function SelectProfile(arg1:string,arg2:string):Promise<void>;
 
 export function SetAlwaysOnTop(arg1:boolean):Promise<void>;
