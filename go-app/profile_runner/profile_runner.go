@@ -49,7 +49,7 @@ type ProfileRunnerAssignmentCall struct {
 
 type ProfileRunner struct {
 	ActionSequencer                   *action_sequencer.ActionSequencer
-	ControllerManager                 *controller_mgr.ControllerManager
+	ControllerManager                 *controller_mgr.SDLControllerManager
 	DirectController                  *DirectController
 	SyncController                    *SyncController
 	ApiController                     *ApiController
@@ -85,7 +85,7 @@ func (s *ProfileRunnerSettings) SetPreferredControlMode(mode config.PreferredCon
 
 func New(
 	action_sequencer *action_sequencer.ActionSequencer,
-	controller_manager *controller_mgr.ControllerManager,
+	controller_manager *controller_mgr.SDLControllerManager,
 	direct_controller *DirectController,
 	sync_controller *SyncController,
 	api_controller *ApiController,
@@ -580,7 +580,7 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 
 				control_name := change_event.ControlName
 				if selected_profile.Profile.Controller != nil && selected_profile.Profile.Controller.Mapping != nil {
-					if joy_control, is_joy_control := change_event.Control.(*controller_mgr.ControllerManager_Controller_JoyControl); is_joy_control {
+					if joy_control, is_joy_control := change_event.Control.(*controller_mgr.SDL_ControllerManager_Controller_JoyControl); is_joy_control {
 						root_mapping := joy_control.SDLMapping
 						override_mapping := selected_profile.Profile.Controller.Mapping
 						override_control, find_override_control_err := override_mapping.FindByKindAndIndex(root_mapping.Kind, root_mapping.Index)

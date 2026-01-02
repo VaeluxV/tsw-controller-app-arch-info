@@ -105,7 +105,7 @@ type App struct {
 	program_config     *config.Config_ProgramConfig
 	config_loader      *config_loader.ConfigLoader
 	sdl_manager        *sdl_mgr.SDLMgr
-	controller_manager *controller_mgr.ControllerManager
+	controller_manager *controller_mgr.SDLControllerManager
 	action_sequencer   *action_sequencer.ActionSequencer
 	connector          tswconnector.TSWConnector
 	tswapi             *tswapi.TSWAPI
@@ -270,7 +270,7 @@ func (a *App) startupRun() {
 	}()
 
 	go func() {
-		channel, cancel := a.controller_manager.SubscribeJoyDevicesUpdated()
+		channel, cancel := a.controller_manager.SubscribeDevicesUpdated()
 		defer cancel()
 		for {
 			select {
@@ -386,7 +386,7 @@ func (a *App) LoadConfiguration() {
 
 func (a *App) GetControllers() []Interop_GenericController {
 	var controllers []Interop_GenericController
-	a.controller_manager.ConfiguredControllers.ForEach(func(c controller_mgr.ControllerManager_ConfiguredController, _ controller_mgr.JoystickUniqueID) bool {
+	a.controller_manager.ConfiguredControllers.ForEach(func(c controller_mgr.SDL_ControllerManager_ConfiguredController, _ controller_mgr.JoystickUniqueID) bool {
 		controllers = append(controllers, Interop_GenericController{
 			UniqueID:     c.Joystick.UniqueID(),
 			UsbID:        c.Joystick.UsbID(),
@@ -395,7 +395,7 @@ func (a *App) GetControllers() []Interop_GenericController {
 		})
 		return true
 	})
-	a.controller_manager.UnconfiguredControllers.ForEach(func(c controller_mgr.ControllerManager_UnconfiguredController, _ controller_mgr.JoystickUniqueID) bool {
+	a.controller_manager.UnconfiguredControllers.ForEach(func(c controller_mgr.SDL_ControllerManager_UnconfiguredController, _ controller_mgr.JoystickUniqueID) bool {
 		controllers = append(controllers, Interop_GenericController{
 			UniqueID:     c.Joystick.UniqueID(),
 			UsbID:        c.Joystick.UsbID(),
@@ -474,7 +474,7 @@ func (a *App) GetControllerConfiguration(unique_id controller_mgr.JoystickUnique
 			Controls: []Interop_ControllerCalibration_Control{},
 		}
 		controller.Controls().ForEach(func(c controller_mgr.IControllerManager_Controller_Control, key string) bool {
-			if control, ok := c.(*controller_mgr.ControllerManager_Controller_JoyControl); ok {
+			if control, ok := c.(*controller_mgr.SDL_ControllerManager_Controller_JoyControl); ok {
 				calibration := Interop_ControllerCalibration_Control{
 					Kind:        control.SDLMapping.Kind,
 					Index:       control.SDLMapping.Index,
@@ -729,7 +729,7 @@ func (a *App) SaveProfileForSharingWithControllerInformation(id string, unique_i
 				Data:  []config.Config_Controller_SDLMap_Control{},
 			}
 			controller.Controls().ForEach(func(c controller_mgr.IControllerManager_Controller_Control, key string) bool {
-				if control, ok := c.(*controller_mgr.ControllerManager_Controller_JoyControl); ok {
+				if control, ok := c.(*controller_mgr.SDL_ControllerManager_Controller_JoyControl); ok {
 					mapping.Data = append(mapping.Data, control.SDLMapping)
 				}
 				return true

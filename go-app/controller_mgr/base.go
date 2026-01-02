@@ -7,4 +7,6 @@ import (
 type IControllerManager interface {
 	Attach(c context.Context) context.CancelFunc
 	SubscribeRaw() (chan IControllerManager_RawEvent, func())
+	SubscribeChangeEvent() (chan ControllerManager_Control_ChangeEvent, func())
+	SubscribeDevicesUpdated() (chan ControllerManager_Control_DevicesUpdated, func())
 }
