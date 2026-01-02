@@ -50,7 +50,7 @@ export const CalibrationModalForm = ({ controller, onClose }: Props) => {
       form.handleSubmit((values) => {
         const data = new main.Interop_ControllerCalibration();
         data.Name = values.name;
-        data.UsbId = controller.UsbID;
+        data.DeviceID = controller.DeviceID;
         data.Controls = values.controls.map((control) => ({
           Kind: control.kind,
           Index: control.index,

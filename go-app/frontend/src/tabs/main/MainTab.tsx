@@ -15,7 +15,7 @@ import {
   OpenProfileBuilder,
   DeleteProfile,
   OpenNewProfileBuilder,
-  OpenNewProfileBuilderForUsbID,
+  OpenNewProfileBuilderForDeviceID,
   SaveProfileForSharing,
   SaveProfileForSharingWithControllerInformation,
   ImportProfile,
@@ -93,7 +93,7 @@ export const MainTab = () => {
     controller: main.Interop_GenericController | null,
   ) => {
     if (!controller) OpenNewProfileBuilder();
-    else OpenNewProfileBuilderForUsbID(controller.UsbID);
+    else OpenNewProfileBuilderForDeviceID(controller.DeviceID);
   };
 
   const handleEditProfile = (profile: ProfileInfo) => {

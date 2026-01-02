@@ -136,7 +136,7 @@ export namespace main {
 	}
 	export class Interop_ControllerCalibration {
 	    Name: string;
-	    UsbId: string;
+	    DeviceID: string;
 	    Controls: Interop_ControllerCalibration_Control[];
 	
 	    static createFrom(source: any = {}) {
@@ -146,7 +146,7 @@ export namespace main {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.Name = source["Name"];
-	        this.UsbId = source["UsbId"];
+	        this.DeviceID = source["DeviceID"];
 	        this.Controls = this.convertValues(source["Controls"], Interop_ControllerCalibration_Control);
 	    }
 	
@@ -203,9 +203,10 @@ export namespace main {
 	}
 	export class Interop_GenericController {
 	    UniqueID: string;
-	    UsbID: string;
+	    DeviceID: string;
 	    Name: string;
 	    IsConfigured: boolean;
+	    IsVirtual: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new Interop_GenericController(source);
@@ -214,9 +215,10 @@ export namespace main {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.UniqueID = source["UniqueID"];
-	        this.UsbID = source["UsbID"];
+	        this.DeviceID = source["DeviceID"];
 	        this.Name = source["Name"];
 	        this.IsConfigured = source["IsConfigured"];
+	        this.IsVirtual = source["IsVirtual"];
 	    }
 	}
 	export class Interop_Profile_Metadata {
@@ -238,7 +240,7 @@ export namespace main {
 	export class Interop_Profile {
 	    Id: string;
 	    Name: string;
-	    UsbID: string;
+	    DeviceID: string;
 	    AutoSelect?: boolean;
 	    Metadata: Interop_Profile_Metadata;
 	
@@ -250,7 +252,7 @@ export namespace main {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.Id = source["Id"];
 	        this.Name = source["Name"];
-	        this.UsbID = source["UsbID"];
+	        this.DeviceID = source["DeviceID"];
 	        this.AutoSelect = source["AutoSelect"];
 	        this.Metadata = this.convertValues(source["Metadata"], Interop_Profile_Metadata);
 	    }
@@ -276,7 +278,7 @@ export namespace main {
 	
 	export class Interop_RawEvent {
 	    UniqueID: string;
-	    UsbID: string;
+	    DeviceID: string;
 	    Kind: string;
 	    Index: number;
 	    Value: number;
@@ -289,7 +291,7 @@ export namespace main {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.UniqueID = source["UniqueID"];
-	        this.UsbID = source["UsbID"];
+	        this.DeviceID = source["DeviceID"];
 	        this.Kind = source["Kind"];
 	        this.Index = source["Index"];
 	        this.Value = source["Value"];
@@ -326,7 +328,7 @@ export namespace main {
 	}
 	export class Interop_SharedProfile {
 	    Name: string;
-	    UsbID: string;
+	    DeviceID: string;
 	    Url: string;
 	    AutoSelect?: boolean;
 	    ContainsCalibration?: boolean;
@@ -339,7 +341,7 @@ export namespace main {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.Name = source["Name"];
-	        this.UsbID = source["UsbID"];
+	        this.DeviceID = source["DeviceID"];
 	        this.Url = source["Url"];
 	        this.AutoSelect = source["AutoSelect"];
 	        this.ContainsCalibration = source["ContainsCalibration"];

@@ -27,11 +27,11 @@ export const ExploreTab = () => {
   }
 
   const [supportedSharedProfiles, unsupportedSharedProfiles] = useMemo(() => {
-    const controllerUsbIds = new Set(controllers?.map((c) => c.UsbID) ?? []);
+    const controllerDeviceIDs = new Set(controllers?.map((c) => c.DeviceID) ?? []);
     const supportedSharedProfiles: main.Interop_SharedProfile[] = [];
     const unsupportedSharedProfiles: main.Interop_SharedProfile[] = [];
     sharedProfiles?.forEach((p) => {
-      (controllerUsbIds.has(p.UsbID)
+      (controllerDeviceIDs.has(p.DeviceID)
         ? supportedSharedProfiles
         : unsupportedSharedProfiles
       ).push(p);

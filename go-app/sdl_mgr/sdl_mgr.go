@@ -68,7 +68,7 @@ func (mgr *SDLMgr) joyDeviceAdded(event *sdl.JoyDeviceAddedEvent) (*SDLMgr_Joyst
 		InternalJoystick: nil,
 	}
 
-	logger.Logger.Info("[SDLMgr_Joystick::Open] opening joystick", "joystick", joystick.UsbID(), "name", joystick.Name)
+	logger.Logger.Info("[SDLMgr_Joystick::Open] opening joystick", "joystick", joystick.DeviceID(), "name", joystick.Name)
 	joystick.InternalJoystick = sdl.JoystickOpen(joy_index)
 	if joystick.InternalJoystick == nil {
 		return nil, fmt.Errorf("could not open joystick for use: %w", sdl.GetError())
@@ -192,12 +192,12 @@ func (mgr *SDLMgr) StartPolling(ctx context.Context) (chan sdl.Event, context.Ca
 	return event_channel, cancel
 }
 
-func (joystick *SDLMgr_Joystick) UsbID() string {
+func (joystick *SDLMgr_Joystick) DeviceID() string {
 	return fmt.Sprintf("%04X:%04X", joystick.VendorID, joystick.ProductID)
 }
 
 func (joystick *SDLMgr_Joystick) UniqueID() string {
-	unique_id := fmt.Sprintf("usb_id=%s,instance_id=%s", joystick.UsbID(), string(joystick.InstanceID))
+	unique_id := fmt.Sprintf("usb_id=%s,instance_id=%s", joystick.DeviceID(), string(joystick.InstanceID))
 	hash := sha1.Sum([]byte(unique_id))
 	return fmt.Sprintf("%x", hash)
 }

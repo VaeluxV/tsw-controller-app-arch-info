@@ -7,9 +7,10 @@ import (
 
 type Interop_GenericController struct {
 	UniqueID     string
-	UsbID        string
+	DeviceID     string /* this is the USB ID for SDL controllers */
 	Name         string
 	IsConfigured bool
+	IsVirtual    bool
 }
 
 type Interop_Profile_Metadata struct {
@@ -21,14 +22,14 @@ type Interop_Profile_Metadata struct {
 type Interop_Profile struct {
 	Id         string
 	Name       string
-	UsbID      string
+	DeviceID   string
 	AutoSelect *bool
 	Metadata   Interop_Profile_Metadata
 }
 
 type Interop_RawEvent struct {
 	UniqueID  string
-	UsbID     string
+	DeviceID  string
 	Kind      sdl_mgr.SDLMgr_Control_Kind
 	Index     int
 	Value     float64
@@ -49,7 +50,7 @@ type Interop_ControllerCalibration_Control struct {
 
 type Interop_ControllerCalibration struct {
 	Name     string
-	UsbId    string
+	DeviceID string
 	Controls []Interop_ControllerCalibration_Control
 }
 
@@ -77,7 +78,7 @@ type Interop_SharedProfile_Author struct {
 
 type Interop_SharedProfile struct {
 	Name                string
-	UsbID               string
+	DeviceID            string
 	Url                 string
 	AutoSelect          *bool
 	ContainsCalibration *bool

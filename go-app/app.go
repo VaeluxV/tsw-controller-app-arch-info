@@ -162,7 +162,8 @@ func (a *App) startupInitialize() {
 		})
 	}
 
-	controller_manager := controller_mgr.New(a.sdl_manager)
+	controller_manager := controller_mgr.NewSDLControllerManager(a.sdl_manager)
+	controller_mgr.NewVirtualControllerManager(connector)
 	action_sequencer := action_sequencer.New(connector)
 
 	cab_debugger := cabdebugger.NewCabDebugger(tsw_api, connector, cabdebugger.CabDebugger_Config{})
@@ -389,18 +390,20 @@ func (a *App) GetControllers() []Interop_GenericController {
 	a.controller_manager.ConfiguredControllers.ForEach(func(c controller_mgr.SDL_ControllerManager_ConfiguredController, _ controller_mgr.JoystickUniqueID) bool {
 		controllers = append(controllers, Interop_GenericController{
 			UniqueID:     c.Joystick.UniqueID(),
-			UsbID:        c.Joystick.UsbID(),
+			DeviceID:     c.Joystick.DeviceID(),
 			Name:         c.Joystick.Name,
 			IsConfigured: true,
+			IsVirtual:    false,
 		})
 		return true
 	})
 	a.controller_manager.UnconfiguredControllers.ForEach(func(c controller_mgr.SDL_ControllerManager_UnconfiguredController, _ controller_mgr.JoystickUniqueID) bool {
 		controllers = append(controllers, Interop_GenericController{
 			UniqueID:     c.Joystick.UniqueID(),
-			UsbID:        c.Joystick.UsbID(),
+			DeviceID:     c.Joystick.DeviceID(),
 			Name:         c.Joystick.Name,
 			IsConfigured: false,
+			IsVirtual:    false,
 		})
 		return true
 	})
@@ -436,7 +439,7 @@ func (a *App) GetProfiles() []Interop_Profile {
 		profiles = append(profiles, Interop_Profile{
 			Id:         profile.Id(),
 			Name:       profile.Name,
-			UsbID:      UsbID,
+			DeviceID:   UsbID,
 			AutoSelect: profile.AutoSelect,
 			Metadata: Interop_Profile_Metadata{
 				Path:      profile.Metadata.Path,
@@ -467,10 +470,10 @@ func (a *App) GetSelectedProfiles() map[controller_mgr.JoystickUniqueID]Interop_
 func (a *App) GetControllerConfiguration(unique_id controller_mgr.JoystickUniqueID) *Interop_ControllerConfiguration {
 	if controller, has_controller := a.controller_manager.ConfiguredControllers.Get(unique_id); has_controller {
 		/* when configured the SDL map and calibration always exist */
-		sdl_mapping, _ := controller.Manager.Config.SDLMappingsByUsbID.Get(controller.Joystick.UsbID())
+		sdl_mapping, _ := controller.Manager.Config.SDLMappingsByDeviceID.Get(controller.Joystick.DeviceID())
 		interop_calibration := Interop_ControllerCalibration{
 			Name:     sdl_mapping.Name,
-			UsbId:    sdl_mapping.UsbID,
+			DeviceID: sdl_mapping.UsbID,
 			Controls: []Interop_ControllerCalibration_Control{},
 		}
 		controller.Controls().ForEach(func(c controller_mgr.IControllerManager_Controller_Control, key string) bool {
@@ -577,7 +580,7 @@ func (a *App) GetSharedProfiles() []Interop_SharedProfile {
 		}
 		profiles = append(profiles, Interop_SharedProfile{
 			Name:                profile.Name,
-			UsbID:               profile.UsbID,
+			DeviceID:            profile.UsbID,
 			Url:                 fmt.Sprintf("https://raw.githubusercontent.com/LiamMartens/tsw-controller-app/refs/heads/main/shared-profiles/%s", profile.File),
 			AutoSelect:          profile.AutoSelect,
 			ContainsCalibration: profile.ContainsCalibration,
@@ -635,7 +638,7 @@ func (a *App) SubscribeRaw(unique_id controller_mgr.JoystickUniqueID) error {
 			if e.Device().UniqueID == joystick.UniqueID() {
 				raw_event := Interop_RawEvent{
 					UniqueID:  joystick.UniqueID(),
-					UsbID:     joystick.UsbID(),
+					DeviceID:  joystick.DeviceID(),
 					Timestamp: e.Timestamp(),
 				}
 				switch event := e.(type) {
@@ -704,7 +707,7 @@ func (a *App) SaveProfileForSharingWithControllerInformation(id string, unique_i
 			return fmt.Errorf("could not find controller")
 		}
 
-		usb_id := controller.Joystick.UsbID()
+		usb_id := controller.Joystick.DeviceID()
 		profile_for_sharing := config.Config_Controller_Profile{
 			/*
 				this copy omits extends and the internal metadata since it's not appropriate for sharing,
@@ -773,11 +776,11 @@ func (a *App) OpenNewProfileBuilder() {
 	runtime.BrowserOpenURL(a.ctx, fmt.Sprintf("https://tsw-controller-app.vercel.app/profile-builder?profile=%s", encoded))
 }
 
-func (a *App) OpenNewProfileBuilderForUsbID(usb_id string) {
+func (a *App) OpenNewProfileBuilderForDeviceID(deviceid string) {
 	empty_profile := config.Config_Controller_Profile{
 		Name: "My new profile",
 		Controller: &config.Config_Controller_Profile_Controller{
-			UsbID: &usb_id,
+			UsbID: &deviceid,
 		},
 		Controls: []config.Config_Controller_Profile_Control{},
 	}
@@ -806,11 +809,11 @@ func (a *App) DeleteProfile(id string) error {
 func (a *App) SaveCalibration(data Interop_ControllerCalibration) error {
 	sdl_mapping := config.Config_Controller_SDLMap{
 		Name:  data.Name,
-		UsbID: data.UsbId,
+		UsbID: data.DeviceID,
 		Data:  []config.Config_Controller_SDLMap_Control{},
 	}
 	calibration := config.Config_Controller_Calibration{
-		UsbID: data.UsbId,
+		UsbID: data.DeviceID,
 		Data:  []config.Config_Controller_CalibrationData{},
 	}
 	for _, control := range data.Controls {

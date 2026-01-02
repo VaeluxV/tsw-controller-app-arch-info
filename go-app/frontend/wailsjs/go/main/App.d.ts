@@ -46,7 +46,7 @@ export function OpenConfigDirectory():Promise<void>;
 
 export function OpenNewProfileBuilder():Promise<void>;
 
-export function OpenNewProfileBuilderForUsbID(arg1:string):Promise<void>;
+export function OpenNewProfileBuilderForDeviceID(arg1:string):Promise<void>;
 
 export function OpenProfileBuilder(arg1:string):Promise<void>;
 
