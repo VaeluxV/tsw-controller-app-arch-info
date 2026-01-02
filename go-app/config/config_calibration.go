@@ -22,6 +22,7 @@ type Config_Controller_CalibrationData struct {
 }
 
 type Config_Controller_Calibration struct {
+	/* the USBID here is equivalent to the DeviceID - which for SDL devices is always the VID:PID combination */
 	UsbID string                              `json:"usb_id" validate:"required" example:"{0xVENDOR_ID}:{0xPRODUCT_ID}"`
 	Data  []Config_Controller_CalibrationData `json:"data" validate:"required"`
 }

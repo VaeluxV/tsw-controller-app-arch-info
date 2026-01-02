@@ -15,7 +15,8 @@ type Config_Controller_SDLMap_Control struct {
 }
 
 type Config_Controller_SDLMap struct {
-	Name  string                             `json:"name" example:"Thrustmaster Quadrant" validate:"required"`
+	Name string `json:"name" example:"Thrustmaster Quadrant" validate:"required"`
+	/* the USBID here is equivalent to the DeviceID - which for SDL devices is always the VID:PID combination */
 	UsbID string                             `json:"usb_id" example:"{0xVENDOR_ID}:{0xPRODUCT_ID}" validate:"required"`
 	Data  []Config_Controller_SDLMap_Control `json:"data" validate:"required"`
 }

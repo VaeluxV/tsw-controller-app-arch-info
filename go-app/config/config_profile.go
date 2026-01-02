@@ -165,7 +165,7 @@ type Config_Controller_Profile_Control struct {
 }
 
 type Config_Controller_Profile_Controller struct {
-	/* if defined ; specifies this profile can only be used with the below controller */
+	/* if defined ; specifies this profile can only be used with the below SDL controller (by USB ID) */
 	UsbID *string `json:"usb_id,omitempty"`
 	/* Can be defined to specify a specific SDL mapping for this controller and profile; useful for sharing */
 	Mapping     *Config_Controller_SDLMap      `json:"mapping,omitempty"`
