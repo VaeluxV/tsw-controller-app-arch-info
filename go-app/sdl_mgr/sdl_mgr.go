@@ -27,9 +27,9 @@ const (
 
 type SDLMgr_Joystick struct {
 	InstanceID sdl.JoystickID
-	Name       string
-	VendorID   int
-	ProductID  int
+	name       string
+	vendorID   int
+	productID  int
 
 	InternalJoystick *sdl.Joystick
 }
@@ -62,9 +62,9 @@ func (mgr *SDLMgr) joyDeviceAdded(event *sdl.JoyDeviceAddedEvent) (*SDLMgr_Joyst
 	usb_product := sdl.JoystickGetDeviceProduct(joy_index)
 	joystick := SDLMgr_Joystick{
 		InstanceID:       instance_id,
-		Name:             name,
-		VendorID:         usb_vendor,
-		ProductID:        usb_product,
+		name:             name,
+		vendorID:         usb_vendor,
+		productID:        usb_product,
 		InternalJoystick: nil,
 	}
 
@@ -199,5 +199,9 @@ func (joystick *SDLMgr_Joystick) UniqueID() string {
 }
 
 func (joystick *SDLMgr_Joystick) DeviceID() string {
-	return fmt.Sprintf("%04X:%04X", joystick.VendorID, joystick.ProductID)
+	return fmt.Sprintf("%04X:%04X", joystick.vendorID, joystick.productID)
+}
+
+func (joystick *SDLMgr_Joystick) Name() string {
+	return joystick.name
 }

@@ -21,6 +21,7 @@ var MissingVirtualDeviveError = errors.New("virtual device is not available")
 type VirtualControllerManager_Device struct {
 	uniqueID string
 	deviceID string
+	name     string
 }
 
 type VirtualControllerManager_Controller struct {
@@ -62,6 +63,10 @@ func (d *VirtualControllerManager_Device) UniqueID() string {
 
 func (d *VirtualControllerManager_Device) DeviceID() string {
 	return d.deviceID
+}
+
+func (d *VirtualControllerManager_Device) Name() string {
+	return d.name
 }
 
 func (c *VirtualControllerManager_Controller_Control) Manager() IControllerManager {
@@ -159,6 +164,7 @@ func (controller *VirtualControllerManager_Controller) RegisterVirtualControl(na
 func (vm *VirtualControllerManager) registerDeviceFromConnectorEvent(msg tswconnector.TSWConnector_Message) error {
 	unique_id := msg.Properties["unique_id"]
 	device_id := msg.Properties["device_id"]
+	device_name := msg.Properties["device_name"]
 	if strings.HasSuffix(unique_id, "virtual:") && strings.HasSuffix(device_id, "virtual:") {
 		if vm.controllers.Contains(unique_id) {
 			/* already registered; silently ignore */
@@ -168,6 +174,7 @@ func (vm *VirtualControllerManager) registerDeviceFromConnectorEvent(msg tswconn
 			device: &VirtualControllerManager_Device{
 				uniqueID: unique_id,
 				deviceID: device_id,
+				name:     device_name,
 			},
 			manager:         vm,
 			controls:        map_utils.NewLockMap[string, IControllerManager_Controller_Control](),
@@ -240,6 +247,10 @@ func (mgr *VirtualControllerManager) SubscribeChangeEvent() (chan ControllerMana
 
 func (mgr *VirtualControllerManager) SubscribeDevicesUpdated() (chan ControllerManager_Control_DevicesUpdated, func()) {
 	return mgr.devicesUpdatedChannels.Subscribe()
+}
+
+func (mgr *VirtualControllerManager) Controllers() *map_utils.LockMap[DeviceUniqueID, *VirtualControllerManager_Controller] {
+	return mgr.controllers
 }
 
 func NewVirtualControllerManager(conn tswconnector.TSWConnector) *VirtualControllerManager {

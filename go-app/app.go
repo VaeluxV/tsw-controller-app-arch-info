@@ -100,20 +100,21 @@ type AppConfig struct {
 }
 
 type App struct {
-	ctx                context.Context
-	config             AppConfig
-	program_config     *config.Config_ProgramConfig
-	config_loader      *config_loader.ConfigLoader
-	sdl_manager        *sdl_mgr.SDLMgr
-	controller_manager *controller_mgr.SDLControllerManager
-	action_sequencer   *action_sequencer.ActionSequencer
-	connector          tswconnector.TSWConnector
-	tswapi             *tswapi.TSWAPI
-	cab_debugger       *cabdebugger.CabDebugger
-	direct_controller  *profile_runner.DirectController
-	sync_controller    *profile_runner.SyncController
-	api_controller     *profile_runner.ApiController
-	profile_runner     *profile_runner.ProfileRunner
+	ctx                        context.Context
+	config                     AppConfig
+	program_config             *config.Config_ProgramConfig
+	config_loader              *config_loader.ConfigLoader
+	sdl_manager                *sdl_mgr.SDLMgr
+	sdl_controller_manager     *controller_mgr.SDLControllerManager
+	virtual_controller_manager *controller_mgr.VirtualControllerManager
+	action_sequencer           *action_sequencer.ActionSequencer
+	connector                  tswconnector.TSWConnector
+	tswapi                     *tswapi.TSWAPI
+	cab_debugger               *cabdebugger.CabDebugger
+	direct_controller          *profile_runner.DirectController
+	sync_controller            *profile_runner.SyncController
+	api_controller             *profile_runner.ApiController
+	profile_runner             *profile_runner.ProfileRunner
 
 	raw_subscriber *AppRawSubscriber
 }
@@ -180,7 +181,8 @@ func (a *App) startupInitialize() {
 		cab_debugger,
 	)
 
-	a.controller_manager = sdl_controller_manager
+	a.sdl_controller_manager = sdl_controller_manager
+	a.virtual_controller_manager = virtual_controller_manager
 	a.action_sequencer = action_sequencer
 	a.connector = connector
 	a.tswapi = tsw_api
@@ -235,7 +237,7 @@ func (a *App) startupRun() {
 	}()
 
 	go func() {
-		cancel := a.controller_manager.Attach(a.ctx)
+		cancel := a.sdl_controller_manager.Attach(a.ctx)
 		defer cancel()
 		<-a.ctx.Done()
 	}()
@@ -272,7 +274,7 @@ func (a *App) startupRun() {
 	}()
 
 	go func() {
-		channel, cancel := a.controller_manager.SubscribeDevicesUpdated()
+		channel, cancel := a.sdl_controller_manager.SubscribeDevicesUpdated()
 		defer cancel()
 		for {
 			select {
@@ -372,7 +374,7 @@ func (a *App) LoadConfiguration() {
 			}
 			if calibration != nil {
 				logger.Logger.Info("[App] registering SDL map and calibration for controller", "name", sdl_mapping.Name, "usb_id", sdl_mapping.UsbID)
-				a.controller_manager.RegisterConfig(sdl_mapping, *calibration)
+				a.sdl_controller_manager.RegisterConfig(sdl_mapping, *calibration)
 			}
 		}
 
@@ -388,23 +390,33 @@ func (a *App) LoadConfiguration() {
 
 func (a *App) GetControllers() []Interop_GenericController {
 	var controllers []Interop_GenericController
-	a.controller_manager.ConfiguredControllers.ForEach(func(c controller_mgr.SDL_ControllerManager_ConfiguredController, _ controller_mgr.DeviceUniqueID) bool {
+	a.sdl_controller_manager.ConfiguredControllers.ForEach(func(c controller_mgr.SDL_ControllerManager_ConfiguredController, _ controller_mgr.DeviceUniqueID) bool {
 		controllers = append(controllers, Interop_GenericController{
-			UniqueID:     c.Joystick.UniqueID(),
-			DeviceID:     c.Joystick.DeviceID(),
-			Name:         c.Joystick.Name,
+			UniqueID:     c.Device().UniqueID(),
+			DeviceID:     c.Device().DeviceID(),
+			Name:         c.Device().Name(),
 			IsConfigured: true,
 			IsVirtual:    false,
 		})
 		return true
 	})
-	a.controller_manager.UnconfiguredControllers.ForEach(func(c controller_mgr.SDL_ControllerManager_UnconfiguredController, _ controller_mgr.DeviceUniqueID) bool {
+	a.sdl_controller_manager.UnconfiguredControllers.ForEach(func(c controller_mgr.SDL_ControllerManager_UnconfiguredController, _ controller_mgr.DeviceUniqueID) bool {
 		controllers = append(controllers, Interop_GenericController{
 			UniqueID:     c.Joystick.UniqueID(),
 			DeviceID:     c.Joystick.DeviceID(),
-			Name:         c.Joystick.Name,
+			Name:         c.Joystick.Name(),
 			IsConfigured: false,
 			IsVirtual:    false,
+		})
+		return true
+	})
+	a.virtual_controller_manager.Controllers().ForEach(func(c *controller_mgr.VirtualControllerManager_Controller, key controller_mgr.DeviceUniqueID) bool {
+		controllers = append(controllers, Interop_GenericController{
+			UniqueID:     c.Device().UniqueID(),
+			DeviceID:     c.Device().DeviceID(),
+			Name:         c.Device().Name(),
+			IsConfigured: false,
+			IsVirtual:    true,
 		})
 		return true
 	})
@@ -469,7 +481,7 @@ func (a *App) GetSelectedProfiles() map[controller_mgr.DeviceUniqueID]Interop_Se
 }
 
 func (a *App) GetControllerConfiguration(unique_id controller_mgr.DeviceUniqueID) *Interop_ControllerConfiguration {
-	if controller, has_controller := a.controller_manager.ConfiguredControllers.Get(unique_id); has_controller {
+	if controller, has_controller := a.sdl_controller_manager.ConfiguredControllers.Get(unique_id); has_controller {
 		/* when configured the SDL map and calibration always exist */
 		sdl_mapping, _ := controller.Manager.Config().SDLMappingsByDeviceID.Get(controller.Joystick.DeviceID())
 		interop_calibration := Interop_ControllerCalibration{
@@ -620,9 +632,9 @@ func (a *App) SubscribeRaw(unique_id controller_mgr.DeviceUniqueID) error {
 	}
 
 	var joystick *sdl_mgr.SDLMgr_Joystick
-	if j, has_unconfigured_joystick := a.controller_manager.UnconfiguredControllers.Get(unique_id); has_unconfigured_joystick {
+	if j, has_unconfigured_joystick := a.sdl_controller_manager.UnconfiguredControllers.Get(unique_id); has_unconfigured_joystick {
 		joystick = j.Joystick
-	} else if j, has_configured_joystick := a.controller_manager.ConfiguredControllers.Get(unique_id); has_configured_joystick {
+	} else if j, has_configured_joystick := a.sdl_controller_manager.ConfiguredControllers.Get(unique_id); has_configured_joystick {
 		joystick = j.Joystick
 	}
 
@@ -631,7 +643,7 @@ func (a *App) SubscribeRaw(unique_id controller_mgr.DeviceUniqueID) error {
 		return fmt.Errorf("joystick not found")
 	}
 
-	channel, cancel := a.controller_manager.SubscribeRaw()
+	channel, cancel := a.sdl_controller_manager.SubscribeRaw()
 	raw_subscriber := AppRawSubscriber{
 		Channel: channel,
 		Cancel:  cancel,
@@ -705,7 +717,7 @@ func (a *App) SaveProfileForSharing(id string) error {
 
 func (a *App) SaveProfileForSharingWithControllerInformation(id string, unique_id controller_mgr.DeviceUniqueID) error {
 	if profile, has_profile := a.profile_runner.Profiles.Get(id); has_profile {
-		controller, has_controller := a.controller_manager.ConfiguredControllers.Get(unique_id)
+		controller, has_controller := a.sdl_controller_manager.ConfiguredControllers.Get(unique_id)
 		if !has_controller {
 			return fmt.Errorf("could not find controller")
 		}
@@ -883,7 +895,7 @@ func (a *App) SaveCalibration(data Interop_ControllerCalibration) error {
 	}
 
 	/* register config */
-	a.controller_manager.RegisterConfig(sdl_mapping, calibration)
+	a.sdl_controller_manager.RegisterConfig(sdl_mapping, calibration)
 
 	return nil
 }
@@ -1058,7 +1070,7 @@ func (a *App) importProfileJSON(
 	if profile.Controller != nil &&
 		profile.Controller.Mapping != nil &&
 		profile.Controller.Calibration != nil &&
-		!a.controller_manager.IsConfigured(profile.Controller.Mapping.UsbID) {
+		!a.sdl_controller_manager.IsConfigured(profile.Controller.Mapping.UsbID) {
 		usb_id_slug := string_utils.Sluggify(profile.Controller.Mapping.UsbID)
 		sdl_mappings_filepath := filepath.Join(a.config.GlobalConfigDir, config_loader.DIR_SDL_MAPPINGS_NAME, fmt.Sprintf("%s.sdl.json", usb_id_slug))
 		calibration_filepath := filepath.Join(a.config.GlobalConfigDir, config_loader.DIR_CALIBRATION_NAME, fmt.Sprintf("%s.calibration.json", usb_id_slug))

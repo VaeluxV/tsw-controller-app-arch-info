@@ -10,6 +10,7 @@ type DeviceUniqueID = string
 type IControllerManager_Device interface {
 	UniqueID() string
 	DeviceID() string
+	Name() string
 }
 
 type IControllerManager_Controller_Control interface {
