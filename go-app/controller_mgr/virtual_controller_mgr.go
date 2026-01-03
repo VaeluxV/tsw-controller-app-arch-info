@@ -3,9 +3,11 @@ package controller_mgr
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
+	"tsw_controller_app/logger"
 	"tsw_controller_app/map_utils"
 	"tsw_controller_app/pubsub_utils"
 	"tsw_controller_app/tswconnector"
@@ -165,7 +167,8 @@ func (vm *VirtualControllerManager) registerDeviceFromConnectorEvent(msg tswconn
 	unique_id := msg.Properties["unique_id"]
 	device_id := msg.Properties["device_id"]
 	device_name := msg.Properties["device_name"]
-	if strings.HasSuffix(unique_id, "virtual:") && strings.HasSuffix(device_id, "virtual:") {
+	if strings.HasPrefix(unique_id, "virtual:") && strings.HasPrefix(device_id, "virtual:") {
+		fmt.Printf("registering device: %s - %s", unique_id, device_id)
 		if vm.controllers.Contains(unique_id) {
 			/* already registered; silently ignore */
 			return nil
@@ -183,6 +186,7 @@ func (vm *VirtualControllerManager) registerDeviceFromConnectorEvent(msg tswconn
 		vm.devicesUpdatedChannels.EmitTimeout(time.Second, ControllerManager_Control_DevicesUpdated{})
 		return nil
 	}
+	logger.Logger.Error("attempted to register a device with invalid IDs", "unique_id", unique_id, "device_id", device_id, "device_name", device_name)
 	return InvalidVirtualDeviceIDsError
 }
 
@@ -191,6 +195,7 @@ func (vm *VirtualControllerManager) updateDeviceControlValueFromConnectorEvent(m
 	control_name := msg.Properties["control"]
 	control_value, _ := strconv.ParseFloat(msg.Properties["value"], 64)
 	device, has_device := vm.controllers.Get(unique_id)
+	fmt.Printf("updating control: %s\n", control_name)
 	if !has_device {
 		return MissingVirtualDeviveError
 	}
@@ -206,7 +211,6 @@ func (vm *VirtualControllerManager) updateDeviceControlValueFromConnectorEvent(m
 		}
 		device.controls.Set(control_name, control)
 	}
-
 	control.UpdateValue(control_value, false)
 	return nil
 }
@@ -221,13 +225,17 @@ func (vm *VirtualControllerManager) Attach(ctx context.Context) context.CancelFu
 			case <-childctx.Done():
 				return
 			case msg := <-ch:
-				if err := vm.registerDeviceFromConnectorEvent(msg); err != nil {
-					switch msg.EventName {
-					case VIRTUAL_CONTROLLER_AXIS_VALUE_CONNECTOR_EVENT_NAME:
+				switch msg.EventName {
+				case VIRTUAL_CONTROLLER_AXIS_VALUE_CONNECTOR_EVENT_NAME:
+					if err := vm.registerDeviceFromConnectorEvent(msg); err == nil {
 						vm.updateDeviceControlValueFromConnectorEvent(msg)
-					case VIRTUAL_CONTROLLER_BUTTON_VALUE_CONNECTOR_EVENT_NAME:
+					}
+				case VIRTUAL_CONTROLLER_BUTTON_VALUE_CONNECTOR_EVENT_NAME:
+					if err := vm.registerDeviceFromConnectorEvent(msg); err == nil {
 						vm.updateDeviceControlValueFromConnectorEvent(msg)
-					case VIRTUAL_CONTROLLER_HAT_VALUE_CONNECTOR_EVENT_NAME:
+					}
+				case VIRTUAL_CONTROLLER_HAT_VALUE_CONNECTOR_EVENT_NAME:
+					if err := vm.registerDeviceFromConnectorEvent(msg); err == nil {
 						vm.updateDeviceControlValueFromConnectorEvent(msg)
 					}
 				}

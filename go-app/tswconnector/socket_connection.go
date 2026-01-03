@@ -128,7 +128,11 @@ func NewSocketConnection(ctx context.Context) *SocketConnection {
 		Handler: mux,
 	}
 	controller := SocketConnection{
-		WsUpgrader:       &websocket.Upgrader{},
+		WsUpgrader: &websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				return true
+			},
+		},
 		Server:           server,
 		OutgoingChannels: map_utils.NewLockMap[uuid.UUID, chan TSWConnector_Message](),
 		Subscribers:      pubsub_utils.NewPubSubSlice[TSWConnector_Message](),

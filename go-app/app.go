@@ -243,6 +243,12 @@ func (a *App) startupRun() {
 	}()
 
 	go func() {
+		cancel := a.virtual_controller_manager.Attach(a.ctx)
+		defer cancel()
+		<-a.ctx.Done()
+	}()
+
+	go func() {
 		cancel := a.profile_runner.Run(a.ctx)
 		defer cancel()
 		<-a.ctx.Done()
@@ -274,13 +280,17 @@ func (a *App) startupRun() {
 	}()
 
 	go func() {
-		channel, cancel := a.sdl_controller_manager.SubscribeDevicesUpdated()
-		defer cancel()
+		sdl_channel, sdl_unsubsribe := a.sdl_controller_manager.SubscribeDevicesUpdated()
+		virtual_channel, virtual_unsubscribe := a.virtual_controller_manager.SubscribeDevicesUpdated()
+		defer sdl_unsubsribe()
+		defer virtual_unsubscribe()
 		for {
 			select {
 			case <-a.ctx.Done():
 				return
-			case <-channel:
+			case <-sdl_channel:
+				runtime.EventsEmit(a.ctx, AppEventType_JoyDevicesUpdated)
+			case <-virtual_channel:
 				runtime.EventsEmit(a.ctx, AppEventType_JoyDevicesUpdated)
 			}
 		}
@@ -415,7 +425,7 @@ func (a *App) GetControllers() []Interop_GenericController {
 			UniqueID:     c.Device().UniqueID(),
 			DeviceID:     c.Device().DeviceID(),
 			Name:         c.Device().Name(),
-			IsConfigured: false,
+			IsConfigured: true,
 			IsVirtual:    true,
 		})
 		return true
