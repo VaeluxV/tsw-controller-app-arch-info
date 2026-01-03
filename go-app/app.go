@@ -162,8 +162,8 @@ func (a *App) startupInitialize() {
 		})
 	}
 
-	controller_manager := controller_mgr.NewSDLControllerManager(a.sdl_manager)
-	controller_mgr.NewVirtualControllerManager(connector)
+	sdl_controller_manager := controller_mgr.NewSDLControllerManager(a.sdl_manager)
+	virtual_controller_manager := controller_mgr.NewVirtualControllerManager(connector)
 	action_sequencer := action_sequencer.New(connector)
 
 	cab_debugger := cabdebugger.NewCabDebugger(tsw_api, connector, cabdebugger.CabDebugger_Config{})
@@ -172,14 +172,15 @@ func (a *App) startupInitialize() {
 	sync_controller := profile_runner.NewSyncController(connector)
 	profile_runner := profile_runner.New(
 		action_sequencer,
-		controller_manager,
+		sdl_controller_manager,
+		virtual_controller_manager,
 		direct_controller,
 		sync_controller,
 		api_controller,
 		cab_debugger,
 	)
 
-	a.controller_manager = controller_manager
+	a.controller_manager = sdl_controller_manager
 	a.action_sequencer = action_sequencer
 	a.connector = connector
 	a.tswapi = tsw_api

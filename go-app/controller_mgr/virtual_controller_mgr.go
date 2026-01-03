@@ -3,6 +3,7 @@ package controller_mgr
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 	"tsw_controller_app/map_utils"
@@ -15,6 +16,7 @@ const VIRTUAL_CONTROLLER_BUTTON_VALUE_CONNECTOR_EVENT_NAME = "virtual_device_but
 const VIRTUAL_CONTROLLER_HAT_VALUE_CONNECTOR_EVENT_NAME = "virtual_device_hat_value"
 
 var InvalidVirtualDeviceIDsError = errors.New("invalid unique or device ID reported by virtual device")
+var MissingVirtualDeviveError = errors.New("virtual device is not available")
 
 type VirtualControllerManager_Device struct {
 	uniqueID string
@@ -40,7 +42,7 @@ type VirtualControllerManager_Controller_Control struct {
 type VirtualControllerManager struct {
 	context                context.Context
 	connector              tswconnector.TSWConnector
-	devices                *map_utils.LockMap[DeviceUniqueID, IControllerManager_Controller]
+	controllers            *map_utils.LockMap[DeviceUniqueID, *VirtualControllerManager_Controller]
 	rawEventChannels       *pubsub_utils.PubSubSlice[IControllerManager_RawEvent]
 	changeEventChannels    *pubsub_utils.PubSubSlice[ControllerManager_Control_ChangeEvent]
 	devicesUpdatedChannels *pubsub_utils.PubSubSlice[ControllerManager_Control_DevicesUpdated]
@@ -158,11 +160,11 @@ func (vm *VirtualControllerManager) registerDeviceFromConnectorEvent(msg tswconn
 	unique_id := msg.Properties["unique_id"]
 	device_id := msg.Properties["device_id"]
 	if strings.HasSuffix(unique_id, "virtual:") && strings.HasSuffix(device_id, "virtual:") {
-		if vm.devices.Contains(unique_id) {
+		if vm.controllers.Contains(unique_id) {
 			/* already registered; silently ignore */
 			return nil
 		}
-		vm.devices.Set(unique_id, &VirtualControllerManager_Controller{
+		vm.controllers.Set(unique_id, &VirtualControllerManager_Controller{
 			device: &VirtualControllerManager_Device{
 				uniqueID: unique_id,
 				deviceID: device_id,
@@ -175,6 +177,31 @@ func (vm *VirtualControllerManager) registerDeviceFromConnectorEvent(msg tswconn
 		return nil
 	}
 	return InvalidVirtualDeviceIDsError
+}
+
+func (vm *VirtualControllerManager) updateDeviceControlValueFromConnectorEvent(msg tswconnector.TSWConnector_Message) error {
+	unique_id := msg.Properties["unique_id"]
+	control_name := msg.Properties["control"]
+	control_value, _ := strconv.ParseFloat(msg.Properties["value"], 64)
+	device, has_device := vm.controllers.Get(unique_id)
+	if !has_device {
+		return MissingVirtualDeviveError
+	}
+
+	control, has_control := device.controls.Get(control_name)
+	if !has_control {
+		control = &VirtualControllerManager_Controller_Control{
+			manager:    vm,
+			controller: device,
+			device:     device.device,
+			name:       control_name,
+			state:      ControllerManager_Controller_ControlState{},
+		}
+		device.controls.Set(control_name, control)
+	}
+
+	control.UpdateValue(control_value, false)
+	return nil
 }
 
 func (vm *VirtualControllerManager) Attach(ctx context.Context) context.CancelFunc {
@@ -190,8 +217,11 @@ func (vm *VirtualControllerManager) Attach(ctx context.Context) context.CancelFu
 				if err := vm.registerDeviceFromConnectorEvent(msg); err != nil {
 					switch msg.EventName {
 					case VIRTUAL_CONTROLLER_AXIS_VALUE_CONNECTOR_EVENT_NAME:
+						vm.updateDeviceControlValueFromConnectorEvent(msg)
 					case VIRTUAL_CONTROLLER_BUTTON_VALUE_CONNECTOR_EVENT_NAME:
+						vm.updateDeviceControlValueFromConnectorEvent(msg)
 					case VIRTUAL_CONTROLLER_HAT_VALUE_CONNECTOR_EVENT_NAME:
+						vm.updateDeviceControlValueFromConnectorEvent(msg)
 					}
 				}
 			}
@@ -214,7 +244,11 @@ func (mgr *VirtualControllerManager) SubscribeDevicesUpdated() (chan ControllerM
 
 func NewVirtualControllerManager(conn tswconnector.TSWConnector) *VirtualControllerManager {
 	return &VirtualControllerManager{
-		context:   context.Background(),
-		connector: conn,
+		context:                context.Background(),
+		connector:              conn,
+		controllers:            map_utils.NewLockMap[DeviceUniqueID, *VirtualControllerManager_Controller](),
+		rawEventChannels:       pubsub_utils.NewPubSubSlice[IControllerManager_RawEvent](),
+		changeEventChannels:    pubsub_utils.NewPubSubSlice[ControllerManager_Control_ChangeEvent](),
+		devicesUpdatedChannels: pubsub_utils.NewPubSubSlice[ControllerManager_Control_DevicesUpdated](),
 	}
 }
