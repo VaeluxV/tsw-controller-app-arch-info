@@ -23,11 +23,15 @@ export const ExploreTab = () => {
   );
 
   const handleShare = () => {
-    BrowserOpenURL("https://github.com/LiamMartens/tsw-controller-app/issues/new?title=NEW+PROFILE")
-  }
+    BrowserOpenURL(
+      "https://github.com/LiamMartens/tsw-controller-app/issues/new?title=NEW+PROFILE",
+    );
+  };
 
   const [supportedSharedProfiles, unsupportedSharedProfiles] = useMemo(() => {
-    const controllerDeviceIDs = new Set(controllers?.map((c) => c.DeviceID) ?? []);
+    const controllerDeviceIDs = new Set(
+      controllers?.filter((c) => !c.IsVirtual).map((c) => c.DeviceID) ?? [],
+    );
     const supportedSharedProfiles: main.Interop_SharedProfile[] = [];
     const unsupportedSharedProfiles: main.Interop_SharedProfile[] = [];
     sharedProfiles?.forEach((p) => {
@@ -51,10 +55,7 @@ export const ExploreTab = () => {
           <span>
             Want to share a profile with the world? Submit an "issue" request
             with your profile on Github
-            <button
-              className="link ml-2"
-              onClick={handleShare}
-            >
+            <button className="link ml-2" onClick={handleShare}>
               Submit now
             </button>
           </span>

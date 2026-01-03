@@ -30,35 +30,43 @@ export const CalibrationTab = () => {
   return (
     <div>
       <ul className="list bg-base-100 rounded-box shadow-md">
-        {controllers?.map((c) => (
-          <li key={c.Name} className="list-row">
-            <div className="list-col-grow">
-              <div>{c.Name}</div>
-            </div>
-            <div>
-              {c.IsConfigured && (
-                <div className="tooltip tooltip-bottom" data-tip="Re-configure">
-                  <button
-                    className="btn btn-success btn-soft btn-xs"
-                    onClick={() => handleConfigure(c)}
+        {controllers
+          ?.filter((c) => !c.IsVirtual)
+          .map((c) => (
+            <li key={c.Name} className="list-row">
+              <div className="list-col-grow">
+                <div>{c.Name}</div>
+              </div>
+              <div>
+                {c.IsConfigured && (
+                  <div
+                    className="tooltip tooltip-bottom"
+                    data-tip="Re-configure"
                   >
-                    Configured
-                  </button>
-                </div>
-              )}
-              {!c.IsConfigured && (
-                <div className="tooltip tooltip-bottom" data-tip="Configure now">
-                  <button
-                    className="btn btn-error btn-soft btn-xs"
-                    onClick={() => handleConfigure(c)}
+                    <button
+                      className="btn btn-success btn-soft btn-xs"
+                      onClick={() => handleConfigure(c)}
+                    >
+                      Configured
+                    </button>
+                  </div>
+                )}
+                {!c.IsConfigured && (
+                  <div
+                    className="tooltip tooltip-bottom"
+                    data-tip="Configure now"
                   >
-                    Unconfigured
-                  </button>
-                </div>
-              )}
-            </div>
-          </li>
-        ))}
+                    <button
+                      className="btn btn-error btn-soft btn-xs"
+                      onClick={() => handleConfigure(c)}
+                    >
+                      Unconfigured
+                    </button>
+                  </div>
+                )}
+              </div>
+            </li>
+          ))}
       </ul>
 
       <CalibrationModal
