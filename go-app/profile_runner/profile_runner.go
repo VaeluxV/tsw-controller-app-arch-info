@@ -35,7 +35,7 @@ type ProfileRunnerSettings_SelectedProfile struct {
 
 type ProfileRunnerSettings struct {
 	Mutex                      sync.RWMutex
-	SelectedProfilesByUniqueID *map_utils.LockMap[controller_mgr.JoystickUniqueID, ProfileRunnerSettings_SelectedProfile]
+	SelectedProfilesByUniqueID *map_utils.LockMap[controller_mgr.DeviceUniqueID, ProfileRunnerSettings_SelectedProfile]
 	PreferredControlMode       config.PreferredControlMode
 }
 
@@ -65,7 +65,7 @@ func (s *ProfileRunnerSettings) Update(mutator func(s *ProfileRunnerSettings)) {
 	mutator(s)
 }
 
-func (s *ProfileRunnerSettings) GetSelectedProfiles() *map_utils.LockMap[controller_mgr.JoystickUniqueID, ProfileRunnerSettings_SelectedProfile] {
+func (s *ProfileRunnerSettings) GetSelectedProfiles() *map_utils.LockMap[controller_mgr.DeviceUniqueID, ProfileRunnerSettings_SelectedProfile] {
 	s.Mutex.RLock()
 	defer s.Mutex.RUnlock()
 	return s.SelectedProfilesByUniqueID
@@ -101,7 +101,7 @@ func New(
 		Profiles:          map_utils.NewLockMap[string, config.Config_Controller_Profile](),
 		Settings: ProfileRunnerSettings{
 			Mutex:                      sync.RWMutex{},
-			SelectedProfilesByUniqueID: map_utils.NewLockMap[controller_mgr.JoystickUniqueID, ProfileRunnerSettings_SelectedProfile](),
+			SelectedProfilesByUniqueID: map_utils.NewLockMap[controller_mgr.DeviceUniqueID, ProfileRunnerSettings_SelectedProfile](),
 			PreferredControlMode:       config.PreferredControlMode_DirectControl,
 		},
 		PreviousControlAssignmentCallList: map_utils.NewLockMap[string, *[]*ProfileRunnerAssignmentCall](),
@@ -236,13 +236,13 @@ func (p *ProfileRunner) Resolve() {
 	}
 }
 
-func (p *ProfileRunner) ClearProfile(unique_id controller_mgr.JoystickUniqueID) {
+func (p *ProfileRunner) ClearProfile(unique_id controller_mgr.DeviceUniqueID) {
 	p.Settings.Update(func(s *ProfileRunnerSettings) {
 		s.SelectedProfilesByUniqueID.Delete(unique_id)
 	})
 }
 
-func (p *ProfileRunner) SetProfile(unique_id controller_mgr.JoystickUniqueID, id string) error {
+func (p *ProfileRunner) SetProfile(unique_id controller_mgr.DeviceUniqueID, id string) error {
 	var err error = nil
 	p.Settings.Update(func(s *ProfileRunnerSettings) {
 		profile, is_valid_profile := p.Profiles.Get(id)
@@ -581,7 +581,7 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 				control_name := change_event.ControlName
 				if selected_profile.Profile.Controller != nil && selected_profile.Profile.Controller.Mapping != nil {
 					if joy_control, is_joy_control := change_event.Control.(*controller_mgr.SDL_ControllerManager_Controller_JoyControl); is_joy_control {
-						root_mapping := joy_control.SDLMapping
+						root_mapping := joy_control.SDLMapping()
 						override_mapping := selected_profile.Profile.Controller.Mapping
 						override_control, find_override_control_err := override_mapping.FindByKindAndIndex(root_mapping.Kind, root_mapping.Index)
 						if find_override_control_err == nil {

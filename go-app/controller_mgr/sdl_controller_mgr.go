@@ -16,24 +16,22 @@ import (
 const DEFAULT_CHANNEL_BUFFER_SIZE = 50
 const DIRECTION_CHANGE_THRESHOLD = 0.05
 
-type JoystickUniqueID = string
-
 type SDL_ControllerManager_Controller_VirtualControl struct {
 	IControllerManager_Controller_Control
-	Manager    *SDLControllerManager
-	Controller *SDL_ControllerManager_ConfiguredController
-	Joystick   *sdl_mgr.SDLMgr_Joystick
-	Name       string
-	State      ControllerManager_Controller_ControlState
+	manager    *SDLControllerManager
+	controller *SDL_ControllerManager_ConfiguredController
+	device     *sdl_mgr.SDLMgr_Joystick
+	name       string
+	state      ControllerManager_Controller_ControlState
 }
 
 type SDL_ControllerManager_Controller_JoyControl struct {
 	IControllerManager_Controller_Control
 	SDL_ControllerManager_Controller_VirtualControl
-	Kind        sdl_mgr.SDLMgr_Control_Kind
-	Index       int
-	SDLMapping  config.Config_Controller_SDLMap_Control
-	Calibration config.Config_Controller_CalibrationData
+	kind        sdl_mgr.SDLMgr_Control_Kind
+	index       int
+	sdlMapping  config.Config_Controller_SDLMap_Control
+	calibration config.Config_Controller_CalibrationData
 }
 
 var _ IControllerManager_Controller_Control = &SDL_ControllerManager_Controller_JoyControl{}
@@ -60,20 +58,20 @@ type SDL_ControllerManager_Config struct {
 }
 
 type SDLControllerManager struct {
-	Context                 context.Context
 	SDL                     *sdl_mgr.SDLMgr
-	Config                  SDL_ControllerManager_Config
-	ConfiguredControllers   *map_utils.LockMap[JoystickUniqueID, SDL_ControllerManager_ConfiguredController]
-	UnconfiguredControllers *map_utils.LockMap[JoystickUniqueID, SDL_ControllerManager_UnconfiguredController]
+	context                 context.Context
+	config                  SDL_ControllerManager_Config
+	ConfiguredControllers   *map_utils.LockMap[DeviceUniqueID, SDL_ControllerManager_ConfiguredController]
+	UnconfiguredControllers *map_utils.LockMap[DeviceUniqueID, SDL_ControllerManager_UnconfiguredController]
 
-	RawEventChannels          *pubsub_utils.PubSubSlice[IControllerManager_RawEvent]
-	ChangeEventChannels       *pubsub_utils.PubSubSlice[ControllerManager_Control_ChangeEvent]
-	JoyDevicesUpdatedChannels *pubsub_utils.PubSubSlice[ControllerManager_Control_DevicesUpdated]
+	rawEventChannels          *pubsub_utils.PubSubSlice[IControllerManager_RawEvent]
+	changeEventChannels       *pubsub_utils.PubSubSlice[ControllerManager_Control_ChangeEvent]
+	joyDevicesUpdatedChannels *pubsub_utils.PubSubSlice[ControllerManager_Control_DevicesUpdated]
 }
 
 var _ IControllerManager = &SDLControllerManager{}
 
-func (state *ControllerManager_Controller_ControlState) UpdateDirection() {
+func (state *ControllerManager_Controller_ControlState) updateDirection() {
 	last_direction_change_value := state.Direction.ChangeValue
 	value_diff := state.NormalizedValues.Value - last_direction_change_value
 	if value_diff > DIRECTION_CHANGE_THRESHOLD {
@@ -89,104 +87,132 @@ func (state *ControllerManager_Controller_ControlState) UpdateDirection() {
 	}
 }
 
-func (ctrl *SDL_ControllerManager_Controller_JoyControl) Reset() {
-	switch ctrl.SDLMapping.Kind {
+func (ctrl *SDL_ControllerManager_Controller_JoyControl) reset() {
+	switch ctrl.sdlMapping.Kind {
 	case sdl_mgr.SDLMgr_Control_Kind_Axis:
-		axis_value := ctrl.Joystick.InternalJoystick.Axis(ctrl.SDLMapping.Index)
+		axis_value := ctrl.device.InternalJoystick.Axis(ctrl.sdlMapping.Index)
 		ctrl.UpdateValue(float64(axis_value), true)
 	case sdl_mgr.SDLMgr_Control_Kind_Button:
-		button_value := int(ctrl.Joystick.InternalJoystick.Button(ctrl.SDLMapping.Index))
+		button_value := int(ctrl.device.InternalJoystick.Button(ctrl.sdlMapping.Index))
 		ctrl.UpdateValue(float64(int(button_value)), true)
 	case sdl_mgr.SDLMgr_Control_Kind_Hat:
-		hat_value := int(ctrl.Joystick.InternalJoystick.Hat(ctrl.SDLMapping.Index))
+		hat_value := int(ctrl.device.InternalJoystick.Hat(ctrl.sdlMapping.Index))
 		ctrl.UpdateValue(float64(int(hat_value)), true)
 	}
 }
 
+func (ctrl *SDL_ControllerManager_Controller_JoyControl) Manager() IControllerManager {
+	return ctrl.manager
+}
+
+func (ctrl *SDL_ControllerManager_Controller_JoyControl) Controller() IControllerManager_Controller {
+	return ctrl.controller
+}
+
+func (ctrl *SDL_ControllerManager_Controller_JoyControl) Device() IControllerManager_Device {
+	return ctrl.device
+}
+
 func (ctrl *SDL_ControllerManager_Controller_JoyControl) GetState() ControllerManager_Controller_ControlState {
-	return ctrl.State
+	return ctrl.state
 }
 
 func (ctrl *SDL_ControllerManager_Controller_JoyControl) UpdateValue(value float64, is_reset bool) {
 	/* update raw values */
 	if is_reset {
-		ctrl.State.RawValues.PreviousValue = value
-		ctrl.State.RawValues.InitialValue = value
+		ctrl.state.RawValues.PreviousValue = value
+		ctrl.state.RawValues.InitialValue = value
 	} else {
-		ctrl.State.RawValues.PreviousValue = ctrl.State.RawValues.Value
+		ctrl.state.RawValues.PreviousValue = ctrl.state.RawValues.Value
 	}
-	ctrl.State.RawValues.Value = value
+	ctrl.state.RawValues.Value = value
 
 	/* update normal values */
-	normalized_value := ctrl.Calibration.NormalizeRawValue(value)
+	normalized_value := ctrl.calibration.NormalizeRawValue(value)
 	/* only update if value is not within margin error or  if this is a reset value */
 	if is_reset {
-		ctrl.State.NormalizedValues.InitialValue = normalized_value.Value
-		ctrl.State.NormalizedValues.PreviousValue = normalized_value.Value
-		ctrl.State.NormalizedValues.Value = normalized_value.Value
-	} else if !math_utils.IsWithinMarginOfError(normalized_value.Value, ctrl.State.NormalizedValues.Value) {
-		ctrl.State.NormalizedValues.PreviousValue = ctrl.State.NormalizedValues.Value
-		ctrl.State.NormalizedValues.Value = normalized_value.Value
+		ctrl.state.NormalizedValues.InitialValue = normalized_value.Value
+		ctrl.state.NormalizedValues.PreviousValue = normalized_value.Value
+		ctrl.state.NormalizedValues.Value = normalized_value.Value
+	} else if !math_utils.IsWithinMarginOfError(normalized_value.Value, ctrl.state.NormalizedValues.Value) {
+		ctrl.state.NormalizedValues.PreviousValue = ctrl.state.NormalizedValues.Value
+		ctrl.state.NormalizedValues.Value = normalized_value.Value
 	}
 
 	/* update direction */
 	if is_reset {
-		ctrl.State.Direction = ControllerManager_Controller_ControlState_DirectionChangeMarker{
+		ctrl.state.Direction = ControllerManager_Controller_ControlState_DirectionChangeMarker{
 			Direction:   0,
-			ChangeValue: ctrl.State.NormalizedValues.Value,
+			ChangeValue: ctrl.state.NormalizedValues.Value,
 		}
 	} else {
-		ctrl.State.UpdateDirection()
+		ctrl.state.updateDirection()
 	}
 
-	ctrl.Manager.ChangeEventChannels.EmitTimeout(time.Second, ControllerManager_Control_ChangeEvent{
+	ctrl.manager.changeEventChannels.EmitTimeout(time.Second, ControllerManager_Control_ChangeEvent{
 		Device: &ControllerManager_ChangeEvent_Device{
-			UniqueID: ctrl.Joystick.UniqueID(),
-			DeviceID: ctrl.Joystick.DeviceID(),
+			UniqueID: ctrl.device.UniqueID(),
+			DeviceID: ctrl.device.DeviceID(),
 		},
-		Controller:   ctrl.Controller,
+		Controller:   ctrl.controller,
 		Control:      ctrl,
-		ControlName:  ctrl.Name,
-		ControlState: ctrl.State,
+		ControlName:  ctrl.name,
+		ControlState: ctrl.state,
 	})
 }
 
+func (ctrl *SDL_ControllerManager_Controller_JoyControl) Kind() sdl_mgr.SDLMgr_Control_Kind {
+	return ctrl.kind
+}
+
+func (ctrl *SDL_ControllerManager_Controller_JoyControl) Index() int {
+	return ctrl.index
+}
+
+func (ctrl *SDL_ControllerManager_Controller_JoyControl) SDLMapping() config.Config_Controller_SDLMap_Control {
+	return ctrl.sdlMapping
+}
+
+func (ctrl *SDL_ControllerManager_Controller_JoyControl) Calibration() config.Config_Controller_CalibrationData {
+	return ctrl.calibration
+}
+
 func (ctrl *SDL_ControllerManager_Controller_VirtualControl) GetState() ControllerManager_Controller_ControlState {
-	return ctrl.State
+	return ctrl.state
 }
 
 func (ctrl *SDL_ControllerManager_Controller_VirtualControl) UpdateValue(value float64, is_reset bool) {
 	if is_reset {
-		ctrl.State.RawValues.PreviousValue = value
-		ctrl.State.RawValues.InitialValue = value
-		ctrl.State.NormalizedValues.InitialValue = value
-		ctrl.State.NormalizedValues.PreviousValue = value
+		ctrl.state.RawValues.PreviousValue = value
+		ctrl.state.RawValues.InitialValue = value
+		ctrl.state.NormalizedValues.InitialValue = value
+		ctrl.state.NormalizedValues.PreviousValue = value
 	} else {
-		ctrl.State.RawValues.PreviousValue = ctrl.State.RawValues.Value
-		ctrl.State.NormalizedValues.PreviousValue = ctrl.State.NormalizedValues.Value
+		ctrl.state.RawValues.PreviousValue = ctrl.state.RawValues.Value
+		ctrl.state.NormalizedValues.PreviousValue = ctrl.state.NormalizedValues.Value
 	}
-	ctrl.State.RawValues.Value = value
-	ctrl.State.NormalizedValues.Value = value
+	ctrl.state.RawValues.Value = value
+	ctrl.state.NormalizedValues.Value = value
 
 	/* update direction */
 	if is_reset {
-		ctrl.State.Direction = ControllerManager_Controller_ControlState_DirectionChangeMarker{
+		ctrl.state.Direction = ControllerManager_Controller_ControlState_DirectionChangeMarker{
 			Direction:   0,
-			ChangeValue: ctrl.State.NormalizedValues.Value,
+			ChangeValue: ctrl.state.NormalizedValues.Value,
 		}
 	} else {
-		ctrl.State.UpdateDirection()
+		ctrl.state.updateDirection()
 	}
 
-	ctrl.Manager.ChangeEventChannels.EmitTimeout(time.Second, ControllerManager_Control_ChangeEvent{
+	ctrl.manager.changeEventChannels.EmitTimeout(time.Second, ControllerManager_Control_ChangeEvent{
 		Device: &ControllerManager_ChangeEvent_Device{
-			UniqueID: ctrl.Joystick.UniqueID(),
-			DeviceID: ctrl.Joystick.DeviceID(),
+			UniqueID: ctrl.device.UniqueID(),
+			DeviceID: ctrl.device.DeviceID(),
 		},
-		Controller:   ctrl.Controller,
+		Controller:   ctrl.controller,
 		Control:      ctrl,
-		ControlName:  ctrl.Name,
-		ControlState: ctrl.State,
+		ControlName:  ctrl.name,
+		ControlState: ctrl.state,
 	})
 }
 
@@ -206,6 +232,10 @@ func (ctrl *SDL_ControllerManager_Controller_JoyControl) ProcessEvent(event sdl.
 	}
 }
 
+func (controller *SDL_ControllerManager_ConfiguredController) Device() IControllerManager_Device {
+	return controller.Joystick
+}
+
 func (controller *SDL_ControllerManager_ConfiguredController) Controls() *map_utils.LockMap[string, IControllerManager_Controller_Control] {
 	return controller.controls
 }
@@ -216,11 +246,11 @@ func (controller *SDL_ControllerManager_ConfiguredController) VirtualControls() 
 
 func (controller *SDL_ControllerManager_ConfiguredController) RegisterVirtualControl(name string, initial_value float64) {
 	controller.virtualControls.Set(name, &SDL_ControllerManager_Controller_VirtualControl{
-		Manager:    controller.Manager,
-		Controller: controller,
-		Joystick:   controller.Joystick,
-		Name:       name,
-		State: ControllerManager_Controller_ControlState{
+		manager:    controller.Manager,
+		controller: controller,
+		device:     controller.Joystick,
+		name:       name,
+		state: ControllerManager_Controller_ControlState{
 			Direction: ControllerManager_Controller_ControlState_DirectionChangeMarker{
 				Direction:   0,
 				ChangeValue: initial_value,
@@ -244,7 +274,7 @@ func (controller *SDL_ControllerManager_ConfiguredController) ProcessEvent(event
 	case *sdl.JoyAxisEvent:
 		controller.controls.ForEach(func(maybe_axis IControllerManager_Controller_Control, _ string) bool {
 			if axis, ok := maybe_axis.(*SDL_ControllerManager_Controller_JoyControl); ok {
-				if axis.SDLMapping.Kind == sdl_mgr.SDLMgr_Control_Kind_Axis && axis.SDLMapping.Index == int(e.Axis) {
+				if axis.sdlMapping.Kind == sdl_mgr.SDLMgr_Control_Kind_Axis && axis.sdlMapping.Index == int(e.Axis) {
 					axis.ProcessEvent(event)
 				}
 			}
@@ -254,7 +284,7 @@ func (controller *SDL_ControllerManager_ConfiguredController) ProcessEvent(event
 	case *sdl.JoyButtonEvent:
 		controller.controls.ForEach(func(maybe_axis IControllerManager_Controller_Control, _ string) bool {
 			if axis, ok := maybe_axis.(*SDL_ControllerManager_Controller_JoyControl); ok {
-				if axis.SDLMapping.Kind == sdl_mgr.SDLMgr_Control_Kind_Button && axis.SDLMapping.Index == int(e.Button) {
+				if axis.sdlMapping.Kind == sdl_mgr.SDLMgr_Control_Kind_Button && axis.sdlMapping.Index == int(e.Button) {
 					axis.ProcessEvent(event)
 				}
 			}
@@ -263,7 +293,7 @@ func (controller *SDL_ControllerManager_ConfiguredController) ProcessEvent(event
 	case *sdl.JoyHatEvent:
 		controller.controls.ForEach(func(maybe_axis IControllerManager_Controller_Control, _ string) bool {
 			if axis, ok := maybe_axis.(*SDL_ControllerManager_Controller_JoyControl); ok {
-				if axis.SDLMapping.Kind == sdl_mgr.SDLMgr_Control_Kind_Hat && axis.SDLMapping.Index == int(e.Hat) {
+				if axis.sdlMapping.Kind == sdl_mgr.SDLMgr_Control_Kind_Hat && axis.sdlMapping.Index == int(e.Hat) {
 					axis.ProcessEvent(event)
 				}
 			}
@@ -275,23 +305,23 @@ func (controller *SDL_ControllerManager_ConfiguredController) ProcessEvent(event
 func NewSDLControllerManager(sdlmgr *sdl_mgr.SDLMgr) *SDLControllerManager {
 	return &SDLControllerManager{
 		SDL: sdlmgr,
-		Config: SDL_ControllerManager_Config{
+		config: SDL_ControllerManager_Config{
 			SDLMappingsByName:      map_utils.NewLockMap[string, config.Config_Controller_SDLMap](),
 			SDLMappingsByDeviceID:  map_utils.NewLockMap[string, config.Config_Controller_SDLMap](),
 			CalibrationsByDeviceID: map_utils.NewLockMap[string, config.Config_Controller_Calibration](),
 		},
-		ConfiguredControllers:   map_utils.NewLockMap[JoystickUniqueID, SDL_ControllerManager_ConfiguredController](),
-		UnconfiguredControllers: map_utils.NewLockMap[JoystickUniqueID, SDL_ControllerManager_UnconfiguredController](),
+		ConfiguredControllers:   map_utils.NewLockMap[DeviceUniqueID, SDL_ControllerManager_ConfiguredController](),
+		UnconfiguredControllers: map_utils.NewLockMap[DeviceUniqueID, SDL_ControllerManager_UnconfiguredController](),
 
-		RawEventChannels:          pubsub_utils.NewPubSubSlice[IControllerManager_RawEvent](),
-		ChangeEventChannels:       pubsub_utils.NewPubSubSlice[ControllerManager_Control_ChangeEvent](),
-		JoyDevicesUpdatedChannels: pubsub_utils.NewPubSubSlice[ControllerManager_Control_DevicesUpdated](),
+		rawEventChannels:          pubsub_utils.NewPubSubSlice[IControllerManager_RawEvent](),
+		changeEventChannels:       pubsub_utils.NewPubSubSlice[ControllerManager_Control_ChangeEvent](),
+		joyDevicesUpdatedChannels: pubsub_utils.NewPubSubSlice[ControllerManager_Control_DevicesUpdated](),
 	}
 }
 
 func (mgr *SDLControllerManager) IsConfigured(deviceid string) bool {
 	is_configured := false
-	mgr.ConfiguredControllers.ForEach(func(value SDL_ControllerManager_ConfiguredController, key JoystickUniqueID) bool {
+	mgr.ConfiguredControllers.ForEach(func(value SDL_ControllerManager_ConfiguredController, key DeviceUniqueID) bool {
 		if value.Joystick.DeviceID() == deviceid {
 			is_configured = true
 			return false
@@ -299,6 +329,10 @@ func (mgr *SDLControllerManager) IsConfigured(deviceid string) bool {
 		return true
 	})
 	return is_configured
+}
+
+func (mgr *SDLControllerManager) Config() SDL_ControllerManager_Config {
+	return mgr.config
 }
 
 func (mgr *SDLControllerManager) ConfigureJoystick(joystick *sdl_mgr.SDLMgr_Joystick, sdl_map config.Config_Controller_SDLMap, calibration config.Config_Controller_Calibration) SDL_ControllerManager_ConfiguredController {
@@ -339,11 +373,11 @@ func (mgr *SDLControllerManager) ConfigureJoystick(joystick *sdl_mgr.SDLMgr_Joys
 
 		control := SDL_ControllerManager_Controller_JoyControl{
 			SDL_ControllerManager_Controller_VirtualControl: SDL_ControllerManager_Controller_VirtualControl{
-				Manager:    mgr,
-				Joystick:   joystick,
-				Controller: &controller,
-				Name:       control.Name,
-				State: ControllerManager_Controller_ControlState{
+				manager:    mgr,
+				device:     joystick,
+				controller: &controller,
+				name:       control.Name,
+				state: ControllerManager_Controller_ControlState{
 					Direction: ControllerManager_Controller_ControlState_DirectionChangeMarker{
 						Direction:   0,
 						ChangeValue: current_raw_value,
@@ -360,59 +394,59 @@ func (mgr *SDLControllerManager) ConfigureJoystick(joystick *sdl_mgr.SDLMgr_Joys
 					},
 				},
 			},
-			Kind:        control.Kind,
-			Index:       control.Index,
-			SDLMapping:  control,
-			Calibration: calibration_data,
+			kind:        control.Kind,
+			index:       control.Index,
+			sdlMapping:  control,
+			calibration: calibration_data,
 		}
-		control.Reset()
-		controller.controls.Set(control.Name, &control)
+		control.reset()
+		controller.controls.Set(control.name, &control)
 	}
 
 	return controller
 }
 
 func (mgr *SDLControllerManager) RegisterConfig(sdl_map config.Config_Controller_SDLMap, calibration config.Config_Controller_Calibration) {
-	mgr.Config.SDLMappingsByName.Set(sdl_map.Name, sdl_map)
-	mgr.Config.SDLMappingsByDeviceID.Set(sdl_map.UsbID, sdl_map)
-	mgr.Config.CalibrationsByDeviceID.Set(calibration.UsbID, calibration)
+	mgr.config.SDLMappingsByName.Set(sdl_map.Name, sdl_map)
+	mgr.config.SDLMappingsByDeviceID.Set(sdl_map.UsbID, sdl_map)
+	mgr.config.CalibrationsByDeviceID.Set(calibration.UsbID, calibration)
 
 	didConfigureJoystick := false
 
 	/* configure unconfigured controller */
-	mgr.UnconfiguredControllers.Mutate(func(unconfigured SDL_ControllerManager_UnconfiguredController, unique_id JoystickUniqueID) map_utils.LockMapMutateAction[JoystickUniqueID, SDL_ControllerManager_UnconfiguredController] {
+	mgr.UnconfiguredControllers.Mutate(func(unconfigured SDL_ControllerManager_UnconfiguredController, unique_id DeviceUniqueID) map_utils.LockMapMutateAction[DeviceUniqueID, SDL_ControllerManager_UnconfiguredController] {
 		if unconfigured.Joystick.DeviceID() == sdl_map.UsbID {
 			configured_controller := mgr.ConfigureJoystick(unconfigured.Joystick, sdl_map, calibration)
 			mgr.ConfiguredControllers.Set(unique_id, configured_controller)
 			didConfigureJoystick = true
-			return map_utils.LockMapMutateAction[JoystickUniqueID, SDL_ControllerManager_UnconfiguredController]{
+			return map_utils.LockMapMutateAction[DeviceUniqueID, SDL_ControllerManager_UnconfiguredController]{
 				Action: map_utils.LockMapMutateActionType_Delete,
 				Key:    unique_id,
 			}
 		}
-		return map_utils.LockMapMutateAction[JoystickUniqueID, SDL_ControllerManager_UnconfiguredController]{
+		return map_utils.LockMapMutateAction[DeviceUniqueID, SDL_ControllerManager_UnconfiguredController]{
 			Action: map_utils.LockMapMutateActionType_Noop,
 		}
 	})
 
 	/* replace configured controller */
-	mgr.ConfiguredControllers.Mutate(func(configured SDL_ControllerManager_ConfiguredController, unique_id JoystickUniqueID) map_utils.LockMapMutateAction[JoystickUniqueID, SDL_ControllerManager_ConfiguredController] {
+	mgr.ConfiguredControllers.Mutate(func(configured SDL_ControllerManager_ConfiguredController, unique_id DeviceUniqueID) map_utils.LockMapMutateAction[DeviceUniqueID, SDL_ControllerManager_ConfiguredController] {
 		if configured.Joystick.DeviceID() == sdl_map.UsbID {
 			configured_controller := mgr.ConfigureJoystick(configured.Joystick, sdl_map, calibration)
 			didConfigureJoystick = true
-			return map_utils.LockMapMutateAction[JoystickUniqueID, SDL_ControllerManager_ConfiguredController]{
+			return map_utils.LockMapMutateAction[DeviceUniqueID, SDL_ControllerManager_ConfiguredController]{
 				Action: map_utils.LockMapMutateActionType_Replace,
 				Key:    unique_id,
 				Value:  configured_controller,
 			}
 		}
-		return map_utils.LockMapMutateAction[JoystickUniqueID, SDL_ControllerManager_ConfiguredController]{
+		return map_utils.LockMapMutateAction[DeviceUniqueID, SDL_ControllerManager_ConfiguredController]{
 			Action: map_utils.LockMapMutateActionType_Noop,
 		}
 	})
 
 	if didConfigureJoystick {
-		mgr.JoyDevicesUpdatedChannels.EmitTimeout(time.Second, ControllerManager_Control_DevicesUpdated{})
+		mgr.joyDevicesUpdatedChannels.EmitTimeout(time.Second, ControllerManager_Control_DevicesUpdated{})
 	}
 }
 
@@ -423,12 +457,12 @@ func (mgr *SDLControllerManager) Handler_JoyDeviceAdded(event *sdl.JoyDeviceAdde
 		return err
 	}
 
-	sdl_map, has_sdl_map := mgr.Config.SDLMappingsByDeviceID.Get(joystick.DeviceID())
-	calibration, has_calibration := mgr.Config.CalibrationsByDeviceID.Get(joystick.DeviceID())
+	sdl_map, has_sdl_map := mgr.config.SDLMappingsByDeviceID.Get(joystick.DeviceID())
+	calibration, has_calibration := mgr.config.CalibrationsByDeviceID.Get(joystick.DeviceID())
 	if has_sdl_map && has_calibration {
 		configured_controller := mgr.ConfigureJoystick(joystick, sdl_map, calibration)
 		mgr.ConfiguredControllers.Set(joystick.UniqueID(), configured_controller)
-		mgr.JoyDevicesUpdatedChannels.EmitTimeout(time.Second, ControllerManager_Control_DevicesUpdated{})
+		mgr.joyDevicesUpdatedChannels.EmitTimeout(time.Second, ControllerManager_Control_DevicesUpdated{})
 	} else {
 		unconfigured_controller := SDL_ControllerManager_UnconfiguredController{
 			Joystick:    joystick,
@@ -442,41 +476,41 @@ func (mgr *SDLControllerManager) Handler_JoyDeviceAdded(event *sdl.JoyDeviceAdde
 			unconfigured_controller.Calibration = &calibration
 		}
 		mgr.UnconfiguredControllers.Set(joystick.UniqueID(), unconfigured_controller)
-		mgr.JoyDevicesUpdatedChannels.EmitTimeout(time.Second, ControllerManager_Control_DevicesUpdated{})
+		mgr.joyDevicesUpdatedChannels.EmitTimeout(time.Second, ControllerManager_Control_DevicesUpdated{})
 	}
 
 	return nil
 }
 
 func (mgr *SDLControllerManager) Handler_JoyDeviceRemoved(event *sdl.JoyDeviceRemovedEvent) error {
-	mgr.ConfiguredControllers.Mutate(func(configured_controller SDL_ControllerManager_ConfiguredController, unique_id JoystickUniqueID) map_utils.LockMapMutateAction[JoystickUniqueID, SDL_ControllerManager_ConfiguredController] {
+	mgr.ConfiguredControllers.Mutate(func(configured_controller SDL_ControllerManager_ConfiguredController, unique_id DeviceUniqueID) map_utils.LockMapMutateAction[DeviceUniqueID, SDL_ControllerManager_ConfiguredController] {
 		if configured_controller.Joystick.InstanceID == event.Which {
 			logger.Logger.Info("[ControllerManager:Handler_JoyDeviceRemoved] Removing joy device", "name", configured_controller.Joystick.Name)
 			defer func() {
-				mgr.JoyDevicesUpdatedChannels.EmitTimeout(time.Second, ControllerManager_Control_DevicesUpdated{})
+				mgr.joyDevicesUpdatedChannels.EmitTimeout(time.Second, ControllerManager_Control_DevicesUpdated{})
 			}()
-			return map_utils.LockMapMutateAction[JoystickUniqueID, SDL_ControllerManager_ConfiguredController]{
+			return map_utils.LockMapMutateAction[DeviceUniqueID, SDL_ControllerManager_ConfiguredController]{
 				Action: map_utils.LockMapMutateActionType_Delete,
 				Key:    unique_id,
 			}
 		}
-		return map_utils.LockMapMutateAction[JoystickUniqueID, SDL_ControllerManager_ConfiguredController]{
+		return map_utils.LockMapMutateAction[DeviceUniqueID, SDL_ControllerManager_ConfiguredController]{
 			Action: map_utils.LockMapMutateActionType_Noop,
 		}
 	})
 
-	mgr.UnconfiguredControllers.Mutate(func(unconfigured_controller SDL_ControllerManager_UnconfiguredController, unique_id JoystickUniqueID) map_utils.LockMapMutateAction[JoystickUniqueID, SDL_ControllerManager_UnconfiguredController] {
+	mgr.UnconfiguredControllers.Mutate(func(unconfigured_controller SDL_ControllerManager_UnconfiguredController, unique_id DeviceUniqueID) map_utils.LockMapMutateAction[DeviceUniqueID, SDL_ControllerManager_UnconfiguredController] {
 		if unconfigured_controller.Joystick.InstanceID == event.Which {
 			logger.Logger.Info("[ControllerManager:Handler_JoyDeviceRemoved] Removing joy device", "name", unconfigured_controller.Joystick.Name)
 			defer func() {
-				mgr.JoyDevicesUpdatedChannels.EmitTimeout(time.Second, ControllerManager_Control_DevicesUpdated{})
+				mgr.joyDevicesUpdatedChannels.EmitTimeout(time.Second, ControllerManager_Control_DevicesUpdated{})
 			}()
-			return map_utils.LockMapMutateAction[JoystickUniqueID, SDL_ControllerManager_UnconfiguredController]{
+			return map_utils.LockMapMutateAction[DeviceUniqueID, SDL_ControllerManager_UnconfiguredController]{
 				Action: map_utils.LockMapMutateActionType_Delete,
 				Key:    unique_id,
 			}
 		}
-		return map_utils.LockMapMutateAction[JoystickUniqueID, SDL_ControllerManager_UnconfiguredController]{
+		return map_utils.LockMapMutateAction[DeviceUniqueID, SDL_ControllerManager_UnconfiguredController]{
 			Action: map_utils.LockMapMutateActionType_Noop,
 		}
 	})
@@ -492,7 +526,7 @@ func (mgr *SDLControllerManager) Handler_JoyAxisEvent(event *sdl.JoyAxisEvent) e
 	}
 
 	/* only send if the channel is being read */
-	mgr.RawEventChannels.EmitTimeout(time.Second, &ControllerManager_RawEvent_Axis{
+	mgr.rawEventChannels.EmitTimeout(time.Second, &ControllerManager_RawEvent_Axis{
 		device: &ControllerManager_RawEvent_Device{
 			UniqueID: joystick.UniqueID(),
 			DeviceID: joystick.DeviceID(),
@@ -519,7 +553,7 @@ func (mgr *SDLControllerManager) Handler_JoyButtonEvent(event *sdl.JoyButtonEven
 	}
 
 	/* only send if the channel is being read */
-	mgr.RawEventChannels.EmitTimeout(time.Second, &ControllerManager_RawEvent_Button{
+	mgr.rawEventChannels.EmitTimeout(time.Second, &ControllerManager_RawEvent_Button{
 		device: &ControllerManager_RawEvent_Device{
 			UniqueID: joystick.UniqueID(),
 			DeviceID: joystick.DeviceID(),
@@ -549,7 +583,7 @@ func (mgr *SDLControllerManager) Handler_JoyHatEvent(event *sdl.JoyHatEvent) err
 	}
 
 	/* only send if the channel is being read */
-	mgr.RawEventChannels.EmitTimeout(time.Second, &ControllerManager_RawEvent_Hat{
+	mgr.rawEventChannels.EmitTimeout(time.Second, &ControllerManager_RawEvent_Hat{
 		device: &ControllerManager_RawEvent_Device{
 			UniqueID: joystick.UniqueID(),
 			DeviceID: joystick.DeviceID(),
@@ -601,13 +635,13 @@ func (mgr *SDLControllerManager) Attach(ctx context.Context) context.CancelFunc 
 }
 
 func (mgr *SDLControllerManager) SubscribeRaw() (chan IControllerManager_RawEvent, func()) {
-	return mgr.RawEventChannels.Subscribe()
+	return mgr.rawEventChannels.Subscribe()
 }
 
 func (mgr *SDLControllerManager) SubscribeChangeEvent() (chan ControllerManager_Control_ChangeEvent, func()) {
-	return mgr.ChangeEventChannels.Subscribe()
+	return mgr.changeEventChannels.Subscribe()
 }
 
 func (mgr *SDLControllerManager) SubscribeDevicesUpdated() (chan ControllerManager_Control_DevicesUpdated, func()) {
-	return mgr.JoyDevicesUpdatedChannels.Subscribe()
+	return mgr.joyDevicesUpdatedChannels.Subscribe()
 }

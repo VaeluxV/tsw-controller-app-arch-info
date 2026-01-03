@@ -14,6 +14,7 @@ import (
 )
 
 const ACTIONS_QUEUE_BUFFER_SIZE = 32
+const ACTION_SEQUENCE_CONNECTOR_EVENT_NAME tswconnector.TSWConnector_Message_EventName = "action_sequence"
 
 type ActionSequencerAction struct {
 	Keys      string
@@ -82,7 +83,7 @@ func (seq *ActionSequencer) Run(ctx context.Context) context.CancelFunc {
 				switch conn := seq.Connector.(type) {
 				case *tswconnector.SocketProxyConnection:
 					conn.Send(tswconnector.TSWConnector_Message{
-						EventName: "action_sequence",
+						EventName: ACTION_SEQUENCE_CONNECTOR_EVENT_NAME,
 						Properties: map[string]string{
 							"keys":       action.Keys,
 							"press_time": fmt.Sprintf("%f", action.PressTime),
@@ -130,7 +131,7 @@ func (seq *ActionSequencer) Run(ctx context.Context) context.CancelFunc {
 			case <-ctx_with_cancel.Done():
 				return
 			case msg := <-connector_chan:
-				if msg.EventName == "action_sequence" {
+				if msg.EventName == ACTION_SEQUENCE_CONNECTOR_EVENT_NAME {
 					press_time, _ := strconv.ParseFloat(msg.Properties["press_time"], 64)
 					wait_time, _ := strconv.ParseFloat(msg.Properties["wait_time"], 64)
 					release, _ := strconv.ParseBool(msg.Properties["release"])

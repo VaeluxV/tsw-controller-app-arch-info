@@ -387,7 +387,7 @@ func (a *App) LoadConfiguration() {
 
 func (a *App) GetControllers() []Interop_GenericController {
 	var controllers []Interop_GenericController
-	a.controller_manager.ConfiguredControllers.ForEach(func(c controller_mgr.SDL_ControllerManager_ConfiguredController, _ controller_mgr.JoystickUniqueID) bool {
+	a.controller_manager.ConfiguredControllers.ForEach(func(c controller_mgr.SDL_ControllerManager_ConfiguredController, _ controller_mgr.DeviceUniqueID) bool {
 		controllers = append(controllers, Interop_GenericController{
 			UniqueID:     c.Joystick.UniqueID(),
 			DeviceID:     c.Joystick.DeviceID(),
@@ -397,7 +397,7 @@ func (a *App) GetControllers() []Interop_GenericController {
 		})
 		return true
 	})
-	a.controller_manager.UnconfiguredControllers.ForEach(func(c controller_mgr.SDL_ControllerManager_UnconfiguredController, _ controller_mgr.JoystickUniqueID) bool {
+	a.controller_manager.UnconfiguredControllers.ForEach(func(c controller_mgr.SDL_ControllerManager_UnconfiguredController, _ controller_mgr.DeviceUniqueID) bool {
 		controllers = append(controllers, Interop_GenericController{
 			UniqueID:     c.Joystick.UniqueID(),
 			DeviceID:     c.Joystick.DeviceID(),
@@ -455,9 +455,9 @@ func (a *App) GetProfiles() []Interop_Profile {
 	return profiles
 }
 
-func (a *App) GetSelectedProfiles() map[controller_mgr.JoystickUniqueID]Interop_SelectedProfileInfo {
-	selected_profiles := map[controller_mgr.JoystickUniqueID]Interop_SelectedProfileInfo{}
-	a.profile_runner.Settings.GetSelectedProfiles().ForEach(func(value profile_runner.ProfileRunnerSettings_SelectedProfile, unique_id controller_mgr.JoystickUniqueID) bool {
+func (a *App) GetSelectedProfiles() map[controller_mgr.DeviceUniqueID]Interop_SelectedProfileInfo {
+	selected_profiles := map[controller_mgr.DeviceUniqueID]Interop_SelectedProfileInfo{}
+	a.profile_runner.Settings.GetSelectedProfiles().ForEach(func(value profile_runner.ProfileRunnerSettings_SelectedProfile, unique_id controller_mgr.DeviceUniqueID) bool {
 		selected_profiles[unique_id] = Interop_SelectedProfileInfo{
 			Id:   value.Profile.Id(),
 			Name: value.Profile.Name,
@@ -467,10 +467,10 @@ func (a *App) GetSelectedProfiles() map[controller_mgr.JoystickUniqueID]Interop_
 	return selected_profiles
 }
 
-func (a *App) GetControllerConfiguration(unique_id controller_mgr.JoystickUniqueID) *Interop_ControllerConfiguration {
+func (a *App) GetControllerConfiguration(unique_id controller_mgr.DeviceUniqueID) *Interop_ControllerConfiguration {
 	if controller, has_controller := a.controller_manager.ConfiguredControllers.Get(unique_id); has_controller {
 		/* when configured the SDL map and calibration always exist */
-		sdl_mapping, _ := controller.Manager.Config.SDLMappingsByDeviceID.Get(controller.Joystick.DeviceID())
+		sdl_mapping, _ := controller.Manager.Config().SDLMappingsByDeviceID.Get(controller.Joystick.DeviceID())
 		interop_calibration := Interop_ControllerCalibration{
 			Name:     sdl_mapping.Name,
 			DeviceID: sdl_mapping.UsbID,
@@ -478,28 +478,30 @@ func (a *App) GetControllerConfiguration(unique_id controller_mgr.JoystickUnique
 		}
 		controller.Controls().ForEach(func(c controller_mgr.IControllerManager_Controller_Control, key string) bool {
 			if control, ok := c.(*controller_mgr.SDL_ControllerManager_Controller_JoyControl); ok {
+				sdl_mapping := control.SDLMapping()
+				calibration_data := control.Calibration()
 				calibration := Interop_ControllerCalibration_Control{
-					Kind:        control.SDLMapping.Kind,
-					Index:       control.SDLMapping.Index,
-					Name:        control.Name,
-					Min:         control.Calibration.Min,
-					Max:         control.Calibration.Max,
+					Kind:        sdl_mapping.Kind,
+					Index:       sdl_mapping.Index,
+					Name:        control.Name(),
+					Min:         calibration_data.Min,
+					Max:         calibration_data.Max,
 					Idle:        0,
 					Deadzone:    0,
 					Invert:      false,
 					EasingCurve: []float64{0.0, 0.0, 1.0, 1.0},
 				}
-				if control.Calibration.Idle != nil {
-					calibration.Idle = *control.Calibration.Idle
+				if calibration_data.Idle != nil {
+					calibration.Idle = *calibration_data.Idle
 				}
-				if control.Calibration.Deadzone != nil {
-					calibration.Deadzone = *control.Calibration.Deadzone
+				if calibration_data.Deadzone != nil {
+					calibration.Deadzone = *calibration_data.Deadzone
 				}
-				if control.Calibration.Invert != nil {
-					calibration.Invert = *control.Calibration.Invert
+				if calibration_data.Invert != nil {
+					calibration.Invert = *calibration_data.Invert
 				}
-				if control.Calibration.EasingCurve != nil {
-					calibration.EasingCurve = *control.Calibration.EasingCurve
+				if calibration_data.EasingCurve != nil {
+					calibration.EasingCurve = *calibration_data.EasingCurve
 				}
 				interop_calibration.Controls = append(interop_calibration.Controls, calibration)
 			}
@@ -591,7 +593,7 @@ func (a *App) GetSharedProfiles() []Interop_SharedProfile {
 	return profiles
 }
 
-func (a *App) SelectProfile(unique_id controller_mgr.JoystickUniqueID, id string) error {
+func (a *App) SelectProfile(unique_id controller_mgr.DeviceUniqueID, id string) error {
 	if err := a.profile_runner.SetProfile(unique_id, id); err != nil {
 		logger.Logger.Error("failed to select profile by ID", "id", id, "error", err)
 		return err
@@ -599,7 +601,7 @@ func (a *App) SelectProfile(unique_id controller_mgr.JoystickUniqueID, id string
 	return nil
 }
 
-func (a *App) ClearProfile(unique_id controller_mgr.JoystickUniqueID) {
+func (a *App) ClearProfile(unique_id controller_mgr.DeviceUniqueID) {
 	a.profile_runner.ClearProfile(unique_id)
 }
 
@@ -610,7 +612,7 @@ func (a *App) UnsubscribeRaw() {
 	}
 }
 
-func (a *App) SubscribeRaw(unique_id controller_mgr.JoystickUniqueID) error {
+func (a *App) SubscribeRaw(unique_id controller_mgr.DeviceUniqueID) error {
 	if a.raw_subscriber != nil {
 		logger.Logger.Error("already listening")
 		return fmt.Errorf("already listening")
@@ -700,7 +702,7 @@ func (a *App) SaveProfileForSharing(id string) error {
 	}
 }
 
-func (a *App) SaveProfileForSharingWithControllerInformation(id string, unique_id controller_mgr.JoystickUniqueID) error {
+func (a *App) SaveProfileForSharingWithControllerInformation(id string, unique_id controller_mgr.DeviceUniqueID) error {
 	if profile, has_profile := a.profile_runner.Profiles.Get(id); has_profile {
 		controller, has_controller := a.controller_manager.ConfiguredControllers.Get(unique_id)
 		if !has_controller {
@@ -733,7 +735,7 @@ func (a *App) SaveProfileForSharingWithControllerInformation(id string, unique_i
 			}
 			controller.Controls().ForEach(func(c controller_mgr.IControllerManager_Controller_Control, key string) bool {
 				if control, ok := c.(*controller_mgr.SDL_ControllerManager_Controller_JoyControl); ok {
-					mapping.Data = append(mapping.Data, control.SDLMapping)
+					mapping.Data = append(mapping.Data, control.SDLMapping())
 				}
 				return true
 			})

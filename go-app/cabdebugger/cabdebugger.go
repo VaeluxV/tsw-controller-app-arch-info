@@ -14,6 +14,9 @@ import (
 
 type PropertyName = string
 
+const CURRENT_DRIVABLE_ACTOR_CONNECTOR_EVENT_NAME = "current_drivable_actor"
+const SYNC_CONTROL_VALUE_CONNECTOR_EVENT_NAME = "sync_control_value"
+
 type CabDebugger_ControlState_Control struct {
 	Identifier             string
 	PropertyName           PropertyName
@@ -121,10 +124,10 @@ func (cd *CabDebugger) Start(ctx context.Context) {
 
 			select {
 			case msg := <-socket_channel:
-				if msg.EventName == "current_drivable_actor" && msg.Properties["name"] != cd.State.DrivableActorName {
+				if msg.EventName == CURRENT_DRIVABLE_ACTOR_CONNECTOR_EVENT_NAME && msg.Properties["name"] != cd.State.DrivableActorName {
 					go cd.updateCurrentDrivableActor(msg.Properties["name"])
 				}
-				if msg.EventName == "sync_control_value" {
+				if msg.EventName == SYNC_CONTROL_VALUE_CONNECTOR_EVENT_NAME {
 					control_state, has_control_state := cd.State.Controls.Get(msg.Properties["property"])
 					if cd.TSWAPI.Enabled() && cd.TSWAPI.CanConnect() && !has_control_state {
 						/* if the API is enabled and connectable - it should drive the existance of the controls */

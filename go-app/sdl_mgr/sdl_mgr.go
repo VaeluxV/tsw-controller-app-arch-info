@@ -192,12 +192,12 @@ func (mgr *SDLMgr) StartPolling(ctx context.Context) (chan sdl.Event, context.Ca
 	return event_channel, cancel
 }
 
-func (joystick *SDLMgr_Joystick) DeviceID() string {
-	return fmt.Sprintf("%04X:%04X", joystick.VendorID, joystick.ProductID)
-}
-
 func (joystick *SDLMgr_Joystick) UniqueID() string {
 	unique_id := fmt.Sprintf("usb_id=%s,instance_id=%s", joystick.DeviceID(), string(joystick.InstanceID))
 	hash := sha1.Sum([]byte(unique_id))
 	return fmt.Sprintf("%x", hash)
+}
+
+func (joystick *SDLMgr_Joystick) DeviceID() string {
+	return fmt.Sprintf("%04X:%04X", joystick.VendorID, joystick.ProductID)
 }
