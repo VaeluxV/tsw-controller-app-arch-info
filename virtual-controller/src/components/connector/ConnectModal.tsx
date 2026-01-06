@@ -33,8 +33,8 @@ export const ConnectModal = ({ open, onClose }: Props) => {
       (result) => console.log("decoded qr code:", result),
       {},
     );
-    qrScanner.start().catch(console.log)
-    console.log(videoRef.current)
+    qrScanner.start().catch(console.log);
+    console.log(videoRef.current);
     return () => qrScanner.destroy();
   }, [open]);
 
@@ -45,6 +45,9 @@ export const ConnectModal = ({ open, onClose }: Props) => {
           {t("Connect to TSW Controller Utility app")}
         </h3>
         <div>
+          <button
+            onClick={() => navigator.mediaDevices.getUserMedia({ video: true })}
+          >c</button>
           <video ref={videoRef} className="w-full h-60"></video>
         </div>
         <div className="modal-action">
