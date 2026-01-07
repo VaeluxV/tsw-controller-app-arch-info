@@ -1,0 +1,37 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+.scanner-dialog {
+  & > .scanner-dialog-inner {
+    @apply grid;
+    @apply gap-2;
+    @apply bg-base-300;
+    @apply rounded-lg;
+    @apply shadow-2xl;
+    @apply border-none;
+    @apply max-w-2xl;
+    grid-template-areas:
+      "title close"
+      "body body";
+    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-template-rows: max-content minmax(0, 1fr);
+  }
+
+  & > .scanner-dialog-inner > p {
+    @apply font-semibold;
+    grid-area: title;
+  }
+
+  & > .scanner-dialog-inner > .close-button {
+    @apply leading-none;
+    grid-area: close;
+
+    &:hover {
+      @apply text-base-content;
+    }
+  }
+
+  & > .scanner-dialog-inner > .scanner-container-full-width {
+    grid-area: body;
+  }
+}

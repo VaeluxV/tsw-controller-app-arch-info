@@ -1,7 +1,12 @@
-# Tauri + React + Typescript
+## Created with Capacitor Create App
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+This app was created using [`@capacitor/create-app`](https://github.com/ionic-team/create-capacitor-app),
+and comes with a very minimal shell for building an app.
 
-## Recommended IDE Setup
+### Running this example
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+To run the provided example, you can use `npm start` command.
+
+```bash
+npm start
+```

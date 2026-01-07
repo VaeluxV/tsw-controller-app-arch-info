@@ -1,37 +1,45 @@
 {
-  "name": "virtual-controller",
-  "private": true,
-  "version": "0.1.0",
+  "name": "capacitor-app",
+  "version": "1.0.0",
+  "description": "An Amazing Capacitor App",
   "type": "module",
+  "keywords": [
+    "capacitor",
+    "mobile"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "tauri": "tauri"
+    "cap:sync": "npm exec cap sync",
+    "cap:run:android": "npm exec cap run android",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/barcode-scanner": "^3.0.0",
+    "@capacitor/camera": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.0",
     "@hookform/resolvers": "^5.2.2",
     "@phosphor-icons/react": "^2.1.10",
-    "@tailwindcss/vite": "^4.1.18",
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2",
     "motion": "^12.23.26",
-    "qr-scanner": "^1.4.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.70.0",
-    "tailwindcss": "^4.1.18",
     "zod": "^4.3.4"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "@vitejs/plugin-react": "^4.6.0",
+    "@capacitor/cli": "^8.0.0",
+    "@tailwindcss/vite": "^4.1.18",
+    "@vitejs/plugin-react": "^5.1.2",
     "daisyui": "^5.5.14",
     "prettier": "^3.7.4",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4",
-    "vite-plugin-mkcert": "^1.17.9"
-  }
+    "vite": "^5.4.2",
+    "tailwindcss": "^4.1.18"
+  },
+  "author": "",
+  "license": "ISC"
 }
