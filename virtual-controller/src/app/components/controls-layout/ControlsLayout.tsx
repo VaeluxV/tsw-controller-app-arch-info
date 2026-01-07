@@ -19,9 +19,17 @@ import { LayoutControl } from "./LayoutControl";
 type Props = {
   layout: TLayoutConfigSchema;
   onUpdateLayout: (layout: TLayoutConfigSchema) => void;
+  onUpdateControlValue: (
+    control: TLayoutConfigSchema["controls"][number],
+    value: number
+  ) => void;
 };
 
-export const ControlsLayout = ({ layout, onUpdateLayout }: Props) => {
+export const ControlsLayout = ({
+  layout,
+  onUpdateLayout,
+  onUpdateControlValue,
+}: Props) => {
   const dragConstraintsRef = useRef<HTMLDivElement>(null);
 
   const [addButtonFormOpen, setAddButtonFormOpen] = useState(false);
@@ -144,6 +152,12 @@ export const ControlsLayout = ({ layout, onUpdateLayout }: Props) => {
             onDelete={deleteControlByName}
             onUpdateValue={(control, value) => {
               valuesForm.setValue(control, value);
+              for (const c of layout.controls) {
+                if (c.name === control) {
+                  onUpdateControlValue(c, value);
+                  return;
+                }
+              }
             }}
           />
         ))}

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { t } from "./utils/t";
-import { CapacitorBarcodeScanner } from "@capacitor/barcode-scanner";
 import { configStore } from "./config/configStore";
 import {
   TAddControlsLayoutFormValues,
@@ -10,11 +9,15 @@ import {
 import { TLayoutConfigSchema } from "./config/layoutConfigSchema";
 import clsx from "clsx";
 import { DotsThreeOutlineVerticalIcon } from "@phosphor-icons/react";
+import { tswAppConnector } from "./connector/TSWAppConnector";
+import { useDevice } from "./hooks/useDevice";
 
 const App = () => {
+  const [deviceId, deviceInfo] = useDevice();
   const [layouts, setLayouts] = useState<TLayoutConfigSchema[] | null>(null);
   const [currentLayout, setCurrentLayout] = useState<string | null>(null);
   const [addLayoutFormOpen, setAddLayoutFormOpen] = useState(false);
+  const [connection, connectionState] = tswAppConnector.useConnection();
 
   const layout = useMemo(() => {
     if (!currentLayout || !layouts?.length) return null;
@@ -37,7 +40,32 @@ const App = () => {
     const actuallayouts = layouts ?? [];
     setLayouts(actuallayouts.filter((l) => l.name !== layout.name));
     if (currentLayout === layout.name) {
-      setCurrentLayout(layouts?.[0].name ?? null);
+      setCurrentLayout(layouts?.[0]?.name ?? null);
+    }
+  };
+
+  const handleUpdateControlValue = (
+    control: TLayoutConfigSchema["controls"][number],
+    value: number
+  ) => {
+    if (!deviceId || !deviceInfo) return;
+    const deviceName = `${deviceInfo.operatingSystem}/${deviceInfo.osVersion}`;
+    switch (control.type) {
+      case "button":
+        connection?.send(
+          `virtual_device_button_value,unique_id=${deviceId},device_id=${deviceId},device_name=${deviceName},value=${value}`
+        );
+        break;
+      case "slider":
+        connection?.send(
+          `virtual_device_axis_value,unique_id=${deviceId},device_id=${deviceId},device_name=${deviceName},value=${value}`
+        );
+        break;
+      case "slider_centered":
+        connection?.send(
+          `virtual_device_axis_value,unique_id=${deviceId},device_id=${deviceId},device_name=${deviceName},value=${value}`
+        );
+        break;
     }
   };
 
@@ -55,6 +83,28 @@ const App = () => {
   };
 
   useEffect(() => {
+    if (!connection || !deviceId || !deviceInfo) return;
+    const openIfReady = () => {
+      if (connection.readyState !== WebSocket.OPEN) return;
+      const devicename = `${deviceInfo.operatingSystem}/${deviceInfo.osVersion}`;
+      connection.send(
+        `virtual_device_connected,unique_id=${deviceId},device_id=${deviceId},device_name=${devicename}`
+      );
+    };
+    const close = () => {
+      connection.send(`virtual_device_disconnected,unique_id=${deviceId}`);
+    };
+    connection.addEventListener("open", openIfReady);
+    connection.addEventListener("close", close);
+    connection.addEventListener("error", close);
+    return () => {
+      connection.removeEventListener("open", openIfReady);
+      connection.removeEventListener("close", close);
+      connection.removeEventListener("error", close);
+    };
+  }, [connection, deviceId, deviceInfo]);
+
+  useEffect(() => {
     if (Array.isArray(layouts)) {
       configStore.layouts.save(layouts);
     }
@@ -63,7 +113,7 @@ const App = () => {
   useEffect(() => {
     configStore.layouts.get().then((layouts) => {
       setLayouts(layouts);
-      setCurrentLayout(layouts?.[0].name ?? null);
+      setCurrentLayout(layouts?.[0]?.name ?? null);
     });
   }, []);
 
@@ -108,24 +158,58 @@ const App = () => {
         <button role="tab" className="tab" onClick={handleOpenAddLayoutForm}>
           {t("+ New layout")}
         </button>
+
+        <div role="presentation" className="ml-auto" />
         <button
           role="tab"
-          className="tab ml-auto"
+          className="tab"
           onClick={() => {
-            CapacitorBarcodeScanner.scanBarcode({
-              hint: 0,
-              scanInstructions: t("Scan QR code from TSW App"),
-            });
+            tswAppConnector.connect("ws://127.0.0.1:63241");
+            // CapacitorBarcodeScanner.scanBarcode({
+            //   hint: 0,
+            //   scanInstructions: t("Scan QR code from TSW App"),
+            // });
           }}
         >
           {t("Connect")}
         </button>
+        <div className="flex items-center px-2">
+          {(connectionState === null ||
+            connectionState === WebSocket.CLOSED ||
+            connectionState === WebSocket.CLOSING) && (
+            <div className="tooltip tooltip-left" data-tip={t("Disconnected")}>
+              <div
+                aria-label={t("Disconnected")}
+                className="status status-error"
+              />
+            </div>
+          )}
+
+          {connectionState === WebSocket.CONNECTING && (
+            <div className="tooltip tooltip-left" data-tip={t("Connecting...")}>
+              <div
+                aria-label={t("Connecting...")}
+                className="status status-warning"
+              />
+            </div>
+          )}
+
+          {connectionState === WebSocket.OPEN && (
+            <div className="tooltip tooltip-left" data-tip={t("Connected")}>
+              <div
+                aria-label={t("Connected")}
+                className="status status-success"
+              />
+            </div>
+          )}
+        </div>
       </div>
       {layout && (
         <ControlsLayout
           key={layout.name}
           layout={layout}
           onUpdateLayout={updateLayout}
+          onUpdateControlValue={handleUpdateControlValue}
         />
       )}
 

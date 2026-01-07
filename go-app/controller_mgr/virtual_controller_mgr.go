@@ -13,6 +13,8 @@ import (
 	"tsw_controller_app/tswconnector"
 )
 
+const VIRTUAL_CONTROLLER_DEVICE_CONNECTED_CONNECTOR_EVENT_NAME = "virtual_device_connected"
+const VIRTUAL_CONTROLLER_DEVICE_DISCONNECTED_CONNECTOR_EVENT_NAME = "virtual_device_disconnected"
 const VIRTUAL_CONTROLLER_AXIS_VALUE_CONNECTOR_EVENT_NAME = "virtual_device_axis_value"
 const VIRTUAL_CONTROLLER_BUTTON_VALUE_CONNECTOR_EVENT_NAME = "virtual_device_button_value"
 const VIRTUAL_CONTROLLER_HAT_VALUE_CONNECTOR_EVENT_NAME = "virtual_device_hat_value"
@@ -190,6 +192,17 @@ func (vm *VirtualControllerManager) registerDeviceFromConnectorEvent(msg tswconn
 	return InvalidVirtualDeviceIDsError
 }
 
+func (vm *VirtualControllerManager) deregisterDeviceFromConnectorEvent(msg tswconnector.TSWConnector_Message) error {
+	unique_id := msg.Properties["unique_id"]
+	if strings.HasPrefix(unique_id, "virtual:") {
+		fmt.Printf("de-registering device: %s", unique_id)
+		vm.controllers.Delete(unique_id)
+		return nil
+	}
+	logger.Logger.Error("attempted to de-register a device with invalid ID", "unique_id", unique_id)
+	return InvalidVirtualDeviceIDsError
+}
+
 func (vm *VirtualControllerManager) updateDeviceControlValueFromConnectorEvent(msg tswconnector.TSWConnector_Message) error {
 	unique_id := msg.Properties["unique_id"]
 	control_name := msg.Properties["control"]
@@ -226,6 +239,10 @@ func (vm *VirtualControllerManager) Attach(ctx context.Context) context.CancelFu
 				return
 			case msg := <-ch:
 				switch msg.EventName {
+				case VIRTUAL_CONTROLLER_DEVICE_CONNECTED_CONNECTOR_EVENT_NAME:
+					vm.registerDeviceFromConnectorEvent(msg)
+				case VIRTUAL_CONTROLLER_DEVICE_DISCONNECTED_CONNECTOR_EVENT_NAME:
+					vm.deregisterDeviceFromConnectorEvent(msg)
 				case VIRTUAL_CONTROLLER_AXIS_VALUE_CONNECTOR_EVENT_NAME:
 					if err := vm.registerDeviceFromConnectorEvent(msg); err == nil {
 						vm.updateDeviceControlValueFromConnectorEvent(msg)
