@@ -19,9 +19,11 @@
     "@capacitor/barcode-scanner": "^3.0.0",
     "@capacitor/camera": "^8.0.0",
     "@capacitor/core": "^8.0.0",
+    "@capacitor/preferences": "^8.0.0",
     "@capacitor/splash-screen": "^8.0.0",
     "@hookform/resolvers": "^5.2.2",
     "@phosphor-icons/react": "^2.1.10",
+    "clsx": "^2.1.1",
     "motion": "^12.23.26",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -29,16 +31,16 @@
     "zod": "^4.3.4"
   },
   "devDependencies": {
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
     "@capacitor/cli": "^8.0.0",
     "@tailwindcss/vite": "^4.1.18",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^5.1.2",
     "daisyui": "^5.5.14",
     "prettier": "^3.7.4",
+    "tailwindcss": "^4.1.18",
     "typescript": "~5.8.3",
-    "vite": "^5.4.2",
-    "tailwindcss": "^4.1.18"
+    "vite": "^5.4.2"
   },
   "author": "",
   "license": "ISC"

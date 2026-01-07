@@ -20,7 +20,7 @@ const schema = z.object({
     .min(1, t("Name is required"))
     .regex(
       /^[A-Za-z0-9_]+$/,
-      t("Name may only contain alphanumeric characters"),
+      t("Name may only contain alphanumeric characters")
     ),
   color: z.enum(ControlColor, t("Invalid color")),
 });
@@ -31,7 +31,7 @@ export const AddButtonControlForm = ({ open, onClose, onSubmit }: Props) => {
   const localId = useId();
   const formId = `${ADD_BUTTON_CONTROL_FORM_ID}-${localId.replace(/[^a-z0-9_-]/gi, "-")}`;
   const dialogRef = useRef<HTMLDialogElement | null>(null);
-  const { reset, register, formState, handleSubmit } = useForm<
+  const { reset, register, formState, handleSubmit, setError } = useForm<
     z.input<typeof schema>,
     unknown,
     z.output<typeof schema>
@@ -50,8 +50,12 @@ export const AddButtonControlForm = ({ open, onClose, onSubmit }: Props) => {
   };
 
   const handleValidForm = (values: z.output<typeof schema>) => {
-    onSubmit(values);
-    dialogRef.current?.close();
+    try {
+      onSubmit(values);
+      dialogRef.current?.close();
+    } catch (err) {
+      setError("root", { message: String(err) });
+    }
   };
 
   useEffect(() => {
@@ -98,7 +102,7 @@ export const AddButtonControlForm = ({ open, onClose, onSubmit }: Props) => {
           <div role="alert" className="alert">
             <span>
               {t(
-                "Buttons will report a value of 0 or 1 depending on the pressed state",
+                "Buttons will report a value of 0 or 1 depending on the pressed state"
               )}
             </span>
           </div>
@@ -118,6 +122,11 @@ export const AddButtonControlForm = ({ open, onClose, onSubmit }: Props) => {
             {t("Add")}
           </button>
         </div>
+        {!!formState.errors.root && (
+          <div className="alert alert-error">
+            {formState.errors.root.message}
+          </div>
+        )}
       </div>
     </dialog>
   );

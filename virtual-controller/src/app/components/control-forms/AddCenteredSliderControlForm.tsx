@@ -20,12 +20,14 @@ const schema = z.object({
     .min(1, t("Name is required"))
     .regex(
       /^[A-Za-z0-9_]+$/,
-      t("Name may only contain alphanumeric characters"),
+      t("Name may only contain alphanumeric characters")
     ),
   color: z.enum(ControlColor, t("Invalid color")),
   snap: z
     .literal("")
-    .or(z.coerce.number().positive(t("Snap value should be positive")).nullish()),
+    .or(
+      z.coerce.number().positive(t("Snap value should be positive")).nullish()
+    ),
 });
 
 export type TAddCenteredSliderControlFormValues = z.output<typeof schema>;
@@ -38,7 +40,7 @@ export const AddCenteredSliderControlForm = ({
   const localId = useId();
   const formId = `${ADD_CENTERED_SLIDER_CONTROL_FORM_ID}-${localId.replace(/[^a-z0-9_-]/gi, "-")}`;
   const dialogRef = useRef<HTMLDialogElement | null>(null);
-  const { reset, register, formState, watch, handleSubmit } = useForm<
+  const { reset, register, formState, watch, handleSubmit, setError } = useForm<
     z.input<typeof schema>,
     unknown,
     z.output<typeof schema>
@@ -58,8 +60,12 @@ export const AddCenteredSliderControlForm = ({
   };
 
   const handleValidForm = (values: z.output<typeof schema>) => {
-    onSubmit(values);
-    dialogRef.current?.close();
+    try {
+      onSubmit(values);
+      dialogRef.current?.close();
+    } catch (err) {
+      setError("root", { message: String(err) });
+    }
   };
 
   useEffect(() => {
@@ -120,7 +126,7 @@ export const AddCenteredSliderControlForm = ({
           <div role="alert" className="alert">
             <span>
               {t(
-                "Centered sliders will report a value between -1 and 1 depending on the state",
+                "Centered sliders will report a value between -1 and 1 depending on the state"
               )}
             </span>
           </div>
@@ -140,6 +146,11 @@ export const AddCenteredSliderControlForm = ({
             {t("Add")}
           </button>
         </div>
+        {!!formState.errors.root && (
+          <div className="alert alert-error">
+            {formState.errors.root.message}
+          </div>
+        )}
       </div>
     </dialog>
   );

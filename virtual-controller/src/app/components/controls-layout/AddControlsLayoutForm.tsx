@@ -3,9 +3,8 @@ import { useForm } from "react-hook-form";
 import { useEffect, useId, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { t } from "../../utils/t";
-import { ControlColor, controlColors } from "../../config/controlColors";
 
-const ADD_SLIDER_CONTROL_FORM_ID = "add_slider_control_form";
+const ADD_CONTROLS_LAYOUT_FORM_ID = "add_controls_layout_form";
 
 type Props = {
   open: boolean;
@@ -14,27 +13,14 @@ type Props = {
 };
 
 const schema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, t("Name is required"))
-    .regex(
-      /^[A-Za-z0-9_]+$/,
-      t("Name may only contain alphanumeric characters")
-    ),
-  color: z.enum(ControlColor, t("Invalid color")),
-  snap: z
-    .literal("")
-    .or(
-      z.coerce.number().positive(t("Snap value should be positive")).nullish()
-    ),
+  name: z.string().trim().min(1, t("Name is required")),
 });
 
-export type TAddSliderControlFormValues = z.output<typeof schema>;
+export type TAddControlsLayoutFormValues = z.output<typeof schema>;
 
-export const AddSliderControlForm = ({ open, onClose, onSubmit }: Props) => {
+export const AddControlsLayoutForm = ({ open, onClose, onSubmit }: Props) => {
   const localId = useId();
-  const formId = `${ADD_SLIDER_CONTROL_FORM_ID}-${localId.replace(/[^a-z0-9_-]/gi, "-")}`;
+  const formId = `${ADD_CONTROLS_LAYOUT_FORM_ID}-${localId.replace(/[^a-z0-9_-]/gi, "-")}`;
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const { reset, register, formState, handleSubmit, setError } = useForm<
     z.input<typeof schema>,
@@ -45,8 +31,6 @@ export const AddSliderControlForm = ({ open, onClose, onSubmit }: Props) => {
     mode: "onChange",
     defaultValues: {
       name: "",
-      color: ControlColor.PURPLE,
-      snap: null,
     },
   });
 
@@ -77,11 +61,11 @@ export const AddSliderControlForm = ({ open, onClose, onSubmit }: Props) => {
   return (
     <dialog ref={dialogRef} className="modal" onClose={handleClose}>
       <div className="modal-box flex flex-col gap-2">
-        <h3 className="text-lg font-bold">{t("Add slider control")}</h3>
+        <h3 className="text-lg font-bold">{t("Add layout")}</h3>
         <form id={formId} onSubmit={handleSubmit(handleValidForm)}>
           <fieldset className="fieldset w-full">
             <legend className="fieldset-legend">
-              {t("Enter slider name")}
+              {t("Enter layout name")}
             </legend>
             <input type="text" className="input w-full" {...register("name")} />
             {!!formState.errors.name && (
@@ -90,42 +74,6 @@ export const AddSliderControlForm = ({ open, onClose, onSubmit }: Props) => {
               </p>
             )}
           </fieldset>
-          <fieldset className="fieldset w-full">
-            <legend className="fieldset-legend">{t("Color")}</legend>
-            <select className="select w-full" {...register("color")}>
-              {controlColors.map((color) => (
-                <option key={color} value={color}>
-                  {color}
-                </option>
-              ))}
-            </select>
-            {!!formState.errors.color && (
-              <p className="label text-error">
-                {formState.errors.color.message}
-              </p>
-            )}
-          </fieldset>
-          <fieldset className="fieldset w-full">
-            <legend className="fieldset-legend">{t("Snap value")}</legend>
-            <input
-              type="number"
-              step={0.01}
-              className="input w-full"
-              {...register("snap")}
-            />
-            {!!formState.errors.snap && (
-              <p className="label text-error">
-                {formState.errors.snap.message}
-              </p>
-            )}
-          </fieldset>
-          <div role="alert" className="alert">
-            <span>
-              {t(
-                "Sliders will report a value between 0 and 1 depending on the state"
-              )}
-            </span>
-          </div>
         </form>
         <div className="modal-action">
           <form method="dialog">
