@@ -345,8 +345,19 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      - id: versioning
+        name: Get version code and name
+        run: |
+          export RELEASE_VERSION=$(cat ../../RELEASE_VERSION)
+          export RELEASE_VERSION_MAJOR=$(echo $RELEASE_VERSION | cut -d. -f1)
+          export RELEASE_VERSION_MINOR=$(echo $RELEASE_VERSION | cut -d. -f2)
+          export RELEASE_VERSION_PATCH=$(echo $RELEASE_VERSION | cut -d. -f3)
+          echo VERSION_NAME=$RELEASE_VERSION >> "$GITHUB_OUTPUT"
+          echo VERSION_CODE=$((RELEASE_VERSION_MAJOR*1000000 + RELEASE_VERSION_MINOR*1000 + RELEASE_VERSION_PATCH)) >> "$GITHUB_OUTPUT"
+
       - name: Build and Sign APK
         run: |
+          echo $ANDROID_RELEASE_VERSION_NAME :: $ANDROID_RELEASE_VERSION_CODE
           cd virtual-controller/android
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > app/release.keystore
           ./gradlew assembleRelease
@@ -356,6 +367,8 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_RELEASE_VERSION_CODE: ${{ steps.versioning.outputs.VERSION_CODE }}
+          ANDROID_RELEASE_VERSION_NAME: ${{ steps.versioning.outputs.VERSION_NAME }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
