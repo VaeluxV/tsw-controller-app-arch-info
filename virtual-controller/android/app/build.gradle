@@ -7,7 +7,7 @@ android {
         applicationId "com.liahmartens.tswvirtualcontroller.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode (System.getenv("ANDROID_RELEASE_VERSION_CODE") ?: 1) as Integer
+        versionCode System.getenv("ANDROID_RELEASE_VERSION_CODE")?.toInteger() ?: 1
         versionName System.getenv("ANDROID_RELEASE_VERSION_NAME") ?: "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

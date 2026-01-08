@@ -357,7 +357,6 @@ jobs:
 
       - name: Build and Sign APK
         run: |
-          echo $ANDROID_RELEASE_VERSION_NAME :: $ANDROID_RELEASE_VERSION_CODE
           cd virtual-controller/android
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > app/release.keystore
           ./gradlew assembleRelease
