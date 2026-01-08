@@ -11,6 +11,7 @@ import clsx from "clsx";
 import { DotsThreeOutlineVerticalIcon } from "@phosphor-icons/react";
 import { tswAppConnector } from "./connector/TSWAppConnector";
 import { useDevice } from "./hooks/useDevice";
+import { CapacitorBarcodeScanner } from "@capacitor/barcode-scanner";
 
 const App = () => {
   const [deviceId, deviceInfo] = useDevice();
@@ -164,11 +165,18 @@ const App = () => {
           role="tab"
           className="tab"
           onClick={() => {
-            tswAppConnector.connect("ws://127.0.0.1:63241");
-            // CapacitorBarcodeScanner.scanBarcode({
-            //   hint: 0,
-            //   scanInstructions: t("Scan QR code from TSW App"),
-            // });
+            CapacitorBarcodeScanner.scanBarcode({
+              hint: 0,
+              scanInstructions: t("Scan QR code from TSW App"),
+            }).then(({ ScanResult }) => {
+              try {
+                const value = JSON.parse(ScanResult) as {
+                  device: { ip: string };
+                  port: number;
+                };
+                tswAppConnector.connect(`ws://${value.device.ip}:${value.port}`);
+              } catch {}
+            });
           }}
         >
           {t("Connect")}
