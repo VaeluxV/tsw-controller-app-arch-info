@@ -5,7 +5,11 @@ import { TLayoutConfigButtonSchema } from "../../config/layoutConfigSchema";
 type Props = {
   control: TLayoutConfigButtonSchema;
   value: number;
-  onUpdateValue: (control: string, value: number) => void;
+  onUpdateValue: (
+    control: TLayoutConfigButtonSchema,
+    value: number,
+    interacting: boolean
+  ) => void;
 };
 
 export const LayoutControlButton = ({
@@ -13,10 +17,10 @@ export const LayoutControlButton = ({
   value,
   onUpdateValue,
 }: Props) => {
-  const { name, options } = control;
+  const { options } = control;
 
-  const handlePointerDown = () => onUpdateValue(name, 1);
-  const handlePointerUpOrLeave = () => onUpdateValue(name, 0);
+  const handlePointerDown = () => onUpdateValue(control, 1, false);
+  const handlePointerUpOrLeave = () => onUpdateValue(control, 0, false);
 
   return (
     <button

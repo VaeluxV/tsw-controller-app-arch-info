@@ -26,6 +26,10 @@ export function GetControllers() {
   return window['go']['main']['App']['GetControllers']();
 }
 
+export function GetDeviceIP() {
+  return window['go']['main']['App']['GetDeviceIP']();
+}
+
 export function GetLastInstalledModVersion() {
   return window['go']['main']['App']['GetLastInstalledModVersion']();
 }

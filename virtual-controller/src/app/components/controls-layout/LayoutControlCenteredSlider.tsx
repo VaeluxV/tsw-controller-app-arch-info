@@ -14,7 +14,11 @@ import { snapNumber } from "../../utils/snapNumber";
 type Props = {
   control: TLayoutConfigCenteredSliderSchema;
   value: number;
-  onUpdateValue: (control: string, value: number) => void;
+  onUpdateValue: (
+    control: TLayoutConfigCenteredSliderSchema,
+    value: number,
+    interacting: boolean
+  ) => void;
 };
 
 export const LayoutControlCenteredSlider = ({
@@ -38,7 +42,7 @@ export const LayoutControlCenteredSlider = ({
       : rawprogress;
     const progress = Math.min(
       1,
-      Math.max(-1, Math.round(snappedprogress * 1000) / 1000),
+      Math.max(-1, Math.round(snappedprogress * 1000) / 1000)
     );
     const shouldSnapToCenter = progress > -0.05 && progress < 0.05;
     if (shouldSnapToCenter) return 0;
@@ -47,20 +51,22 @@ export const LayoutControlCenteredSlider = ({
 
   const handleDrag = (
     _: MouseEvent | TouchEvent | PointerEvent,
-    info: PanInfo,
-  ) => {
-    y.set(0);
-    progress.set(calculateProgressFromPoint(info.point));
-  };
-
-  const handleDragEnd = (
-    _: MouseEvent | TouchEvent | PointerEvent,
-    info: PanInfo,
+    info: PanInfo
   ) => {
     const pvalue = calculateProgressFromPoint(info.point);
     y.set(0);
     progress.set(pvalue);
-    onUpdateValue(control.name, pvalue);
+    onUpdateValue(control, pvalue, true);
+  };
+
+  const handleDragEnd = (
+    _: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo
+  ) => {
+    const pvalue = calculateProgressFromPoint(info.point);
+    y.set(0);
+    progress.set(pvalue);
+    onUpdateValue(control, pvalue, false);
   };
 
   return (

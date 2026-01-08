@@ -52,7 +52,6 @@ export const AddCenteredSliderControlForm = ({
       color: ControlColor.PURPLE,
     },
   });
-  console.log(watch("snap"));
 
   const handleClose = () => {
     reset();

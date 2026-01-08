@@ -1,4 +1,4 @@
-import { motion, useDragControls } from "motion/react";
+import { motion, useDragControls, useMotionValue } from "motion/react";
 import { RefObject, useRef } from "react";
 import {
   TLayoutConfigBaseControlOptionsSchema,
@@ -14,10 +14,14 @@ type Props = {
   dragConstraintsRef: RefObject<HTMLDivElement | null>;
   control: TLayoutConfigSchema["controls"][number];
   value: number;
-  onUpdateValue: (control: string, value: number) => void;
+  onUpdateValue: (
+    control: TLayoutConfigSchema["controls"][number],
+    value: number,
+    interacting: boolean
+  ) => void;
   onMove: (
     control: string,
-    position: TLayoutConfigBaseControlOptionsSchema["position"],
+    position: TLayoutConfigBaseControlOptionsSchema["position"]
   ) => void;
   onDelete: (control: string) => void;
 };
@@ -31,28 +35,33 @@ export const LayoutControl = ({
   onDelete,
 }: Props) => {
   const ref = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
   const dragControls = useDragControls();
   const { name, options } = control;
 
   const handleDragEnd = () => {
     if (!ref.current || !dragConstraintsRef.current) return;
     const constraintsRect = dragConstraintsRef.current.getBoundingClientRect();
-    const buttonRect = ref.current.getBoundingClientRect();
+    const controlRect = ref.current.getBoundingClientRect();
     const top =
-      (buttonRect.top - constraintsRect.top + buttonRect.height / 2) /
+      (controlRect.top - constraintsRect.top + controlRect.height / 2) /
       constraintsRect.height;
     const left =
-      (buttonRect.left - constraintsRect.left + buttonRect.width / 2) /
+      (controlRect.left - constraintsRect.left + controlRect.width / 2) /
       constraintsRect.width;
+    x.set(0);
+    y.set(0);
     onMove(control.name, { y: top, x: left });
   };
 
   return (
     <motion.div
-      key={JSON.stringify(control)}
       ref={ref}
       className="absolute -translate-1/2"
       style={{
+        x,
+        y,
         left: `${options.position.x * 100}%`,
         top: `${options.position.y * 100}%`,
       }}

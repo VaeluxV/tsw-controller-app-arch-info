@@ -150,14 +150,11 @@ export const ControlsLayout = ({
             value={valuesFormValues[control.name] ?? 0}
             onMove={moveControlByName}
             onDelete={deleteControlByName}
-            onUpdateValue={(control, value) => {
-              valuesForm.setValue(control, value);
-              for (const c of layout.controls) {
-                if (c.name === control) {
-                  onUpdateControlValue(c, value);
-                  return;
-                }
+            onUpdateValue={(control, value, interacting) => {
+              if (!interacting) {
+                valuesForm.setValue(control.name, value);
               }
+              onUpdateControlValue(control, value);
             }}
           />
         ))}

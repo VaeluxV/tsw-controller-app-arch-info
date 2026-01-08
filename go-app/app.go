@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -357,6 +358,17 @@ func (a *App) GetTheme() string {
 func (a *App) SetTheme(theme string) {
 	a.program_config.Theme = theme
 	a.program_config.Save(filepath.Join(a.config.GlobalConfigDir, "program.json"))
+}
+
+func (a *App) GetDeviceIP() (string, error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	return localAddr.IP.String(), nil
 }
 
 func (a *App) LoadConfiguration() {

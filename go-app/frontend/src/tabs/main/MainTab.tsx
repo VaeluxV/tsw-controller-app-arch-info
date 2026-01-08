@@ -20,7 +20,7 @@ import {
   SaveProfileForSharingWithControllerInformation,
   ImportProfile,
 } from "../../../wailsjs/go/main/App";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { BrowserOpenURL, EventsOn } from "../../../wailsjs/runtime/runtime";
 import { events } from "../../events";
 import { useForm } from "react-hook-form";
@@ -30,6 +30,7 @@ import { alert } from "../../utils/alert";
 import { confirm } from "../../utils/confirm";
 import { ProfileInfo } from "./_components/ProfileSelectionMoreMenu";
 import { MainTabProfileSelector } from "./MainTabProfileSelector";
+import { ConnectRemoteControllerModal } from "./_components/ConnectRemoteControllerModal";
 
 type FormValues = {
   profiles: Partial<Awaited<ReturnType<typeof GetSelectedProfiles>>>;
@@ -56,6 +57,10 @@ export const MainTab = () => {
     "controllers",
     () => GetControllers(),
     { revalidateOnMount: true },
+  );
+
+  const connectRemoteControllerDialogRef = useRef<HTMLDialogElement | null>(
+    null,
   );
 
   const form = useForm<FormValues>({
@@ -126,9 +131,16 @@ export const MainTab = () => {
     controller: main.Interop_GenericController | null,
   ) => {
     (controller
-      ? SaveProfileForSharingWithControllerInformation(profile.Id, controller.UniqueID)
+      ? SaveProfileForSharingWithControllerInformation(
+          profile.Id,
+          controller.UniqueID,
+        )
       : SaveProfileForSharing(profile.Id)
     ).catch((err) => alert(String(err), "error"));
+  };
+
+  const handleConnectRemoteController = () => {
+    connectRemoteControllerDialogRef.current?.showModal();
   };
 
   const handleInstall = () => {
@@ -219,11 +231,15 @@ export const MainTab = () => {
       <p className="text-xs text-base-content/50">
         Note: for auto-detection to work it has to be supported by the profile.
       </p>
+      <button className="btn btn-sm grow" onClick={handleConnectRemoteController}>
+        + Connect Remote Controller
+      </button>
+
       <div className="divider"></div>
       {/* steam://controllerconfig/2967990/3576092503 */}
       <div className="flex gap-2">
         <button className="btn btn-sm grow" onClick={handleInstall}>
-          Install/Reinstall Train Sim World mod
+          Install/Reinstall TSW mod
         </button>
         <button className="btn btn-sm grow" onClick={handleImportProfile}>
           Import profile (.tswprofile)
@@ -305,6 +321,10 @@ export const MainTab = () => {
           to hide the controller from the game altogether
         </span>
       </div>
+
+      <ConnectRemoteControllerModal
+        dialogRef={connectRemoteControllerDialogRef}
+      />
     </div>
   );
 };
