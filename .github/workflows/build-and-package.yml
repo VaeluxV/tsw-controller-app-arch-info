@@ -345,16 +345,18 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Build Debug APK
+      - name: Build and Sign APK
         run: |
           cd virtual-controller/android
-          ./gradlew assembleDebug
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > app/release.keystore
+          ./gradlew assembleRelease
+          find app/build/outputs/apk/release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: virtual-controller/android/app/build/outputs/apk/debug/app-debug.apk
+          path: virtual-controller/android/app/build/outputs/apk/release/app-release.apk
 
   prerelease:
     runs-on: ubuntu-latest

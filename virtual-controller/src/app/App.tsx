@@ -54,17 +54,17 @@ const App = () => {
     switch (control.type) {
       case "button":
         connection?.send(
-          `virtual_device_button_value,unique_id=${deviceId},device_id=${deviceId},device_name=${deviceName},value=${value}`
+          `virtual_device_button_value,unique_id=${deviceId},device_id=${deviceId},device_name=${deviceName},control=${control.name},value=${value}`
         );
         break;
       case "slider":
         connection?.send(
-          `virtual_device_axis_value,unique_id=${deviceId},device_id=${deviceId},device_name=${deviceName},value=${value}`
+          `virtual_device_axis_value,unique_id=${deviceId},device_id=${deviceId},device_name=${deviceName},control=${control.name},value=${value}`
         );
         break;
       case "slider_centered":
         connection?.send(
-          `virtual_device_axis_value,unique_id=${deviceId},device_id=${deviceId},device_name=${deviceName},value=${value}`
+          `virtual_device_axis_value,unique_id=${deviceId},device_id=${deviceId},device_name=${deviceName},control=${control.name},value=${value}`
         );
         break;
     }

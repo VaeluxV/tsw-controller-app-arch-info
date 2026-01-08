@@ -111,7 +111,7 @@ export const LayoutControl = ({
   return (
     <motion.div
       ref={ref}
-      className="absolute -translate-1/2"
+      className="absolute -translate-1/2 touch-none"
       style={{ x, y, left, top }}
       drag
       dragControls={dragControls}
