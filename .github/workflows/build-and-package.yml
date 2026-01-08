@@ -342,7 +342,6 @@ jobs:
           java-version: 21
 
       - name: Build Debug APK
-        working-directory: android
         run: |
           cd virtual-controller/android
           ./gradlew assembleDebug
