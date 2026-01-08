@@ -2,7 +2,6 @@ import { MutableRefObject, useRef } from "react";
 import useSWR from "swr";
 import QRCode from "react-qr-code";
 import { GetDeviceIP } from "../../../../wailsjs/go/main/App";
-import { div } from "framer-motion/client";
 import { BrowserOpenURL } from "../../../../wailsjs/runtime/runtime";
 
 type Props = {
@@ -43,8 +42,10 @@ export const ConnectRemoteControllerModal = ({ dialogRef }: Props) => {
               <div className="p-4 bg-white rounded-md">
                 <QRCode
                   value={JSON.stringify({
-                    device: { ip: deviceIP },
-                    port: 63241,
+                    connection: {
+                      ip: deviceIP,
+                      port: 63241,
+                    },
                   })}
                 />
               </div>

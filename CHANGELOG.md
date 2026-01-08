@@ -1,6 +1,9 @@
 
 # CHANGELOG
 
+## v1.7.0
+- Virtual Controllers
+
 ## v1.6.1
 - Clarify exe selection
 - Add select CommAPIKey.txt option

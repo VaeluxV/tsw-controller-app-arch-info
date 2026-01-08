@@ -327,8 +327,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: '22'
-          cache: npm
+          node-version: 22
 
       - run: |
           cd virtual-controller

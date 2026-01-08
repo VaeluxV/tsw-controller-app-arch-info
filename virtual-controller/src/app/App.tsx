@@ -168,18 +168,20 @@ const App = () => {
             CapacitorBarcodeScanner.scanBarcode({
               hint: 0,
               scanInstructions: t("Scan QR code from TSW App"),
-            }).then(({ ScanResult }) => {
-              try {
-                alert(ScanResult)
-                const value = JSON.parse(ScanResult) as {
-                  device: { ip: string };
-                  port: number;
-                };
-                tswAppConnector.connect(`ws://${value.device.ip}:${value.port}`);
-              } catch (err) {
-                alert(err)
-              }
-            }).catch(alert);
+            })
+              .then(({ ScanResult }) => {
+                try {
+                  const value = JSON.parse(ScanResult) as {
+                    connection: { ip: string; port: number };
+                  };
+                  tswAppConnector.connect(
+                    `ws://${value.connection.ip}:${value.connection}`
+                  );
+                } catch (err) {
+                  alert(err);
+                }
+              })
+              .catch(alert);
           }}
         >
           {t("Connect")}
