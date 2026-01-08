@@ -71,7 +71,7 @@ export const LayoutControlCenteredSlider = ({
 
   return (
     <div
-      className="isolate h-[calc(100dvh-10rem)] w-24 py-8 bg-base-300 rounded-full"
+      className="isolate h-[calc(100dvh-12rem)] w-24 py-8 bg-base-300 rounded-full"
       style={{
         boxShadow: "inset 0 0 1rem var(--color-base-100)",
       }}

@@ -24,7 +24,7 @@ export const LayoutControlButton = ({
 
   return (
     <button
-      className="btn btn-xl btn-primary p-0 w-16 h-16"
+      className="btn btn-xl btn-primary p-0 w-24 h-24"
       style={
         {
           "--btn-color": `var(${controlColorCssVariables[options.color]})`,
