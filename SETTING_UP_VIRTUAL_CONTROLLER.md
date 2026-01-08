@@ -3,7 +3,7 @@
 With the introduction of virtual controller support in `v1.7.0` it is now possible to set-up an android device as a fully customizable virtual controller. This guide will walk you through a basic set-up for this new feature.
 
 ## 1. Install the android application
-First and foremost you will need the TSW Virtual Controller application for android which can be downloaded from the [releases]() page. At this time only android is supported. Once launched you will see a screen similar to the below example:  
+First and foremost you will need the TSW Virtual Controller application for android which can be downloaded from the [releases](https://github.com/LiamMartens/tsw-controller-app/releases) page. At this time only android is supported. Once launched you will see a screen similar to the below example:  
 
 [![20260108-Setting-Up-Virtual-Controller-001.png](https://i.postimg.cc/g21QsTBK/20260108-Setting-Up-Virtual-Controller-001.png)](https://postimg.cc/k2FTXfCV)  
 
