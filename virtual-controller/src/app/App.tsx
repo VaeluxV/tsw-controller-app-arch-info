@@ -38,10 +38,10 @@ const App = () => {
   };
 
   const deleteLayout = (layout: TLayoutConfigSchema) => {
-    const actuallayouts = layouts ?? [];
-    setLayouts(actuallayouts.filter((l) => l.name !== layout.name));
+    const filteredlayouts = (layouts ?? []).filter((l) => l.name !== layout.name);
+    setLayouts(filteredlayouts);
     if (currentLayout === layout.name) {
-      setCurrentLayout(layouts?.[0]?.name ?? null);
+      setCurrentLayout(filteredlayouts?.[0]?.name ?? null);
     }
   };
 
@@ -80,7 +80,7 @@ const App = () => {
       }
     }
     setLayouts([...actuallayouts, { name: values.name, controls: [] }]);
-    if (!currentLayout) setCurrentLayout(values.name);
+    setCurrentLayout(values.name);
   };
 
   useEffect(() => {
