@@ -14,6 +14,8 @@ export function GetControllerConfiguration(arg1:string):Promise<main.Interop_Con
 
 export function GetControllers():Promise<Array<main.Interop_GenericController>>;
 
+export function GetDeviceIP():Promise<string>;
+
 export function GetLastInstalledModVersion():Promise<string>;
 
 export function GetLatestReleaseVersion():Promise<string>;
@@ -46,7 +48,7 @@ export function OpenConfigDirectory():Promise<void>;
 
 export function OpenNewProfileBuilder():Promise<void>;
 
-export function OpenNewProfileBuilderForUsbID(arg1:string):Promise<void>;
+export function OpenNewProfileBuilderForDeviceID(arg1:string):Promise<void>;
 
 export function OpenProfileBuilder(arg1:string):Promise<void>;
 

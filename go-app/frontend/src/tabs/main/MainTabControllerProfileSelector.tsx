@@ -42,14 +42,14 @@ export function MainTabControllerProfileSelector({
   const supportedProfiles = useMemo(
     () =>
       profiles?.filter(
-        (profile) => !profile.UsbID || profile.UsbID === controller.UsbID,
+        (profile) => !profile.DeviceID || profile.DeviceID === controller.DeviceID,
       ),
     [profiles],
   );
   const unsupportedProfiles = useMemo(
     () =>
       profiles?.filter(
-        (profile) => profile.UsbID && profile.UsbID !== controller.UsbID,
+        (profile) => profile.DeviceID && profile.DeviceID !== controller.DeviceID,
       ),
     [profiles],
   );
@@ -60,7 +60,7 @@ export function MainTabControllerProfileSelector({
         htmlFor={`controller_${controller.UniqueID}`}
         className="fieldset-legend"
       >
-        {controller.Name} ({controller.UsbID})
+        {controller.Name} ({controller.DeviceID})
       </label>
 
       <div className="flex flex-row gap-2 items-center">

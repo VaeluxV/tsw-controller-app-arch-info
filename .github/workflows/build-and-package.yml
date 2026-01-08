@@ -320,10 +320,52 @@ jobs:
           name: tswcontrollerapp_macos
           path: |
             go-app/build/bin
+  build__virtual_controller_app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - working-directory: virtual-controller
+        run: |
+          node ./bin/apply-release-version.mjs
+
+      - working-directory: virtual-controller
+        run: |
+          npm ci
+          npm run build
+          npm run cap:sync
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Build and Sign APK
+        run: |
+          cd virtual-controller/android
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > app/release.keystore
+          ./gradlew assembleRelease
+          find app/build/outputs/apk/release
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: tswvirtualcontrollerapp_android
+          path: virtual-controller/android/app/build/outputs/apk/release/app-release.apk
 
   prerelease:
     runs-on: ubuntu-latest
-    needs: [build__goapp__linux, build__goapp__windows, build__goapp__macos]
+    needs: [build__goapp__linux, build__goapp__windows, build__goapp__macos, build__virtual_controller_app]
     steps:
       - uses: actions/download-artifact@v5
         name: Download all artifacts
@@ -344,6 +386,9 @@ jobs:
 
           mkdir -p release_assets/tswcontrollerapp_macos
           cp -r tswcontrollerapp_macos/tsw-controller-app.app release_assets/tswcontrollerapp_macos/tsw-controller-app.app
+
+          mkdir -p release_assets/tswvirtualcontrollerapp_android
+          cp tswvirtualcontrollerapp_android/app-release.apk release_assets/tswvirtualcontrollerapp_android/tswvirtualcontrollerapp_android.apk
 
           cp -r mod_assets release_assets/manual_ue4ss_mod_installation
 

@@ -6,8 +6,10 @@ import (
 	"strings"
 )
 
+type TSWConnector_Message_EventName = string
+
 type TSWConnector_Message struct {
-	EventName  string
+	EventName  TSWConnector_Message_EventName
 	Properties map[string]string
 }
 

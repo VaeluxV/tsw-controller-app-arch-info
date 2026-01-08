@@ -56,11 +56,11 @@ export function MainTabProfileSelector({
     return undefined;
   }, [controllers, selectedProfiles]);
   const supportedProfiles = useMemo(
-    () => profiles?.filter((profile) => !profile.UsbID),
+    () => profiles?.filter((profile) => !profile.DeviceID),
     [profiles],
   );
   const unsupportedProfiles = useMemo(
-    () => profiles?.filter((profile) => !!profile.UsbID),
+    () => profiles?.filter((profile) => !!profile.DeviceID),
     [profiles],
   );
 

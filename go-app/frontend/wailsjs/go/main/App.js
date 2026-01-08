@@ -26,6 +26,10 @@ export function GetControllers() {
   return window['go']['main']['App']['GetControllers']();
 }
 
+export function GetDeviceIP() {
+  return window['go']['main']['App']['GetDeviceIP']();
+}
+
 export function GetLastInstalledModVersion() {
   return window['go']['main']['App']['GetLastInstalledModVersion']();
 }
@@ -90,8 +94,8 @@ export function OpenNewProfileBuilder() {
   return window['go']['main']['App']['OpenNewProfileBuilder']();
 }
 
-export function OpenNewProfileBuilderForUsbID(arg1) {
-  return window['go']['main']['App']['OpenNewProfileBuilderForUsbID'](arg1);
+export function OpenNewProfileBuilderForDeviceID(arg1) {
+  return window['go']['main']['App']['OpenNewProfileBuilderForDeviceID'](arg1);
 }
 
 export function OpenProfileBuilder(arg1) {

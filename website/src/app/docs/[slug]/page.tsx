@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import { Nav } from "@/_components/Nav";
 import { Metadata } from "next";
 import Markdown from "react-markdown";

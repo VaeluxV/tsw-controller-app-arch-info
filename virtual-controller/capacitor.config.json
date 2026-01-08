@@ -1,0 +1,9 @@
+{
+  "appId": "com.liahmartens.tswvirtualcontroller.app",
+  "appName": "TSW Virtual Controller",
+  "webDir": "dist",
+  "plugins": {},
+  "android": {
+    "allowMixedContent": true
+  }
+}

@@ -11,6 +11,8 @@ import (
 	"tsw_controller_app/tswconnector"
 )
 
+const SYNC_CONTROL_VALUE_CONNECTOR_EVENT_NAME tswconnector.TSWConnector_Message_EventName = "sync_control_value"
+
 type SyncController_ControlState struct {
 	Identifier             string
 	PropertyName           string
@@ -74,7 +76,7 @@ func (c *SyncController) Run(ctx context.Context) func() {
 				return
 			case msg := <-incoming_channel:
 				/* skip message if not sync_control message */
-				if msg.EventName != "sync_control_value" {
+				if msg.EventName != SYNC_CONTROL_VALUE_CONNECTOR_EVENT_NAME {
 					continue
 				}
 

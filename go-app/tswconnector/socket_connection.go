@@ -124,11 +124,15 @@ func NewSocketConnection(ctx context.Context) *SocketConnection {
 		BaseContext: func(l net.Listener) context.Context {
 			return ctx
 		},
-		Addr:    fmt.Sprintf(":%d", SOCKET_CONNECTION_PORT),
+		Addr:    fmt.Sprintf("0.0.0.0:%d", SOCKET_CONNECTION_PORT),
 		Handler: mux,
 	}
 	controller := SocketConnection{
-		WsUpgrader:       &websocket.Upgrader{},
+		WsUpgrader: &websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				return true
+			},
+		},
 		Server:           server,
 		OutgoingChannels: map_utils.NewLockMap[uuid.UUID, chan TSWConnector_Message](),
 		Subscribers:      pubsub_utils.NewPubSubSlice[TSWConnector_Message](),
