@@ -175,7 +175,7 @@ const App = () => {
                     connection: { ip: string; port: number };
                   };
                   tswAppConnector.connect(
-                    `ws://${value.connection.ip}:${value.connection}`
+                    `ws://${value.connection.ip}:${value.connection.port}`
                   );
                 } catch (err) {
                   alert(err);
