@@ -329,8 +329,12 @@ jobs:
         with:
           node-version: 22
 
-      - run: |
-          cd virtual-controller
+      - working-directory: virtual-controller
+        run: |
+          node ./bin/apply-release-version.mjs
+
+      - working-directory: virtual-controller
+        run: |
           npm ci
           npm run build
           npm run cap:sync
