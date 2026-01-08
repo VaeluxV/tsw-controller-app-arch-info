@@ -232,7 +232,7 @@ export const MainTab = () => {
         Note: for auto-detection to work it has to be supported by the profile.
       </p>
       <button className="btn btn-sm grow" onClick={handleConnectRemoteController}>
-        + Connect Remote Controller
+        + Connect Virtual/Remote Controller
       </button>
 
       <div className="divider"></div>

@@ -2,7 +2,7 @@
 # CHANGELOG
 
 ## v1.7.0
-- Virtual Controllers
+- Added virtual controllers; allowing android devices to be used as a customizable controller
 
 ## v1.6.1
 - Clarify exe selection

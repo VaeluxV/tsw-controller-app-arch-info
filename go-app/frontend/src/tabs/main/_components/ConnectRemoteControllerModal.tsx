@@ -27,6 +27,12 @@ export const ConnectRemoteControllerModal = ({ dialogRef }: Props) => {
     );
   };
 
+  const handleOpenGuideLink = () => {
+    BrowserOpenURL(
+      "https://tsw-controller-app.vercel.app/docs/setting-up-virtual-controller",
+    );
+  };
+
   return (
     <dialog ref={handleRef} className="modal modal-s">
       <div className="modal-box w-11/12 max-w-5xl">
@@ -58,6 +64,14 @@ export const ConnectRemoteControllerModal = ({ dialogRef }: Props) => {
                 TSW Virtual Controller app
               </button>{" "}
               to scan the QR code and connect your android device.
+            </span>
+          </div>
+          <div className="alert mt-2">
+            <span>
+              Don't know how to set-up a virtual controller? Follow the{" "}
+              <button className="link" onClick={handleOpenGuideLink}>
+                online guide
+              </button>
             </span>
           </div>
           {!!deviceIPError && (

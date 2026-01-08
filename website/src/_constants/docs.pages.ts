@@ -9,6 +9,10 @@ export const pages = {
     title: "Using Virtual Controls - TSW Controller App",
     contents: () => fs.readFileSync("../USING_VIRTUAL_CONTROLS.md", { encoding: 'utf8' }),
   },
+  "setting-up-virtual-controller": {
+    title: "Setting up a virtual controller device - TSW Controller App",
+    contents: () => fs.readFileSync("../SETTING_UP_VIRTUAL_CONTROLLER.md", { encoding: 'utf8' }),
+  },
   "profile-explainer": {
     title: "Profile Explainer - TSW Controller App",
     contents: () => fs.readFileSync("../PROFILE_EXPLAINER.md", { encoding: 'utf8' }),
