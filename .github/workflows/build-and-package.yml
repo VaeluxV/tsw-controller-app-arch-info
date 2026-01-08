@@ -348,7 +348,7 @@ jobs:
       - id: versioning
         name: Get version code and name
         run: |
-          export RELEASE_VERSION=$(cat ../../RELEASE_VERSION)
+          export RELEASE_VERSION=$(cat ./RELEASE_VERSION)
           export RELEASE_VERSION_MAJOR=$(echo $RELEASE_VERSION | cut -d. -f1)
           export RELEASE_VERSION_MINOR=$(echo $RELEASE_VERSION | cut -d. -f2)
           export RELEASE_VERSION_PATCH=$(echo $RELEASE_VERSION | cut -d. -f3)
