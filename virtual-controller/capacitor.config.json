@@ -2,9 +2,8 @@
   "appId": "com.liahmartens.tswvirtualcontroller.app",
   "appName": "TSW Virtual Controller",
   "webDir": "dist",
-  "plugins": {
-    "SplashScreen": {
-      "launchAutoHide": false
-    }
+  "plugins": {},
+  "android": {
+    "allowMixedContent": true
   }
 }

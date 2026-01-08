@@ -124,7 +124,7 @@ func NewSocketConnection(ctx context.Context) *SocketConnection {
 		BaseContext: func(l net.Listener) context.Context {
 			return ctx
 		},
-		Addr:    fmt.Sprintf(":%d", SOCKET_CONNECTION_PORT),
+		Addr:    fmt.Sprintf("0.0.0.0:%d", SOCKET_CONNECTION_PORT),
 		Handler: mux,
 	}
 	controller := SocketConnection{

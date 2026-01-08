@@ -170,13 +170,16 @@ const App = () => {
               scanInstructions: t("Scan QR code from TSW App"),
             }).then(({ ScanResult }) => {
               try {
+                alert(ScanResult)
                 const value = JSON.parse(ScanResult) as {
                   device: { ip: string };
                   port: number;
                 };
                 tswAppConnector.connect(`ws://${value.device.ip}:${value.port}`);
-              } catch {}
-            });
+              } catch (err) {
+                alert(err)
+              }
+            }).catch(alert);
           }}
         >
           {t("Connect")}
