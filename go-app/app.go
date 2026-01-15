@@ -378,15 +378,25 @@ func (a *App) GetDeviceIP() (string, error) {
 func (a *App) LoadConfiguration() {
 	/* load config from relative config directory */
 	embed_config_fs, _ := fs.Sub(embed_config_fs, "embed/config")
-	fs_load_priority := []fs.FS{
-		embed_config_fs,
-		os.DirFS(a.config.GlobalConfigDir),
-		os.DirFS(a.config.LocalConfigDir),
+
+	type loadLocation struct {
+		fs       fs.FS
+		path     string
+		embedded bool
+	}
+
+	load_locations := []loadLocation{
+		{fs: embed_config_fs, path: "builtin:", embedded: true},
+		{fs: os.DirFS(a.config.GlobalConfigDir), path: a.config.GlobalConfigDir},
+		{fs: os.DirFS(a.config.LocalConfigDir), path: a.config.LocalConfigDir},
 	}
 
 	a.profile_runner.Profiles.Clear()
-	for _, dir_fs := range fs_load_priority {
-		sdl_mappings, calibrations, profiles, errors := a.config_loader.FromDirectory(dir_fs)
+	for _, loc := range load_locations {
+		sdl_mappings, calibrations, profiles, errors := a.config_loader.FromFS(loc.fs, config_loader.ConfigLoader_FromFS_Options{
+			Path:     loc.path,
+			Embedded: loc.embedded,
+		})
 
 		for _, err := range errors {
 			logger.Logger.Error("[App] encountered error while reading configuration files", "error", err)
@@ -483,9 +493,10 @@ func (a *App) GetProfiles() []Interop_Profile {
 			DeviceID:   UsbID,
 			AutoSelect: profile.AutoSelect,
 			Metadata: Interop_Profile_Metadata{
-				Path:      profile.Metadata.Path,
-				UpdatedAt: profile.Metadata.UpdatedAt.Format(time.RFC3339),
-				Warnings:  warnings,
+				Path:       profile.Metadata.Path,
+				IsEmbedded: profile.Metadata.IsEmbedded,
+				UpdatedAt:  profile.Metadata.UpdatedAt.Format(time.RFC3339),
+				Warnings:   warnings,
 			},
 		})
 		return true
@@ -843,8 +854,10 @@ func (a *App) OpenProfileBuilder(id string) {
 func (a *App) DeleteProfile(id string) error {
 	if profile, has_profile := a.profile_runner.Profiles.Get(id); has_profile {
 		err := os.Remove(profile.Metadata.Path)
+		if err != nil {
+			return err
+		}
 		a.profile_runner.Profiles.Delete(id)
-		return err
 	}
 	return nil
 }

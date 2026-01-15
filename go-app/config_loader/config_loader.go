@@ -14,11 +14,16 @@ const DIR_PROFILES_NAME = "profiles"
 
 type ConfigLoader struct{}
 
+type ConfigLoader_FromFS_Options struct {
+	Path     string
+	Embedded bool
+}
+
 func New() *ConfigLoader {
 	return &ConfigLoader{}
 }
 
-func (c *ConfigLoader) FromDirectory(fsys fs.FS) ([]config.Config_Controller_SDLMap, []config.Config_Controller_Calibration, []config.Config_Controller_Profile, []error) {
+func (c *ConfigLoader) FromFS(fsys fs.FS, options ConfigLoader_FromFS_Options) ([]config.Config_Controller_SDLMap, []config.Config_Controller_Calibration, []config.Config_Controller_Profile, []error) {
 	var errors []error
 
 	calibration_files_dir := filepath.Join(DIR_CALIBRATION_NAME)
@@ -91,8 +96,9 @@ func (c *ConfigLoader) FromDirectory(fsys fs.FS) ([]config.Config_Controller_SDL
 					continue
 				}
 				profile_metadata := config.Config_Controller_Profile_Metadata{
-					Path:      fullpath,
-					UpdatedAt: filestat.ModTime(),
+					Path:       filepath.Join(options.Path, fullpath),
+					IsEmbedded: options.Embedded,
+					UpdatedAt:  filestat.ModTime(),
 				}
 				profile, err := config.ControllerProfileFromJSON(string(file_bytes), profile_metadata)
 				if err != nil {

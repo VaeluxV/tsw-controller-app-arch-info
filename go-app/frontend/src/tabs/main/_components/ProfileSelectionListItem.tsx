@@ -59,13 +59,16 @@ export const ProfileSelectionListItem = ({
               {warning}
             </div>
           ))}
-        {!!profile.AutoSelect && (
-          <div>
+        <div className="flex flex-wrap gap-2 empty:hidden">
+          {!!profile.AutoSelect && (
             <div className="badge badge-sm badge-soft badge-info">
               Supports Auto-Select
             </div>
-          </div>
-        )}
+          )}
+          {!!profile.Metadata.IsEmbedded && (
+            <div className="badge badge-sm badge-soft badge-info">Built-In</div>
+          )}
+        </div>
       </button>
     </li>
   );

@@ -147,13 +147,19 @@ func (p *ProfileRunner) getSelectedProfileForDevice(device *controller_mgr.Contr
 				return true
 			}
 
+			/* we'll score any match which is not embedded higher than their embedded counterpart */
+			score_factor := 1
+			if !profile.Metadata.IsEmbedded {
+				score_factor = 10
+			}
+
 			for _, rc_info := range *profile.RailClassInformation {
 				if *rc_info.ClassName == current_rail_class {
 					is_controller_match := profile.Controller != nil && *profile.Controller.UsbID == device.DeviceID
 					if is_controller_match {
-						scored_profiles = append(scored_profiles, ScoredProfile{Id: id, Score: 20})
+						scored_profiles = append(scored_profiles, ScoredProfile{Id: id, Score: 20 * score_factor})
 					} else {
-						scored_profiles = append(scored_profiles, ScoredProfile{Id: id, Score: 10})
+						scored_profiles = append(scored_profiles, ScoredProfile{Id: id, Score: 10 * score_factor})
 					}
 					break
 				}

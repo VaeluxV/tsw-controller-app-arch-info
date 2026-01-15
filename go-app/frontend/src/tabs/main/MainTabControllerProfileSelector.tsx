@@ -38,18 +38,40 @@ export function MainTabControllerProfileSelector({
   onDeleteProfileForController,
 }: Props) {
   const { watch, control } = form;
-  const selectedProfile = watch(`profiles.${controller.UniqueID}`);
-  const supportedProfiles = useMemo(
+  const selectedProfileInfo = watch(`profiles.${controller.UniqueID}`);
+  const selectedProfile = useMemo(
+    () =>
+      (selectedProfileInfo &&
+        profiles.find((profile) => profile.Id == selectedProfileInfo?.Id)) ||
+      null,
+    [selectedProfileInfo],
+  );
+  const supportedCustomProfiles = useMemo(
     () =>
       profiles?.filter(
-        (profile) => !profile.DeviceID || profile.DeviceID === controller.DeviceID,
+        (profile) =>
+          !profile.Metadata.IsEmbedded &&
+          (!profile.DeviceID || profile.DeviceID === controller.DeviceID),
+      ),
+    [profiles],
+  );
+  const supportedEmbeddedProfiles = useMemo(
+    () =>
+      profiles?.filter(
+        (profile) =>
+          profile.Metadata.IsEmbedded &&
+          (!profile.DeviceID || profile.DeviceID === controller.DeviceID),
       ),
     [profiles],
   );
   const unsupportedProfiles = useMemo(
     () =>
       profiles?.filter(
-        (profile) => profile.DeviceID && profile.DeviceID !== controller.DeviceID,
+        (profile) =>
+          /* don't display embedded profiles if they are unsupported */
+          !profile.Metadata.IsEmbedded &&
+          profile.DeviceID &&
+          profile.DeviceID !== controller.DeviceID,
       ),
     [profiles],
   );
@@ -93,7 +115,18 @@ export function MainTabControllerProfileSelector({
                       <div>Auto-detect</div>
                     </button>
                   </li>
-                  {supportedProfiles.map((profile) => (
+                  {supportedCustomProfiles.map((profile) => (
+                    <ProfileSelectionListItem
+                      key={profile.Id}
+                      profile={profile}
+                      onSelect={field.onChange}
+                    />
+                  ))}
+                  {!!(
+                    supportedCustomProfiles.length &&
+                    supportedEmbeddedProfiles.length
+                  ) && <div className="divider">Built-In Profiles</div>}
+                  {supportedEmbeddedProfiles.map((profile) => (
                     <ProfileSelectionListItem
                       key={profile.Id}
                       profile={profile}
@@ -127,7 +160,9 @@ export function MainTabControllerProfileSelector({
 
       {!controller.IsConfigured && (
         <div className="alert alert-warning alert-soft p-2">
-          This controller has not been configured yet. You can download a profile which has the "Fully Configured" tag or manually configure the controller in the "Calibration" tab.
+          This controller has not been configured yet. You can download a
+          profile which has the "Fully Configured" tag or manually configure the
+          controller in the "Calibration" tab.
         </div>
       )}
     </fieldset>

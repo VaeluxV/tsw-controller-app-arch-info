@@ -173,9 +173,10 @@ type Config_Controller_Profile_Controller struct {
 }
 
 type Config_Controller_Profile_Metadata struct {
-	Path      string    `json:"-"`
-	UpdatedAt time.Time `json:"-"`
-	Warnings  []string  `json:"-"`
+	Path       string    `json:"-"`
+	IsEmbedded bool      `json:"-"`
+	UpdatedAt  time.Time `json:"-"`
+	Warnings   []string  `json:"-"`
 }
 
 type Config_Controller_Profile_RailClassInformationEntry struct {

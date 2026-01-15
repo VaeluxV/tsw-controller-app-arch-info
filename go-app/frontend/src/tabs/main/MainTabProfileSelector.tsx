@@ -50,7 +50,11 @@ export function MainTabProfileSelector({
         index === 0 || list[index - 1]?.Id !== profile?.Id,
     );
     if (hasMixedValues) return "mixed";
-    for (const profile of selectedControllerProfiles) {
+    for (const profileInfo of selectedControllerProfiles) {
+      const profile =
+        (profileInfo &&
+          profiles.find((profile) => profile.Id == profileInfo.Id)) ??
+        null;
       if (profile) return profile;
     }
     return undefined;
@@ -60,7 +64,14 @@ export function MainTabProfileSelector({
     [profiles],
   );
   const unsupportedProfiles = useMemo(
-    () => profiles?.filter((profile) => !!profile.DeviceID),
+    () =>
+      profiles?.filter(
+        /*
+        for selecting profiles across controllers we will always hide embedded profiles or any profile which is for a specific device;
+        embedded profiles should really only be used for specific controller support
+        */
+        (profile) => profile.Metadata.IsEmbedded || !!profile.DeviceID,
+      ),
     [profiles],
   );
 
