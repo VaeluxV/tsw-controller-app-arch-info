@@ -63,7 +63,10 @@ export const CalibrationModalForm = ({ controller, onClose }: Props) => {
           EasingCurve: control.easingCurve,
         }));
         SaveCalibration(data)
-          .then(() => LoadConfiguration())
+          .then(() => {
+            form.reset(values);
+            LoadConfiguration();
+          })
           .catch((err) => {
             alert(String(err), "error");
           })

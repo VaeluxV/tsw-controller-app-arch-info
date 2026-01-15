@@ -25,6 +25,9 @@ func (c *ConfigLoader) FromDirectory(fsys fs.FS) ([]config.Config_Controller_SDL
 	sdl_mapping_files_dir := filepath.Join(DIR_SDL_MAPPINGS_NAME)
 	profiles_files_dir := filepath.Join(DIR_PROFILES_NAME)
 
+	entries, _ := fs.ReadDir(fsys, "")
+	fmt.Printf("%#v\n", entries)
+
 	calibration_file_entries, err := fs.ReadDir(fsys, calibration_files_dir)
 	var parsed_calibration_files []config.Config_Controller_Calibration
 	if err != nil {
