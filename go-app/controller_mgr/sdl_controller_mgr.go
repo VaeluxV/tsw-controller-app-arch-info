@@ -17,7 +17,6 @@ const DEFAULT_CHANNEL_BUFFER_SIZE = 50
 const DIRECTION_CHANGE_THRESHOLD = 0.05
 
 type SDL_ControllerManager_Controller_VirtualControl struct {
-	IControllerManager_Controller_Control
 	manager    *SDLControllerManager
 	controller *SDL_ControllerManager_ConfiguredController
 	device     *sdl_mgr.SDLMgr_Joystick
@@ -26,7 +25,6 @@ type SDL_ControllerManager_Controller_VirtualControl struct {
 }
 
 type SDL_ControllerManager_Controller_JoyControl struct {
-	IControllerManager_Controller_Control
 	SDL_ControllerManager_Controller_VirtualControl
 	kind        sdl_mgr.SDLMgr_Control_Kind
 	index       int
@@ -34,8 +32,8 @@ type SDL_ControllerManager_Controller_JoyControl struct {
 	calibration config.Config_Controller_CalibrationData
 }
 
-var _ IControllerManager_Controller_Control = &SDL_ControllerManager_Controller_JoyControl{}
 var _ IControllerManager_Controller_Control = &SDL_ControllerManager_Controller_VirtualControl{}
+var _ IControllerManager_Controller_Control = &SDL_ControllerManager_Controller_JoyControl{}
 
 type SDL_ControllerManager_ConfiguredController struct {
 	Manager         *SDLControllerManager
@@ -177,6 +175,37 @@ func (ctrl *SDL_ControllerManager_Controller_JoyControl) Calibration() config.Co
 	return ctrl.calibration
 }
 
+func (ctrl *SDL_ControllerManager_Controller_JoyControl) ProcessEvent(event sdl.Event) {
+	switch e := event.(type) {
+	case *sdl.JoyAxisEvent:
+		ctrl.UpdateValue(float64(e.Value), false)
+	case *sdl.JoyButtonEvent:
+		switch e.State {
+		case sdl.PRESSED:
+			ctrl.UpdateValue(1.0, false)
+		case sdl.RELEASED:
+			ctrl.UpdateValue(0.0, false)
+		}
+	case *sdl.JoyHatEvent:
+		ctrl.UpdateValue(float64(e.Value), false)
+	}
+}
+
+func (ctrl *SDL_ControllerManager_Controller_VirtualControl) Manager() IControllerManager {
+	return ctrl.manager
+}
+func (ctrl *SDL_ControllerManager_Controller_VirtualControl) Device() IControllerManager_Device {
+	return ctrl.device
+}
+
+func (ctrl *SDL_ControllerManager_Controller_VirtualControl) Controller() IControllerManager_Controller {
+	return ctrl.controller
+}
+
+func (ctrl *SDL_ControllerManager_Controller_VirtualControl) Name() string {
+	return ctrl.name
+}
+
 func (ctrl *SDL_ControllerManager_Controller_VirtualControl) GetState() ControllerManager_Controller_ControlState {
 	return ctrl.state
 }
@@ -214,22 +243,6 @@ func (ctrl *SDL_ControllerManager_Controller_VirtualControl) UpdateValue(value f
 		ControlName:  ctrl.name,
 		ControlState: ctrl.state,
 	})
-}
-
-func (ctrl *SDL_ControllerManager_Controller_JoyControl) ProcessEvent(event sdl.Event) {
-	switch e := event.(type) {
-	case *sdl.JoyAxisEvent:
-		ctrl.UpdateValue(float64(e.Value), false)
-	case *sdl.JoyButtonEvent:
-		switch e.State {
-		case sdl.PRESSED:
-			ctrl.UpdateValue(1.0, false)
-		case sdl.RELEASED:
-			ctrl.UpdateValue(0.0, false)
-		}
-	case *sdl.JoyHatEvent:
-		ctrl.UpdateValue(float64(e.Value), false)
-	}
 }
 
 func (controller *SDL_ControllerManager_ConfiguredController) Device() IControllerManager_Device {

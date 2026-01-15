@@ -1,6 +1,9 @@
 
 # CHANGELOG
 
+## 1.7.1
+- Fix breaking calibration bug
+
 ## v1.7.0
 - Added virtual controllers; allowing android devices to be used as a customizable controller
 
