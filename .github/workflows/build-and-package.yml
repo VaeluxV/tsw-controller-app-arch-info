@@ -177,7 +177,7 @@ jobs:
           path: mod_assets
 
       - run: Copy-Item -Path mod_assets -Destination go-app -Recurse -Force
-      - run:  Get-ChildItem -File -Recurse -Path "go-app/mod_assets"
+      - run:  Get-ChildItem -File -Recurse -Path "go-app/embed/mod_assets"
       - run: |
           $env:VERSION=(Get-Content -Path RELEASE_VERSION -First 1)
           cd go-app
@@ -238,8 +238,7 @@ jobs:
           name: mod_assets
           path: mod_assets
 
-      - run: cp -r mod_assets go-app
-      - run: find go-app/mod_assets
+      - run: cp -r mod_assets go-app/embed
       - run: |
           VERSION=$(head -n 1 RELEASE_VERSION)
           cd go-app
@@ -299,8 +298,7 @@ jobs:
         with:
           name: mod_assets
           path: mod_assets
-      - run: cp -r mod_assets go-app
-      - run: find go-app/mod_assets
+      - run: cp -r mod_assets go-app/embed
       - run: |
           VERSION=$(head -n 1 RELEASE_VERSION)
           cd go-app

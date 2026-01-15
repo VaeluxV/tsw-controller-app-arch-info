@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -31,8 +32,11 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-//go:embed mod_assets/*
-var mod_assets embed.FS
+//go:embed embed/mod_assets/*
+var embed_mod_assets_fs embed.FS
+
+// go:embed embed/config/*
+var embed_config_fs embed.FS
 
 type AppEventType = string
 
@@ -373,14 +377,13 @@ func (a *App) GetDeviceIP() (string, error) {
 
 func (a *App) LoadConfiguration() {
 	/* load config from relative config directory */
-	dirs_to_load := []string{
-		a.config.GlobalConfigDir,
-		a.config.LocalConfigDir,
+	fs_load_priority := []fs.FS{
+		os.DirFS(a.config.GlobalConfigDir),
+		os.DirFS(a.config.LocalConfigDir),
 	}
 
 	a.profile_runner.Profiles.Clear()
-	for _, dir := range dirs_to_load {
-		dir_fs := os.DirFS(dir)
+	for _, dir_fs := range fs_load_priority {
 		sdl_mappings, calibrations, profiles, errors := a.config_loader.FromDirectory(dir_fs)
 
 		for _, err := range errors {
@@ -1003,7 +1006,7 @@ func (a *App) InstallTrainSimWorldMod() error {
 	}
 
 	var manifest ModAssets_Manifest
-	manifest_json_bytes, err := mod_assets.ReadFile("mod_assets/manifest.json")
+	manifest_json_bytes, err := embed_mod_assets_fs.ReadFile("mod_assets/manifest.json")
 	if err != nil {
 		logger.Logger.Error("[App::InstallMod] failed to read manfiest file", "error", err)
 		return err
@@ -1026,7 +1029,7 @@ func (a *App) InstallTrainSimWorldMod() error {
 				return err
 			}
 
-			fh, err := mod_assets.Open(fmt.Sprintf("mod_assets/%s", entry.Path))
+			fh, err := embed_mod_assets_fs.Open(fmt.Sprintf("mod_assets/%s", entry.Path))
 			if err != nil {
 				logger.Logger.Error("[App::InstallMod] could open file", "file", entry.Path)
 				return fmt.Errorf("could not open file %e", err)
