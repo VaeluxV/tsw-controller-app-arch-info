@@ -526,7 +526,6 @@ func (a *App) GetControllerConfiguration(unique_id controller_mgr.DeviceUniqueID
 					Invert:      false,
 					EasingCurve: []float64{0.0, 0.0, 1.0, 1.0},
 				}
-				fmt.Printf("%#v\n", calibration)
 				if calibration_data.Idle != nil {
 					calibration.Idle = *calibration_data.Idle
 				}
