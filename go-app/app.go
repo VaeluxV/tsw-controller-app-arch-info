@@ -504,7 +504,7 @@ func (a *App) GetSelectedProfiles() map[controller_mgr.DeviceUniqueID]Interop_Se
 
 func (a *App) GetControllerConfiguration(unique_id controller_mgr.DeviceUniqueID) *Interop_ControllerConfiguration {
 	if controller, has_controller := a.sdl_controller_manager.ConfiguredControllers.Get(unique_id); has_controller {
-		/* when configured the SDL map and calibration always exist */
+		// /* when configured the SDL map and calibration always exist */
 		sdl_mapping, _ := controller.Manager.Config().SDLMappingsByDeviceID.Get(controller.Joystick.DeviceID())
 		interop_calibration := Interop_ControllerCalibration{
 			Name:     sdl_mapping.Name,
@@ -526,6 +526,7 @@ func (a *App) GetControllerConfiguration(unique_id controller_mgr.DeviceUniqueID
 					Invert:      false,
 					EasingCurve: []float64{0.0, 0.0, 1.0, 1.0},
 				}
+				fmt.Printf("%#v\n", calibration)
 				if calibration_data.Idle != nil {
 					calibration.Idle = *calibration_data.Idle
 				}
