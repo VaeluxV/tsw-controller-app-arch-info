@@ -380,7 +380,8 @@ func (a *App) LoadConfiguration() {
 
 	a.profile_runner.Profiles.Clear()
 	for _, dir := range dirs_to_load {
-		sdl_mappings, calibrations, profiles, errors := a.config_loader.FromDirectory(dir)
+		dir_fs := os.DirFS(dir)
+		sdl_mappings, calibrations, profiles, errors := a.config_loader.FromDirectory(dir_fs)
 
 		for _, err := range errors {
 			logger.Logger.Error("[App] encountered error while reading configuration files", "error", err)
