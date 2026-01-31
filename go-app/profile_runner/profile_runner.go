@@ -455,10 +455,13 @@ func (p *ProfileRunner) GetAssignments(
 collect_assignments_loop:
 	for _, assignment := range assignments {
 		assignment_rail_class_information := assignment.RailClassInformation()
-		if current_rail_class != "" &&
-			assignment_rail_class_information != nil &&
+		if assignment_rail_class_information != nil &&
 			len(*assignment_rail_class_information) > 0 {
 			/* should check rail class information */
+			if current_rail_class == "" {
+				continue collect_assignments_loop
+			}
+
 			does_match_rail_class := false
 			for _, rc := range *assignment_rail_class_information {
 				if rc.ClassName == current_rail_class {
