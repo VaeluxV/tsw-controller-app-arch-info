@@ -8,6 +8,7 @@ import {
   ProfileSelectionMoreMenu,
 } from "./_components/ProfileSelectionMoreMenu";
 import clsx from "clsx";
+import { useSettings } from "../../swr";
 
 type Props = {
   form: UseFormReturn<{
@@ -38,6 +39,7 @@ export function MainTabControllerProfileSelector({
   onDeleteProfileForController,
 }: Props) {
   const { watch, control } = form;
+  const { data: settings } = useSettings();
   const selectedProfileInfo = watch(`profiles.${controller.UniqueID}`);
   const selectedProfile = useMemo(
     () =>
@@ -122,17 +124,19 @@ export function MainTabControllerProfileSelector({
                       onSelect={field.onChange}
                     />
                   ))}
-                  {!!(
-                    supportedCustomProfiles.length &&
-                    supportedEmbeddedProfiles.length
-                  ) && <div className="divider">Built-In Profiles</div>}
-                  {supportedEmbeddedProfiles.map((profile) => (
-                    <ProfileSelectionListItem
-                      key={profile.Id}
-                      profile={profile}
-                      onSelect={field.onChange}
-                    />
-                  ))}
+                  {!settings.builtInProfilesHidden &&
+                    !!supportedEmbeddedProfiles.length && (
+                      <>
+                        <div className="divider">Built-In Profiles</div>
+                        {supportedEmbeddedProfiles.map((profile) => (
+                          <ProfileSelectionListItem
+                            key={profile.Id}
+                            profile={profile}
+                            onSelect={field.onChange}
+                          />
+                        ))}
+                      </>
+                    )}
                   {unsupportedProfiles.map((profile) => (
                     <ProfileSelectionListItem
                       key={profile.Id}
