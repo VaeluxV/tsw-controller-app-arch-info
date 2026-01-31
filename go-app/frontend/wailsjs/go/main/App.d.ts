@@ -8,8 +8,6 @@ export function DeleteProfile(arg1:string):Promise<void>;
 
 export function GetAlwaysOnTop():Promise<boolean>;
 
-export function GetBuiltInProfilesHidden():Promise<boolean>;
-
 export function GetCabControlState():Promise<main.Interop_Cab_ControlState>;
 
 export function GetControllerConfiguration(arg1:string):Promise<main.Interop_ControllerConfiguration>;
@@ -69,8 +67,6 @@ export function SelectCommAPIKeyFile():Promise<string>;
 export function SelectProfile(arg1:string,arg2:string):Promise<void>;
 
 export function SetAlwaysOnTop(arg1:boolean):Promise<void>;
-
-export function SetBuiltInProfilesHidden(arg1:boolean):Promise<void>;
 
 export function SetLastInstalledModVersion(arg1:string):Promise<void>;
 
