@@ -124,8 +124,7 @@ export function MainTabControllerProfileSelector({
                       onSelect={field.onChange}
                     />
                   ))}
-                  {!settings.builtInProfilesHidden &&
-                    !!supportedEmbeddedProfiles.length && (
+                  {!!supportedEmbeddedProfiles.length && (
                       <>
                         <div className="divider">Built-In Profiles</div>
                         {supportedEmbeddedProfiles.map((profile) => (

@@ -9,8 +9,6 @@ import {
   GetTheme,
   SetTheme,
   SelectCommAPIKeyFile,
-  GetBuiltInProfilesHidden,
-  SetBuiltInProfilesHidden,
 } from "../../../wailsjs/go/main/App";
 import { alert } from "../../utils/alert";
 import { BrowserOpenURL } from "../../../wailsjs/runtime/runtime";
@@ -21,7 +19,6 @@ type FormValues = {
   tswApiKeyLocation: string;
   preferredControlMode: "direct_control" | "sync_control" | "api_control";
   alwaysOnTop: boolean;
-  builtInProfilesHidden: boolean;
   theme: "system" | "light" | "dark";
 };
 
@@ -66,12 +63,6 @@ export const SettingsTab = () => {
 
     if (values.alwaysOnTop !== currentSettings.alwaysOnTop) {
       promises.push(SetAlwaysOnTop(values.alwaysOnTop));
-    }
-
-    if (
-      values.builtInProfilesHidden !== currentSettings.builtInProfilesHidden
-    ) {
-      promises.push(SetBuiltInProfilesHidden(values.builtInProfilesHidden));
     }
 
     if (promises.length) {
@@ -149,14 +140,6 @@ export const SettingsTab = () => {
               {...register("alwaysOnTop")}
             />
             Always on top
-          </label>
-          <label className="label">
-            <input
-              type="checkbox"
-              className="checkbox"
-              {...register("builtInProfilesHidden")}
-            />
-            Hide built-in profiles
           </label>
         </div>
       </fieldset>

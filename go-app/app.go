@@ -355,15 +355,6 @@ func (a *App) SetAlwaysOnTop(enabled bool) {
 	a.program_config.Save(filepath.Join(a.config.GlobalConfigDir, "program.json"))
 }
 
-func (a *App) GetBuiltInProfilesHidden() bool {
-	return a.program_config.HideBuiltInProfiles
-}
-
-func (a *App) SetBuiltInProfilesHidden(hidden bool) {
-	a.program_config.HideBuiltInProfiles = hidden
-	a.program_config.Save(filepath.Join(a.config.GlobalConfigDir, "program.json"))
-}
-
 func (a *App) GetTheme() string {
 	return a.program_config.Theme
 }
