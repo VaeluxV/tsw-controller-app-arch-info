@@ -36,7 +36,7 @@ export function MainTabProfileSelector({
   onEditProfile,
   onDeleteProfileForController,
 }: Props) {
-  const { control, setValue } = form;
+  const { control } = form;
   const selectedProfiles = useWatch({
     name: "profiles",
     control,

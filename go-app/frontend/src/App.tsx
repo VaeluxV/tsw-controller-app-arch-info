@@ -6,10 +6,18 @@ import { CabDebuggerTab } from "./tabs/cabdebugger";
 import { SelfUpdateBanner } from "./SelfUpdateBanner";
 import { ExploreTab } from "./tabs/explore";
 import { SettingsTab } from "./tabs/settings";
+import { Suspense } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 
 const App = () => {
   const tabsForm = useForm<{
-    tab: "main" | "explore" | "calibration" | "cab_debugger" | "logs" | "settings";
+    tab:
+      | "main"
+      | "explore"
+      | "calibration"
+      | "cab_debugger"
+      | "logs"
+      | "settings";
   }>({
     defaultValues: { tab: "main" },
   });
@@ -65,12 +73,20 @@ const App = () => {
       </div>
 
       <div className="p-2">
-        {tab === "main" && <MainTab />}
-        {tab === "explore" && <ExploreTab />}
-        {tab === 'cab_debugger' && <CabDebuggerTab />}
-        {tab === "calibration" && <CalibrationTab />}
-        {tab === "logs" && <LogsTab />}
-        {tab === "settings" && <SettingsTab />}
+        <ErrorBoundary
+          fallback={
+            <p className="text-error text-center py-20">An error occured</p>
+          }
+        >
+          <Suspense>
+            {tab === "main" && <MainTab />}
+            {tab === "explore" && <ExploreTab />}
+            {tab === "cab_debugger" && <CabDebuggerTab />}
+            {tab === "calibration" && <CalibrationTab />}
+            {tab === "logs" && <LogsTab />}
+            {tab === "settings" && <SettingsTab />}
+          </Suspense>
+        </ErrorBoundary>
       </div>
     </div>
   );

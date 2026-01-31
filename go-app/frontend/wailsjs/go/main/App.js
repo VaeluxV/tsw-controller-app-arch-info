@@ -14,6 +14,10 @@ export function GetAlwaysOnTop() {
   return window['go']['main']['App']['GetAlwaysOnTop']();
 }
 
+export function GetBuiltInProfilesHidden() {
+  return window['go']['main']['App']['GetBuiltInProfilesHidden']();
+}
+
 export function GetCabControlState() {
   return window['go']['main']['App']['GetCabControlState']();
 }
@@ -132,6 +136,10 @@ export function SelectProfile(arg1, arg2) {
 
 export function SetAlwaysOnTop(arg1) {
   return window['go']['main']['App']['SetAlwaysOnTop'](arg1);
+}
+
+export function SetBuiltInProfilesHidden(arg1) {
+  return window['go']['main']['App']['SetBuiltInProfilesHidden'](arg1);
 }
 
 export function SetLastInstalledModVersion(arg1) {

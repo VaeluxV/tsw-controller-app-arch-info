@@ -22,6 +22,7 @@
     "react": "^18.3.1",
     "react-bezier-curve-editor": "^2.1.0",
     "react-dom": "^18.3.1",
+    "react-error-boundary": "^6.1.0",
     "react-hook-form": "^7.63.0",
     "react-qr-code": "^2.0.18",
     "semver": "^7.7.2",

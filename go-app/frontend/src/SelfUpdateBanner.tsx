@@ -1,33 +1,20 @@
-import useSWR from "swr";
 import { lt } from "semver";
-import { GetLatestReleaseVersion, GetVersion } from "../wailsjs/go/main/App";
 import { BrowserOpenURL } from "../wailsjs/runtime/runtime";
+import { useLatestReleaseVersion, useVersion } from "./swr";
+import { ErrorBoundary } from "react-error-boundary";
+import { Suspense } from "react";
 
-export const SelfUpdateBanner = () => {
-  const { data: versionInfo } = useSWR(
-    "version-info-update-banner",
-    () =>
-      Promise.all([GetVersion(), GetLatestReleaseVersion()]).then(
-        ([version, latestReleaseVersion]) => ({
-          version,
-          latestReleaseVersion,
-        }),
-      ),
-    { revalidateOnMount: true },
-  );
+const SelfUpdateBannerContent = () => {
+  const { data: version } = useVersion();
+  const { data: latestVersion } = useLatestReleaseVersion();
 
   const handleUpdate = () => {
-    if (versionInfo) {
-      BrowserOpenURL(
-        `https://github.com/LiamMartens/tsw-controller-app/releases/tag/v${versionInfo.latestReleaseVersion}`,
-      );
-    }
+    BrowserOpenURL(
+      `https://github.com/LiamMartens/tsw-controller-app/releases/tag/v${latestVersion}`,
+    );
   };
 
-  if (
-    versionInfo?.version &&
-    lt(versionInfo.version, versionInfo.latestReleaseVersion)
-  ) {
+  if (lt(version, latestVersion)) {
     return (
       <div className="flex flex-row gap-2 items-center p-2">
         <div className="inline-grid *:[grid-area:1/1]">
@@ -36,7 +23,7 @@ export const SelfUpdateBanner = () => {
         </div>{" "}
         <p className="text-xs">
           A new version is available
-          {` ${versionInfo.version} → ${versionInfo.latestReleaseVersion} `}
+          {` ${version} → ${latestVersion} `}
           <button className="link" onClick={handleUpdate}>
             Update now
           </button>
@@ -46,4 +33,14 @@ export const SelfUpdateBanner = () => {
   }
 
   return null;
+};
+
+export const SelfUpdateBanner = () => {
+  return (
+    <ErrorBoundary fallback={null}>
+      <Suspense>
+        <SelfUpdateBannerContent />
+      </Suspense>
+    </ErrorBoundary>
+  );
 };

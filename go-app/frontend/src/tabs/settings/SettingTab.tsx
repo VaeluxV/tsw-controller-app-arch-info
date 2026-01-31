@@ -9,30 +9,27 @@ import {
   GetTheme,
   SetTheme,
   SelectCommAPIKeyFile,
+  GetBuiltInProfilesHidden,
+  SetBuiltInProfilesHidden,
 } from "../../../wailsjs/go/main/App";
 import { alert } from "../../utils/alert";
 import { BrowserOpenURL } from "../../../wailsjs/runtime/runtime";
 import { updateTheme } from "../../utils/updateTheme";
+import { useSettings } from "../../swr";
 
 type FormValues = {
   tswApiKeyLocation: string;
   preferredControlMode: "direct_control" | "sync_control" | "api_control";
   alwaysOnTop: boolean;
+  builtInProfilesHidden: boolean;
   theme: "system" | "light" | "dark";
 };
 
-const getRemoteFormValues = async () => ({
-  tswApiKeyLocation: await GetTSWAPIKeyLocation(),
-  preferredControlMode:
-    (await GetPreferredControlMode()) as FormValues["preferredControlMode"],
-  alwaysOnTop: await GetAlwaysOnTop(),
-  theme: (await GetTheme()) as FormValues["theme"],
-});
-
 export const SettingsTab = () => {
+  const { data: currentSettings, mutate: mutateSettings } = useSettings();
   const { register, formState, reset, setValue, handleSubmit } =
     useForm<FormValues>({
-      defaultValues: async () => getRemoteFormValues(),
+      defaultValues: currentSettings,
     });
 
   const handleSelectCommAPIKey = () => {
@@ -51,31 +48,36 @@ export const SettingsTab = () => {
 
   const handleSubmitSuccess = async (values: FormValues) => {
     const promises: Promise<void>[] = [];
-    const currentValues = await getRemoteFormValues();
-
-    if (values.theme !== currentValues.theme) {
+    if (values.theme !== currentSettings.theme) {
       updateTheme(values.theme);
       promises.push(SetTheme(values.theme));
     }
 
-    if (values.tswApiKeyLocation !== currentValues.tswApiKeyLocation) {
+    if (values.tswApiKeyLocation !== currentSettings.tswApiKeyLocation) {
       promises.push(SetTSWAPIKeyLocation(values.tswApiKeyLocation));
     }
 
     if (
       values.preferredControlMode &&
-      values.preferredControlMode !== currentValues.preferredControlMode
+      values.preferredControlMode !== currentSettings.preferredControlMode
     ) {
       promises.push(SetPreferredControlMode(values.preferredControlMode));
     }
 
-    if (values.alwaysOnTop !== currentValues.alwaysOnTop) {
+    if (values.alwaysOnTop !== currentSettings.alwaysOnTop) {
       promises.push(SetAlwaysOnTop(values.alwaysOnTop));
+    }
+
+    if (
+      values.builtInProfilesHidden !== currentSettings.builtInProfilesHidden
+    ) {
+      promises.push(SetBuiltInProfilesHidden(values.builtInProfilesHidden));
     }
 
     if (promises.length) {
       Promise.all(promises).then(() => {
         reset(values);
+        mutateSettings(values);
         alert("Saved settings", "success");
       });
     }
@@ -139,14 +141,24 @@ export const SettingsTab = () => {
       </fieldset>
       <fieldset className="fieldset bg-base-100 border-base-300 rounded-box border p-4 w-full">
         <legend className="fieldset-legend">Other options</legend>
-        <label className="label">
-          <input
-            type="checkbox"
-            className="checkbox"
-            {...register("alwaysOnTop")}
-          />
-          Always on top
-        </label>
+        <div className="flex gap-4">
+          <label className="label">
+            <input
+              type="checkbox"
+              className="checkbox"
+              {...register("alwaysOnTop")}
+            />
+            Always on top
+          </label>
+          <label className="label">
+            <input
+              type="checkbox"
+              className="checkbox"
+              {...register("builtInProfilesHidden")}
+            />
+            Hide built-in profiles
+          </label>
+        </div>
       </fieldset>
       <div role="alert" className="alert">
         <span>

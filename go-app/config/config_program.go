@@ -20,6 +20,7 @@ type Config_ProgramConfig struct {
 	PreferredControlMode      PreferredControlMode `json:"preferred_control_mode,omitempty" validate:"oneof=direct_control sync_control api_control"`
 	Theme                     string               `json:"theme,omitempty" validate:"oneof=system light dark"`
 	AlwaysOnTop               bool                 `json:"always_on_top,omitempty"`
+	HideBuiltInProfiles       bool                 `json:"hide_built_in_profiles,omitempty"`
 }
 
 func NewDefaultProgramConfig() *Config_ProgramConfig {
@@ -30,6 +31,7 @@ func NewDefaultProgramConfig() *Config_ProgramConfig {
 		TSWAPISubscriptionIDStart: DEFAULT_TSWAPI_SUBSCRIPTION_ID_START,
 		PreferredControlMode:      DEFAULT_PREFERRED_CONTROL_MODE,
 		Theme:                     DEFAULT_THEME,
+		HideBuiltInProfiles:       false,
 	}
 }
 

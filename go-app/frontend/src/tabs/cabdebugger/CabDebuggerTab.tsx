@@ -1,17 +1,13 @@
 import { useEffect, useMemo } from "react";
-import { GetCabControlState } from "../../../wailsjs/go/main/App";
-import useSWR from "swr";
 import { useForm } from "react-hook-form";
+import { useCabControlState } from "../../swr";
 
 export const CabDebuggerTab = () => {
   const { register, watch } = useForm<{ query: string }>({
     defaultValues: { query: "" },
   });
-  const { data: cabControlState, mutate: refetchCabControlState } = useSWR(
-    "cab-control-state",
-    () => GetCabControlState(),
-    { revalidateOnMount: true },
-  );
+  const { data: cabControlState, mutate: refetchCabControlState } =
+    useCabControlState();
 
   const query = watch("query");
   const sortedControls = useMemo(
@@ -31,7 +27,7 @@ export const CabDebuggerTab = () => {
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
     interval = setInterval(() => {
-      refetchCabControlState()
+      refetchCabControlState();
     }, 100);
     return () => {
       if (interval) clearInterval(interval);
@@ -41,9 +37,9 @@ export const CabDebuggerTab = () => {
   return (
     <div className="p-4 grid grid-cols-1 grid-flow-row auto-rows-max gap-4">
       {!!cabControlState?.Name && (
-          <div className="alert alert-soft alert-info">
-            <div>Currently driving {cabControlState.Name}</div>
-          </div>
+        <div className="alert alert-soft alert-info">
+          <div>Currently driving {cabControlState.Name}</div>
+        </div>
       )}
       {!cabControlState?.Controls?.length && (
         <div className="py-12 text-center">
@@ -53,13 +49,13 @@ export const CabDebuggerTab = () => {
         </div>
       )}
       {!!cabControlState?.Controls?.length && (
-          <div>
-            <input
-              className="input w-full"
-              placeholder="Search for control(s)"
-              {...register("query")}
-            />
-          </div>
+        <div>
+          <input
+            className="input w-full"
+            placeholder="Search for control(s)"
+            {...register("query")}
+          />
+        </div>
       )}
       <ul className="list bg-base-100 rounded-box shadow-md">
         {sortedControls?.map((controlState) => (
