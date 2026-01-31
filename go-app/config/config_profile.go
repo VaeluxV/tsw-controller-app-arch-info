@@ -70,7 +70,8 @@ type Config_Controller_Profile_Control_Assignment_Condition struct {
 }
 
 type Config_Controller_Profile_Control_Assignment_Shared struct {
-	Conditions *[]Config_Controller_Profile_Control_Assignment_Condition `json:"conditions,omitempty"`
+	RailClassInformation *[]Config_Controller_Profile_RailClassInformationEntry    `json:"rail_class_information,omitempty"`
+	Conditions           *[]Config_Controller_Profile_Control_Assignment_Condition `json:"conditions,omitempty"`
 }
 
 type Config_Controller_Profile_Control_Assignment_Momentary struct {
@@ -180,7 +181,7 @@ type Config_Controller_Profile_Metadata struct {
 }
 
 type Config_Controller_Profile_RailClassInformationEntry struct {
-	ClassName *string `json:"class_name"`
+	ClassName string `json:"class_name"`
 }
 
 type Config_Controller_Profile struct {
@@ -287,6 +288,28 @@ func (c *Config_Controller_Profile_Control_Assignment) Conditions() *[]Config_Co
 	}
 	if c.SyncControl != nil {
 		return c.SyncControl.Conditions
+	}
+	return nil
+}
+
+func (c *Config_Controller_Profile_Control_Assignment) RailClassInformation() *[]Config_Controller_Profile_RailClassInformationEntry {
+	if c.Momentary != nil {
+		return c.Momentary.RailClassInformation
+	}
+	if c.Linear != nil {
+		return c.Linear.RailClassInformation
+	}
+	if c.Toggle != nil {
+		return c.Toggle.RailClassInformation
+	}
+	if c.DirectControl != nil {
+		return c.DirectControl.RailClassInformation
+	}
+	if c.ApiControl != nil {
+		return c.ApiControl.RailClassInformation
+	}
+	if c.SyncControl != nil {
+		return c.SyncControl.RailClassInformation
 	}
 	return nil
 }

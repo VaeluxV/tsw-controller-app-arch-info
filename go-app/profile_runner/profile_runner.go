@@ -154,7 +154,7 @@ func (p *ProfileRunner) getSelectedProfileForDevice(device *controller_mgr.Contr
 			}
 
 			for _, rc_info := range *profile.RailClassInformation {
-				if *rc_info.ClassName == current_rail_class {
+				if rc_info.ClassName == current_rail_class {
 					is_controller_match := profile.Controller != nil && *profile.Controller.UsbID == device.DeviceID
 					if is_controller_match {
 						scored_profiles = append(scored_profiles, ScoredProfile{Id: id, Score: 20 * score_factor})
@@ -440,6 +440,7 @@ func (p *ProfileRunner) GetAssignments(
 	}
 
 	/* filter out conditional assignments */
+	current_rail_class := p.CabDebugger.State.DrivableActorName
 	preferred_control_mode := p.Settings.GetPreferredControlMode()
 	can_use_direct_control_mode := p.DirectController.Connector.IsActive()
 	can_use_sync_control_mode := p.SyncController.Connector.IsActive()
@@ -451,8 +452,25 @@ func (p *ProfileRunner) GetAssignments(
 	scored_control_assignments[config.PreferredControlMode_ApiControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 0, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
 	scored_control_assignments[config.PreferredControlMode_SyncControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 0, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
 
-check_assignments_loop:
+collect_assignments_loop:
 	for _, assignment := range assignments {
+		assignment_rail_class_information := assignment.RailClassInformation()
+		if current_rail_class != "" &&
+			assignment_rail_class_information != nil &&
+			len(*assignment_rail_class_information) > 0 {
+			/* should check rail class information */
+			does_match_rail_class := false
+			for _, rc := range *assignment_rail_class_information {
+				if rc.ClassName == current_rail_class {
+					does_match_rail_class = true
+					break
+				}
+			}
+			if !does_match_rail_class {
+				continue collect_assignments_loop
+			}
+		}
+
 		/* conditions can only be evaluated if there is a source event */
 		assigmment_conditions := assignment.Conditions()
 		if source_event != nil && assigmment_conditions != nil && len(*assigmment_conditions) > 0 {
@@ -472,7 +490,7 @@ check_assignments_loop:
 
 				if dependecy_control == nil {
 					logger.Logger.Error("[ProfileRunner::GetAssignments] skipping assignment because dependency control does not exist")
-					continue check_assignments_loop
+					continue collect_assignments_loop
 				}
 
 				state := dependecy_control.GetState()
@@ -480,22 +498,22 @@ check_assignments_loop:
 				case "gte":
 					if state.NormalizedValues.Value < condition.Value {
 						/* condition doesn't match -> skip */
-						continue check_assignments_loop
+						continue collect_assignments_loop
 					}
 				case "lte":
 					if state.NormalizedValues.Value > condition.Value {
 						/* condition doesn't match -> skip */
-						continue check_assignments_loop
+						continue collect_assignments_loop
 					}
 				case "gt":
 					if state.NormalizedValues.Value <= condition.Value {
 						/* condition doesn't match -> skip */
-						continue check_assignments_loop
+						continue collect_assignments_loop
 					}
 				case "lt":
 					if state.NormalizedValues.Value >= condition.Value {
 						/* condition doesn't match -> skip */
-						continue check_assignments_loop
+						continue collect_assignments_loop
 					}
 				}
 			}
