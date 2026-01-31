@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## v1.7.2
+- Re-work front-end data fetching
+- Support rail class specific assignments
+
 ## 1.7.1
 - Fix breaking calibration bug
 
