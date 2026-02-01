@@ -427,7 +427,7 @@ func (a *App) LoadConfiguration() {
 }
 
 func (a *App) GetControllers() []Interop_GenericController {
-	var controllers []Interop_GenericController
+	var controllers []Interop_GenericController = []Interop_GenericController{}
 	a.sdl_controller_manager.ConfiguredControllers.ForEach(func(c controller_mgr.SDL_ControllerManager_ConfiguredController, _ controller_mgr.DeviceUniqueID) bool {
 		controllers = append(controllers, Interop_GenericController{
 			UniqueID:     c.Device().UniqueID(),
@@ -465,7 +465,7 @@ func (a *App) GetControllers() []Interop_GenericController {
 }
 
 func (a *App) GetProfiles() []Interop_Profile {
-	var profiles []Interop_Profile
+	var profiles []Interop_Profile = []Interop_Profile{}
 
 	profile_name_to_ids_map := a.profile_runner.GetProfileNameToIdMap()
 	a.profile_runner.Profiles.ForEach(func(profile config.Config_Controller_Profile, key string) bool {

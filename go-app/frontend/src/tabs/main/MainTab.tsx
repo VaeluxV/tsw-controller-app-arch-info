@@ -29,7 +29,6 @@ import { ConnectRemoteControllerModal } from "./_components/ConnectRemoteControl
 import {
   useControllers,
   useLastInstalledModVersion,
-  useLatestReleaseVersion,
   useProfiles,
   useVersion,
 } from "../../swr";
