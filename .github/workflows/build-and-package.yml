@@ -127,7 +127,7 @@ jobs:
           install -D ue4ssdll/UE4SS.dll mod_assets/ue4ss_tsw_controller_mod/UE4SS.dll
           install -D socketconnectionlib/target/release/tsw_controller_mod_socket_connection.dll mod_assets/ue4ss_tsw_controller_mod/Mods/TSWControllerMod/dlls/tsw_controller_mod_socket_connection.dll
           install -D tswcontrollermod/TSWControllerMod.dll mod_assets/ue4ss_tsw_controller_mod/Mods/TSWControllerMod/dlls/main.dll
-          install -D go-app/mod_assets/ue4ss_tsw_controller_mod/UE4SS-settings.ini mod_assets/ue4ss_tsw_controller_mod/UE4SS-settings.ini
+          install -D go-app/embed/mod_assets/ue4ss_tsw_controller_mod/UE4SS-settings.ini mod_assets/ue4ss_tsw_controller_mod/UE4SS-settings.ini
           touch mod_assets/ue4ss_tsw_controller_mod/Mods/TSWControllerMod/enabled.txt
       - uses: actions/upload-artifact@v4
         with:
