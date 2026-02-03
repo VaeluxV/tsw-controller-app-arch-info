@@ -119,7 +119,7 @@ struct PlayerController_EndUsingVHIDComponentParams
 struct VHIDComponentToReleaseState
 {
     Unreal::TWeakObjectPtr<Unreal::UObject> VHIDComponent;
-    WaitTicks int;
+    int WaitTicks;
 };
 
 class TSWControllerMod : public RC::CppUserModBase
