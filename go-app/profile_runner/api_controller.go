@@ -32,43 +32,38 @@ func (c *ApiController_Command) ToString() string {
 
 func (controller *ApiController) UpdateControlValue(control string, value float64) (func(), error) {
 	controller.interacting.mutex.Lock()
-	defer controller.interacting.mutex.Unlock()
-
 	if _, is_interacting := controller.interacting.controls[control]; is_interacting {
 		err := controller.API.SetInteracting(control, 1.0)
 		if err != nil {
-			logger.Logger.Error("could not start interacting", "control", control)
+			controller.interacting.mutex.Unlock()
+			logger.Logger.Error("could not start interacting", "control", control, "error", err)
 			return nil, err
 		} else {
-			logger.Logger.Info("started interacting with", "control", control)
+			logger.Logger.Debug("started interacting with", "control", control)
 		}
 	}
+	controller.interacting.mutex.Unlock()
 
 	interacting_ts := time.Now()
 	controller.interacting.controls[control] = interacting_ts
 	err := controller.API.SetInputValue(control, value)
 	if err != nil {
-		logger.Logger.Error("could not update valuw")
+		logger.Logger.Error("could not update value", "error", err)
 		return nil, err
 	}
 
-	var stop_interacting func()
-	stop_interacting = func() {
+	return func() {
+		<-time.After(time.Millisecond * 100)
 		controller.interacting.mutex.Lock()
 		defer controller.interacting.mutex.Unlock()
-		<-time.After(time.Millisecond * 300)
 		if ts, has_ts := controller.interacting.controls[control]; has_ts && ts.Equal(interacting_ts) {
 			delete(controller.interacting.controls, control)
 			err := controller.API.SetInteracting(control, 0.0)
 			if err != nil {
-				logger.Logger.Error("could not stop interacting", "control", control)
-				stop_interacting() /* reschedule stop interacting on failure */
-			} else {
-				logger.Logger.Info("stopped interacting with", "control", control)
+				logger.Logger.Error("could not stop interacting", "control", control, "error", err)
 			}
 		}
-	}
-	return stop_interacting, nil
+	}, nil
 }
 
 func (controller *ApiController) Run(ctx context.Context) func() {
@@ -82,7 +77,7 @@ func (controller *ApiController) Run(ctx context.Context) func() {
 			case command := <-controller.ControlChannel:
 				go func() {
 					stop_interacting, err := controller.UpdateControlValue(command.Controls, command.InputValue)
-					if err != nil {
+					if err == nil {
 						stop_interacting()
 					}
 				}()
