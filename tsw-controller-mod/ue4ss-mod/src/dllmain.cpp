@@ -359,7 +359,7 @@ class TSWControllerMod : public RC::CppUserModBase
                 should_hold = false;
             }
 
-            bool is_being_released = TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.find(control_name) != TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.end()
+            bool is_being_released = TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.find(control_name) != TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.end();
 
             if (!is_being_released)
             {
