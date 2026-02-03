@@ -39,6 +39,8 @@ func (controller *ApiController) UpdateControlValue(control string, value float6
 		if err != nil {
 			logger.Logger.Error("could not start interacting", "control", control)
 			return nil, err
+		} else {
+			logger.Logger.Info("started interacting with", "control", control)
 		}
 	}
 
@@ -61,6 +63,8 @@ func (controller *ApiController) UpdateControlValue(control string, value float6
 			if err != nil {
 				logger.Logger.Error("could not stop interacting", "control", control)
 				stop_interacting() /* reschedule stop interacting on failure */
+			} else {
+				logger.Logger.Info("stopped interacting with", "control", control)
 			}
 		}
 	}
