@@ -325,16 +325,15 @@ class TSWControllerMod : public RC::CppUserModBase
                     Unreal::UObject* vhid_component = it->second.Get();
                     if (vhid_component)
                     {
+                        PlayerController_EndUsingVHIDComponentParams params{vhid_component};
+                        controller->ProcessEvent(end_using_vhid_component_func, &params);
+                        controller->ProcessEvent(notify_end_interaction_func, &params);
                         Unreal::UFunction* end_changing_func = vhid_component->GetFunctionByNameInChain(STR("EndChanging"));
                         if (end_changing_func)
                         {
                             VirtualVHIDComponent_EndChangingParams params{controller};
                             vhid_component->ProcessEvent(end_changing_func, &params);
                         }
-
-                        PlayerController_EndUsingVHIDComponentParams params{vhid_component};
-                        controller->ProcessEvent(end_using_vhid_component_func, &params);
-                        controller->ProcessEvent(notify_end_interaction_func, &params);
                         Output::send<LogLevel::Verbose>(STR("[TSWControllerMod] stopped using VHID component: {}\n"), it->first);
                     }
                     it = TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.erase(it);
