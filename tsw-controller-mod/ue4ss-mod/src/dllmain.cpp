@@ -42,7 +42,7 @@
 #include <UE4SSProgram.hpp>
 
 #include "tsw_controller_mod_socket_connection.h"
-
+struct EmptyVoidFunctionParams{};
 struct VirtualHIDComponent_GetCurrentlyChangingControllerParams
 {
     Unreal::UObject* Controller;
@@ -424,7 +424,8 @@ class TSWControllerMod : public RC::CppUserModBase
         if (call_update_functions_func)
         {
             Output::send<LogLevel::Verbose>(STR("[TSWControllerMod] Calling M3 MTA specific CallUpdateFunctions\n"));
-            drivable_actor_result.DrivableActor->ProcessEvent(call_update_functions_func);
+            EmptyVoidFunctionParams params{};
+            drivable_actor_result.DrivableActor->ProcessEvent(call_update_functions_func, &params);
         }
 
         direct_control_target_state_lock.unlock();
