@@ -24,9 +24,19 @@ const ASSIGNMENT_SCORE_DIRECT_CONTROL_MODE ProfileRunner_AssignmentScore = 3
 const ASSIGNMENT_SCORE_API_CONTROL_MODE ProfileRunner_AssignmentScore = 2
 const ASSIGNMENT_SCORE_SYNC_CONTROL_MODE ProfileRunner_AssignmentScore = 1
 
+type ProfileRunner_ScoredProfileEntry struct {
+	Id    string
+	Score int
+}
+
 type ProfileRunner_ScoredAssignmentsListEntry struct {
 	Score       int
 	Assignments []config.Config_Controller_Profile_Control_Assignment
+}
+
+type ProfileRunner_ScoredAssignmentCallEntry struct {
+	Score          int
+	AssignmentCall ProfileRunnerAssignmentCall
 }
 
 type ProfileRunnerSettings_SelectedProfile struct {
@@ -133,11 +143,7 @@ func (p *ProfileRunner) getSelectedProfileForDevice(device *controller_mgr.Contr
 	/* try auto-selection */
 	current_rail_class := p.CabDebugger.State.DrivableActorName
 	if !has_selected_profile && current_rail_class != "" {
-		type ScoredProfile struct {
-			Id    string
-			Score int
-		}
-		scored_profiles := []ScoredProfile{}
+		scored_profiles := []ProfileRunner_ScoredProfileEntry{}
 
 		p.Profiles.ForEach(func(profile config.Config_Controller_Profile, id string) bool {
 			if (profile.AutoSelect == nil || !*profile.AutoSelect) ||
@@ -157,9 +163,9 @@ func (p *ProfileRunner) getSelectedProfileForDevice(device *controller_mgr.Contr
 				if rc_info.ClassName == current_rail_class {
 					is_controller_match := profile.Controller != nil && *profile.Controller.UsbID == device.DeviceID
 					if is_controller_match {
-						scored_profiles = append(scored_profiles, ScoredProfile{Id: id, Score: 20 * score_factor})
+						scored_profiles = append(scored_profiles, ProfileRunner_ScoredProfileEntry{Id: id, Score: 20 * score_factor})
 					} else {
-						scored_profiles = append(scored_profiles, ScoredProfile{Id: id, Score: 10 * score_factor})
+						scored_profiles = append(scored_profiles, ProfileRunner_ScoredProfileEntry{Id: id, Score: 10 * score_factor})
 					}
 					break
 				}
@@ -385,7 +391,11 @@ func (p *ProfileRunner) AssignmentActionToAssignmentCall(
 			ApiControlCommand:     nil,
 		}
 	}
-	if action.DirectControl != nil {
+
+	preferred_control_mode := p.Settings.GetPreferredControlMode()
+	scored_assignment_calls := []ProfileRunner_ScoredAssignmentCallEntry{}
+
+	if action.DirectControl != nil && p.DirectController.Connector.IsActive() {
 		flags := []string{}
 		if action.DirectControl.Relative != nil && *action.DirectControl.Relative {
 			flags = append(flags, "relative")
@@ -400,30 +410,53 @@ func (p *ProfileRunner) AssignmentActionToAssignmentCall(
 			flags = append(flags, "notify")
 		}
 
-		return &ProfileRunnerAssignmentCall{
-			ControlState:          control_state,
-			ActionSequencerAction: nil,
-			VirtualAction:         nil,
-			ApiControlCommand:     nil,
-			DirectControlCommand: &DirectController_Command{
-				Controls:   action.DirectControl.Controls,
-				InputValue: action.DirectControl.Value,
-				Flags:      flags,
+		scored_assignment_call := ProfileRunner_ScoredAssignmentCallEntry{
+			Score: 0,
+			AssignmentCall: ProfileRunnerAssignmentCall{
+				ControlState:          control_state,
+				ActionSequencerAction: nil,
+				VirtualAction:         nil,
+				ApiControlCommand:     nil,
+				DirectControlCommand: &DirectController_Command{
+					Controls:   action.DirectControl.Controls,
+					InputValue: action.DirectControl.Value,
+					Flags:      flags,
+				},
 			},
 		}
+		if preferred_control_mode == config.PreferredControlMode_DirectControl {
+			scored_assignment_call.Score += 10
+		}
+		scored_assignment_calls = append(scored_assignment_calls, scored_assignment_call)
 	}
-	if action.ApiControl != nil {
-		return &ProfileRunnerAssignmentCall{
-			ControlState:          control_state,
-			ActionSequencerAction: nil,
-			VirtualAction:         nil,
-			DirectControlCommand:  nil,
-			ApiControlCommand: &ApiController_Command{
-				Controls:   action.ApiControl.Controls,
-				InputValue: action.ApiControl.ApiValue,
+
+	if action.ApiControl != nil && p.ApiController.API.CanConnect() {
+		scored_assignment_call := ProfileRunner_ScoredAssignmentCallEntry{
+			Score: 0,
+			AssignmentCall: ProfileRunnerAssignmentCall{
+				ControlState:          control_state,
+				ActionSequencerAction: nil,
+				VirtualAction:         nil,
+				DirectControlCommand:  nil,
+				ApiControlCommand: &ApiController_Command{
+					Controls:   action.ApiControl.Controls,
+					InputValue: action.ApiControl.ApiValue,
+				},
 			},
 		}
+		if preferred_control_mode == config.PreferredControlMode_ApiControl {
+			scored_assignment_call.Score += 10
+		}
+		scored_assignment_calls = append(scored_assignment_calls, scored_assignment_call)
 	}
+
+	sort.Slice(scored_assignment_calls, func(i, j int) bool {
+		return scored_assignment_calls[i].Score > scored_assignment_calls[j].Score
+	})
+	if len(scored_assignment_calls) > 0 {
+		return &scored_assignment_calls[0].AssignmentCall
+	}
+
 	return nil
 }
 
