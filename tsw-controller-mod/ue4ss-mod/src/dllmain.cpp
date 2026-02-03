@@ -102,6 +102,10 @@ struct Controller_NotifyBeginInteractionParams
 {
     Unreal::UObject* Component;
 };
+struct PlayerController_BeginChangingVHIDComponentParams
+{
+    Unreal::UObject* Component;
+};
 struct PlayerController_EndUsingVHIDComponentParams
 {
     Unreal::UObject* Component;
@@ -279,7 +283,8 @@ class TSWControllerMod : public RC::CppUserModBase
         }
         Unreal::UFunction* find_virtual_hid_component_func = drivable_actor_result.DrivableActor->GetFunctionByNameInChain(STR("FindVirtualHIDComponent"));
         Unreal::UFunction* notify_begin_interaction_func = controller->GetFunctionByNameInChain(STR("NotifyBeginInteraction"));
-        if (!find_virtual_hid_component_func || !notify_begin_interaction_func) return;
+        Unreal::UFunction* begin_changing_vhid_component_func = controller->GetFunctionByNameInChain(STR("BeginChangingVHIDComponent"));
+        if (!find_virtual_hid_component_func || !notify_begin_interaction_func || !begin_changing_vhid_component_func) return;
 
         std::unique_lock<std::shared_mutex> current_drivable_actor_lock(TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME_MUTEX);
         auto drivable_actor_name = drivable_actor_result.DrivableActor->GetClassPrivate()->GetName();
@@ -298,7 +303,8 @@ class TSWControllerMod : public RC::CppUserModBase
         if (!TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.empty())
         {
             Unreal::UFunction* notify_end_interaction_func = controller->GetFunctionByNameInChain(STR("NotifyEndInteraction"));
-            if (!notify_end_interaction_func) return;
+            Unreal::UFunction* end_using_vhid_component_func = controller->GetFunctionByNameInChain(STR("EndUsingVHIDComponent"));
+            if (!notify_end_interaction_func || !end_using_vhid_component_func) return;
 
             for (auto it = TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.begin(); it != TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.end();)
             {
@@ -308,6 +314,7 @@ class TSWControllerMod : public RC::CppUserModBase
                     if (vhid_component)
                     {
                         PlayerController_EndUsingVHIDComponentParams params{vhid_component};
+                        controller->ProcessEvent(end_using_vhid_component_func, &params);
                         controller->ProcessEvent(notify_end_interaction_func, &params);
                     }
                     it = TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.erase(it);
@@ -352,11 +359,19 @@ class TSWControllerMod : public RC::CppUserModBase
                 should_hold = false;
             }
 
-            if (should_notify && TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.find(control_name) == TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.end())
+            bool is_being_released = TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.find(control_name) != TSWControllerMod::VHID_COMPONENTS_TO_RELEASE.end()
+
+            if (!is_being_released)
             {
-                Controller_NotifyBeginInteractionParams begin_interaction_params{find_virtualhid_component_params.VirtualHIDComponent};
-                controller->ProcessEvent(notify_begin_interaction_func, &begin_interaction_params);
+                PlayerController_BeginChangingVHIDComponentParams begin_changing_params{find_virtualhid_component_params.VirtualHIDComponent};
+                controller->ProcessEvent(begin_changing_vhid_component_func, &begin_changing_params);
                 TSWControllerMod::VHID_COMPONENTS_TO_RELEASE[control_name] = Unreal::TWeakObjectPtr<Unreal::UObject>(find_virtualhid_component_params.VirtualHIDComponent);
+
+                if (should_notify)
+                {
+                    Controller_NotifyBeginInteractionParams notify_interaction_params{find_virtualhid_component_params.VirtualHIDComponent};
+                    controller->ProcessEvent(notify_begin_interaction_func, &notify_interaction_params);
+                }
             }
 
             /* apply incoming value */
