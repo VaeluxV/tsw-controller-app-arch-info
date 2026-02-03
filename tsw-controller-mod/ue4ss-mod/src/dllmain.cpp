@@ -98,15 +98,16 @@ struct VirtualVHIDComponent_GetNormalisedInputValueParams
 {
     float InputValue;
 };
+struct VirtualVHIDComponent_EndChangingParams
+{
+    Unreal::UObject* Controller;
+    bool Result;
+};
 struct Controller_NotifyBeginInteractionParams
 {
     Unreal::UObject* Component;
 };
 struct PlayerController_BeginChangingVHIDComponentParams
-{
-    Unreal::UObject* Component;
-};
-struct PlayerController_BeginDraggingVHIDComponentParams
 {
     Unreal::UObject* Component;
 };
@@ -288,7 +289,6 @@ class TSWControllerMod : public RC::CppUserModBase
         Unreal::UFunction* find_virtual_hid_component_func = drivable_actor_result.DrivableActor->GetFunctionByNameInChain(STR("FindVirtualHIDComponent"));
         Unreal::UFunction* notify_begin_interaction_func = controller->GetFunctionByNameInChain(STR("NotifyBeginInteraction"));
         Unreal::UFunction* begin_changing_vhid_component_func = controller->GetFunctionByNameInChain(STR("BeginChangingVHIDComponent"));
-        Unreal::UFunction* begin_dragging_vhid_component_func = controller->GetFunctionByNameInChain(STR("BeginDraggingVHIDComponent"));
 
         /*
           used on the M3 MTA variant - if this is not called after updating controls; the constraints won't register properly
@@ -325,6 +325,13 @@ class TSWControllerMod : public RC::CppUserModBase
                     Unreal::UObject* vhid_component = it->second.Get();
                     if (vhid_component)
                     {
+                        Unreal::UFunction* end_changing_func = vhid_component->GetFunctionByNameInChain(STR("EndChanging"));
+                        if (end_changing_func)
+                        {
+                            VirtualVHIDComponent_EndChangingParams params{controller};
+                            vhid_component->ProcessEvent(end_changing_func, &params);
+                        }
+
                         PlayerController_EndUsingVHIDComponentParams params{vhid_component};
                         controller->ProcessEvent(end_using_vhid_component_func, &params);
                         controller->ProcessEvent(notify_end_interaction_func, &params);
@@ -376,12 +383,10 @@ class TSWControllerMod : public RC::CppUserModBase
 
             if (!is_being_released)
             {
-                PlayerController_BeginDraggingVHIDComponentParams begin_dragging_params{find_virtualhid_component_params.VirtualHIDComponent};
                 PlayerController_BeginChangingVHIDComponentParams begin_changing_params{find_virtualhid_component_params.VirtualHIDComponent};
-                controller->ProcessEvent(begin_dragging_vhid_component_func, &begin_dragging_params);
                 controller->ProcessEvent(begin_changing_vhid_component_func, &begin_changing_params);
                 TSWControllerMod::VHID_COMPONENTS_TO_RELEASE[control_name] = Unreal::TWeakObjectPtr<Unreal::UObject>(find_virtualhid_component_params.VirtualHIDComponent);
-                Output::send<LogLevel::Verbose>(STR("[TSWControllerMod] started using/dragging VHID component: {}\n"), control_name);
+                Output::send<LogLevel::Verbose>(STR("[TSWControllerMod] started changing VHID component: {}\n"), control_name);
 
                 if (should_notify)
                 {
