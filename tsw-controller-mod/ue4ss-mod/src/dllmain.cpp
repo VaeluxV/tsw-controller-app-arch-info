@@ -119,7 +119,7 @@ struct PlayerController_EndUsingVHIDComponentParams
 struct VHIDComponentToReleaseState
 {
     Unreal::TWeakObjectPtr<Unreal::UObject> VHIDComponent;
-    WaitTicks int16_t;
+    WaitTicks int;
 };
 
 class TSWControllerMod : public RC::CppUserModBase
@@ -394,10 +394,12 @@ class TSWControllerMod : public RC::CppUserModBase
             {
                 PlayerController_BeginChangingVHIDComponentParams begin_changing_params{find_virtualhid_component_params.VirtualHIDComponent};
                 controller->ProcessEvent(begin_changing_vhid_component_func, &begin_changing_params);
-                TSWControllerMod::VHID_COMPONENTS_TO_RELEASE[control_name] = VHIDComponentToReleaseState{
+
+                VHIDComponentToReleaseState vhid_component_release_state{
                     Unreal::TWeakObjectPtr<Unreal::UObject>(find_virtualhid_component_params.VirtualHIDComponent), /* VHIDComponent*/
                     2 /* WaitTicks */
                 };
+                TSWControllerMod::VHID_COMPONENTS_TO_RELEASE[control_name] = vhid_component_release_state;
                 Output::send<LogLevel::Verbose>(STR("[TSWControllerMod] started changing VHID component: {}\n"), control_name);
 
                 if (should_notify)
