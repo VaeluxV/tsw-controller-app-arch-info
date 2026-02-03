@@ -419,13 +419,13 @@ class TSWControllerMod : public RC::CppUserModBase
                 }
             }
 
-            /* run post update functions */
-            if (call_update_functions_func)
-            {
-                Output::send<LogLevel::Verbose>(STR("[TSWControllerMod] Calling M3 MTA specific CallUpdateFunctions\n"));
-                EmptyVoidFunctionParams params{};
-                drivable_actor_result.DrivableActor->ProcessEvent(call_update_functions_func, &params);
-            }
+            // /* run post update functions */
+            // if (call_update_functions_func)
+            // {
+            //     Output::send<LogLevel::Verbose>(STR("[TSWControllerMod] Calling M3 MTA specific CallUpdateFunctions\n"));
+            //     EmptyVoidFunctionParams params{};
+            //     drivable_actor_result.DrivableActor->ProcessEvent(call_update_functions_func, &params);
+            // }
         }
 
         direct_control_target_state_lock.unlock();
