@@ -116,6 +116,12 @@ struct PlayerController_EndUsingVHIDComponentParams
     Unreal::UObject* Component;
 };
 
+struct VHIDComponentToReleaseState
+{
+    Unreal::TWeakObjectPtr<Unreal::UObject> VHIDComponent;
+    WaitTicks int16_t;
+};
+
 class TSWControllerMod : public RC::CppUserModBase
 {
   private:
@@ -127,7 +133,7 @@ class TSWControllerMod : public RC::CppUserModBase
     static inline std::unordered_map<RC::StringType, std::tuple<float, std::vector<RC::StringType>>> DIRECT_CONTROL_TARGET_STATE;
 
     static inline std::shared_mutex VHID_COMPONENTS_TO_RELEASE_MUTEX;
-    static inline std::unordered_map<RC::StringType, Unreal::TWeakObjectPtr<Unreal::UObject>> VHID_COMPONENTS_TO_RELEASE;
+    static inline std::unordered_map<RC::StringType, VHIDComponentToReleaseState> VHID_COMPONENTS_TO_RELEASE;
 
     static bool is_within_margin_of_error(float current, float target)
     {
@@ -322,6 +328,10 @@ class TSWControllerMod : public RC::CppUserModBase
             {
                 if (TSWControllerMod::DIRECT_CONTROL_TARGET_STATE.find(it->first) == TSWControllerMod::DIRECT_CONTROL_TARGET_STATE.end())
                 {
+                    VHIDComponentToReleaseState& state = it->second;
+                    state.WaitTicks = state.WaitTicks - 1;
+                    if (state.WaitTicks > 0) { continue; }
+
                     Unreal::UObject* vhid_component = it->second.Get();
                     if (vhid_component)
                     {
@@ -384,7 +394,10 @@ class TSWControllerMod : public RC::CppUserModBase
             {
                 PlayerController_BeginChangingVHIDComponentParams begin_changing_params{find_virtualhid_component_params.VirtualHIDComponent};
                 controller->ProcessEvent(begin_changing_vhid_component_func, &begin_changing_params);
-                TSWControllerMod::VHID_COMPONENTS_TO_RELEASE[control_name] = Unreal::TWeakObjectPtr<Unreal::UObject>(find_virtualhid_component_params.VirtualHIDComponent);
+                TSWControllerMod::VHID_COMPONENTS_TO_RELEASE[control_name] = VHIDComponentToReleaseState{
+                    Unreal::TWeakObjectPtr<Unreal::UObject>(find_virtualhid_component_params.VirtualHIDComponent), /* VHIDComponent*/
+                    2 /* WaitTicks */
+                };
                 Output::send<LogLevel::Verbose>(STR("[TSWControllerMod] started changing VHID component: {}\n"), control_name);
 
                 if (should_notify)
