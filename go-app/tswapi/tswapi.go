@@ -143,6 +143,16 @@ func (c *TSWAPI) GetSubscription(id int) (map[string]any, error) {
 	return data, nil
 }
 
+func (c *TSWAPI) SetInteracting(control string, value float64) error {
+	set_path := fmt.Sprintf("/set/CurrentDrivableActor/%s.Interacting?Value=%f", control, value)
+	req_url := fmt.Sprintf("%s%s", c.Config.BaseURL, set_path)
+	set_req, _ := http.NewRequest("PATCH", req_url, nil)
+	if _, err := c.executeTswApiRequest(set_req); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *TSWAPI) SetInputValue(control string, value float64) error {
 	set_path := fmt.Sprintf("/set/CurrentDrivableActor/%s.InputValue?Value=%f", control, value)
 	req_url := fmt.Sprintf("%s%s", c.Config.BaseURL, set_path)
