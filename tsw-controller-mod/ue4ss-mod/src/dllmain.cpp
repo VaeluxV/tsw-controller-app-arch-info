@@ -332,7 +332,7 @@ class TSWControllerMod : public RC::CppUserModBase
                     state.WaitTicks = state.WaitTicks - 1;
                     if (state.WaitTicks > 0) { continue; }
 
-                    Unreal::UObject* vhid_component = it->second.Get();
+                    Unreal::UObject* vhid_component = state.VHIDComponent.Get();
                     if (vhid_component)
                     {
                         PlayerController_EndUsingVHIDComponentParams params{vhid_component};
