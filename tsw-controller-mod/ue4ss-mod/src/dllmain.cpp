@@ -418,6 +418,7 @@ class TSWControllerMod : public RC::CppUserModBase
         /* run post update functions */
         if (call_update_functions_func)
         {
+            Output::send<LogLevel::Verbose>(STR("[TSWControllerMod] Calling M3 MTA specific CallUpdateFunctions\n"));
             drivable_actor_result.DrivableActor->ProcessEvent(call_update_functions_func);
         }
 
