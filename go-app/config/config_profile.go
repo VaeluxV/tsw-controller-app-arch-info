@@ -492,11 +492,13 @@ func (c *Config_Controller_Profile_Control_Assignment_Linear) CalculateNeutraliz
 func (c *Config_Controller_Profile_Control_Assignment_DirectLike_ControlRange) Clamp(value float64) float64 {
 	// Positive side
 	if value >= 0.0 {
+
 		start := math.Max(c.Start, 0.0)
 		end := math.Max(c.End, start)
 		if end == start {
 			return 1.0
 		}
+
 		return (value - start) / (end - start)
 	}
 

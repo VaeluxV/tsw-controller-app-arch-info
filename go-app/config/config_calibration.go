@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"math"
 	"tsw_controller_app/math_utils"
 
@@ -105,17 +104,10 @@ func (calibration *Config_Controller_CalibrationData) NormalizeRawValue(raw_valu
 	if calibration.Min != idle_value && value < idle_range[0] {
 		abs_value := math.Abs(math_utils.Clamp((value-idle_range[0])/(calibration.Min-idle_range[0]), 0.0, 1.0))
 		normal := NormalizedValue{Value: ease_func(abs_value) * -1.0, IsWithinDeadzone: false}
-		if invert_value {
-			normal.Value = -1.0 - normal.Value
-		}
 		return normal
 	}
 
 	abs_value := math.Abs(math_utils.Clamp((value-idle_range[1])/(calibration.Max-idle_range[1]), 0.0, 1.0))
 	normal := NormalizedValue{Value: ease_func(abs_value), IsWithinDeadzone: false}
-	if invert_value {
-		normal.Value = 1.0 - normal.Value
-	}
-	fmt.Printf("\n\n--------------------------------- %#v |%#v_%#v| vv %#v ||| %#v\n\n", idle_range, calibration.Min, calibration.Max, value, normal.Value)
 	return normal
 }
