@@ -11,6 +11,10 @@
       "type": "number",
       "description": "The value to send to the cab. Acceptable values depend on the cab and can be determined by using the Cab Debugger"
     },
+    "max_change_rate": {
+      "type": "number",
+      "description": "The maximum rate at which this control can change"
+    },
     "relative": {
       "type": "boolean",
       "description": "Defines whether to use the value as a relative adjustment instead of an absolute one."

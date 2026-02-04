@@ -3,6 +3,7 @@ package profile_runner
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 	"tsw_controller_app/logger"
@@ -12,14 +13,16 @@ import (
 const API_CONTROLLER_QUEUE_BUFFER_SIZE = 32
 
 type ApiController_Command struct {
-	Controls   string
-	InputValue float64
+	Controls      string
+	InputValue    float64
+	MaxChangeRate float64
 }
 
 type ApiController_Interacting struct {
 	mutex    sync.RWMutex
 	controls map[string]time.Time
 }
+
 type ApiController struct {
 	API            *tswapi.TSWAPI
 	ControlChannel chan ApiController_Command
@@ -53,7 +56,7 @@ func (controller *ApiController) UpdateControlValue(control string, value float6
 	}
 
 	return func() {
-		<-time.After(time.Millisecond * 100)
+		<-time.After(time.Millisecond * 500)
 		controller.interacting.mutex.Lock()
 		defer controller.interacting.mutex.Unlock()
 		if ts, has_ts := controller.interacting.controls[control]; has_ts && ts.Equal(interacting_ts) {
@@ -76,9 +79,27 @@ func (controller *ApiController) Run(ctx context.Context) func() {
 				return
 			case command := <-controller.ControlChannel:
 				go func() {
-					stop_interacting, err := controller.UpdateControlValue(command.Controls, command.InputValue)
-					if err == nil {
-						stop_interacting()
+					current_value, _ := controller.API.GetInputValue(command.Controls)
+					target_value_diff := math.Abs(current_value - command.InputValue)
+					if target_value_diff <= command.MaxChangeRate {
+						stop_interacting, err := controller.UpdateControlValue(command.Controls, command.InputValue)
+						if err == nil {
+							stop_interacting()
+						}
+					} else {
+						num_steps := int(math.Ceil(target_value_diff / command.MaxChangeRate))
+						for step := 1; step <= num_steps; step++ {
+							set_value := current_value
+							if current_value < command.InputValue {
+								set_value = math.Min(current_value+(float64(step)*command.MaxChangeRate), command.InputValue)
+							} else {
+								set_value = math.Max(current_value-(float64(step)*command.MaxChangeRate), command.InputValue)
+							}
+							stop_interacting, err := controller.UpdateControlValue(command.Controls, set_value)
+							if err == nil {
+								go stop_interacting()
+							}
+						}
 					}
 				}()
 			}

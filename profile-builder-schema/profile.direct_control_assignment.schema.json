@@ -34,6 +34,10 @@
           "type": "number",
           "description": "The maximum reachable value in the game cab; can be identified using the Cab Debugger"
         },
+        "max_change_rate": {
+          "type": "number",
+          "description": "The maximum rate at which this control can change"
+        },
         "step": {
           "type": "number",
           "description": "The step value to increase/decrease the values in (optional)"

@@ -100,6 +100,11 @@
           "type": "object",
           "additionalProperties": true,
           "description": "This is a copy of the SDL mapping. This can be embedded for portability"
+        },
+        "calibration": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "This is a copy of the controller calibration. This can be embedded for portability"
         }
       }
     },
