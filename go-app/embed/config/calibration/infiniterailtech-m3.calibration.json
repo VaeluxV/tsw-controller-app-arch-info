@@ -1,0 +1,23 @@
+{
+  "usb_id": "2341:8036",
+  "data": [
+    {
+      "id": "Wiper",
+      "deadzone": 637,
+      "invert": true,
+      "min": -31260,
+      "max": 32439,
+      "idle": -31260,
+      "easing_curve": [0, 0, 1, 1]
+    },
+    {
+      "id": "MasterController",
+      "deadzone": 237,
+      "invert": true,
+      "min": -24567,
+      "max": -857,
+      "idle": -24567,
+      "easing_curve": [0, 0, 1, 1]
+    }
+  ]
+}
