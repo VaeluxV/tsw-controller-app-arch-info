@@ -10,6 +10,18 @@
       "type": "string",
       "description": "The direct/api control name to control; can be identified using the Cab Debugger"
     },
+    "control_range": {
+      "type": "object",
+      "description": "The control range that will be remapped to 0,1 or 0,-1. This is useful when direct mapping partial ranges.",
+      "properties": {
+        "start": {
+          "type": "number"
+        },
+        "end": {
+          "type": "number"
+        }
+      }
+    },
     "input_value": {
       "type": "object",
       "properties": {

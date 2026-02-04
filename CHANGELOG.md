@@ -5,6 +5,7 @@
 - Re-work front-end data fetching
 - Support rail class specific assignments
 - Fix some bugs with the M3 MTA implementation
+- Add `max_change_rate` and `control_range` options
 
 ## 1.7.1
 - Fix breaking calibration bug
