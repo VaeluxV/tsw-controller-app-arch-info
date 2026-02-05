@@ -440,7 +440,7 @@
           "type": "direct_control",
           "controls": "MasterController",
           "conditions": [
-            { "control": "MasterController", "operator": "gt", "value": 0.75 },
+            { "control": "MasterController", "operator": "gt", "value": 0.74 },
             { "control": "MasterController", "operator": "lte", "value": 0.81 }
           ],
           "input_value": {
