@@ -1,7 +1,10 @@
 {
   "$schema": "https://raw.githubusercontent.com/LiamMartens/tsw-controller-app/refs/heads/main/profile-builder-schema/profile.schema.json",
   "auto_select": true,
-  "rail_class_information": [{ "class_name": "RVM_NYH_MNR_M3a-A_C" }],
+  "rail_class_information": [
+    { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+    { "class_name": "RVM_NYH_MNR_M3a-B_C" }
+  ],
   "name": "InfiniteRailTech M3",
   "controls": [
     {
