@@ -313,6 +313,7 @@ class TSWControllerMod : public RC::CppUserModBase
             TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME != drivable_actor_name ||
             TSWControllerMod::TIME_SINCE_CURRENT_DRIVABLE_ACTOR_REPORTED > 1.0f
         ) {
+            TSWControllerMod::TIME_SINCE_CURRENT_DRIVABLE_ACTOR_REPORTED = 0.0f;
             TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME = drivable_actor_name;
             auto message = STR("current_drivable_actor,name=") + drivable_actor_name;
             auto message_str = std::string(message.begin(), message.end());
