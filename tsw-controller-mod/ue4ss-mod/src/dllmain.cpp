@@ -127,6 +127,7 @@ class TSWControllerMod : public RC::CppUserModBase
 {
   private:
     static inline std::shared_mutex CURRENT_DRIVABLE_ACTOR_CLASS_NAME_MUTEX;
+    static inline float TIME_SINCE_CURRENT_DRIVABLE_ACTOR_REPORTED = 0;
     static inline RC::StringType CURRENT_DRIVABLE_ACTOR_CLASS_NAME = STR("");
 
     /* map of control names and their target value and flags */
@@ -306,8 +307,12 @@ class TSWControllerMod : public RC::CppUserModBase
         if (!find_virtual_hid_component_func || !notify_begin_interaction_func || !begin_changing_vhid_component_func) return;
 
         std::unique_lock<std::shared_mutex> current_drivable_actor_lock(TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME_MUTEX);
+        TSWControllerMod::TIME_SINCE_CURRENT_DRIVABLE_ACTOR_REPORTED += delta_secs;
         auto drivable_actor_name = drivable_actor_result.DrivableActor->GetClassPrivate()->GetName();
-        if (TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME != drivable_actor_name) {
+        if (
+            TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME != drivable_actor_name ||
+            TSWControllerMod::TIME_SINCE_CURRENT_DRIVABLE_ACTOR_REPORTED > 1.0f
+        ) {
             TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME = drivable_actor_name;
             auto message = STR("current_drivable_actor,name=") + drivable_actor_name;
             auto message_str = std::string(message.begin(), message.end());
