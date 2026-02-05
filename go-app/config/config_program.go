@@ -62,7 +62,7 @@ func (c *Config_ProgramConfig) AutoDetectTSWAPIKeyLocation() string {
 	}
 
 	tsw6_path := filepath.Join(home, "Documents/My Games/TrainSimWorld6/Saved/Config/CommAPIKey.txt")
-	tsw5_path := filepath.Join(home, "Documents/My Games/TrainSimWorld6/Saved/Config/CommAPIKey.txt")
+	tsw5_path := filepath.Join(home, "Documents/My Games/TrainSimWorld5/Saved/Config/CommAPIKey.txt")
 	if _, err := os.Stat(tsw6_path); err == nil {
 		return tsw6_path
 	}
