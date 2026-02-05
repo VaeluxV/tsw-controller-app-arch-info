@@ -1,0 +1,711 @@
+{
+  "$schema": "https://raw.githubusercontent.com/LiamMartens/tsw-controller-app/refs/heads/main/profile-builder-schema/profile.schema.json",
+  "auto_select": true,
+  "rail_class_information": [{ "class_name": "RVM_NYH_MNR_M3a-A_C" }],
+  "name": "InfiniteRailTech M3",
+  "controls": [
+    {
+      "name": "KeyIn",
+      "assignments": [
+        {
+          "type": "direct_control",
+          "controls": "MasterKey",
+          "input_value": {
+            "min": 0,
+            "max": 1,
+            "step": 1.0,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "MasterKey",
+          "input_value": {
+            "min": 0,
+            "max": 1,
+            "step": 1.0,
+            "max_change_rate": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "name": "ReverserKeyOut",
+      "assignments": [
+        {
+          "type": "direct_control",
+          "conditions": [
+            { "control": "ReverserKeyOut", "operator": "gte", "value": 1 }
+          ],
+          "controls": "Reverser",
+          "input_value": {
+            "min": 1.0,
+            "max": 1.0,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "api_control",
+          "conditions": [
+            { "control": "ReverserKeyOut", "operator": "gte", "value": 1 }
+          ],
+          "controls": "Reverser",
+          "input_value": {
+            "min": 1.0,
+            "max": 1.0,
+            "max_change_rate": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "name": "ReverserForward",
+      "assignments": [
+        {
+          "type": "direct_control",
+          "conditions": [
+            { "control": "ReverserForward", "operator": "gte", "value": 1 }
+          ],
+          "controls": "Reverser",
+          "input_value": {
+            "min": 0.666,
+            "max": 0.666,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "api_control",
+          "conditions": [
+            { "control": "ReverserForward", "operator": "gte", "value": 1 }
+          ],
+          "controls": "Reverser",
+          "input_value": {
+            "min": 0.666,
+            "max": 0.666,
+            "max_change_rate": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "name": "ReverserNeutral",
+      "assignments": [
+        {
+          "type": "direct_control",
+          "conditions": [
+            { "control": "ReverserNeutral", "operator": "gte", "value": 1 }
+          ],
+          "controls": "Reverser",
+          "input_value": {
+            "min": 0.333,
+            "max": 0.333,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "api_control",
+          "conditions": [
+            { "control": "ReverserNeutral", "operator": "gte", "value": 1 }
+          ],
+          "controls": "Reverser",
+          "input_value": {
+            "min": 0.333,
+            "max": 0.333,
+            "max_change_rate": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "name": "ReverserReverse",
+      "assignments": [
+        {
+          "type": "direct_control",
+          "conditions": [
+            { "control": "ReverserReverse", "operator": "gte", "value": 1 }
+          ],
+          "controls": "Reverser",
+          "input_value": {
+            "min": 0,
+            "max": 0,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "api_control",
+          "conditions": [
+            { "control": "ReverserReverse", "operator": "gte", "value": 1 }
+          ],
+          "controls": "Reverser",
+          "input_value": {
+            "min": 0,
+            "max": 0,
+            "max_change_rate": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "name": "BrakeCharge",
+      "assignments": [
+        {
+          "type": "direct_control",
+          "conditions": [
+            { "control": "BrakeCharge", "operator": "gte", "value": 1 }
+          ],
+          "controls": "BrakeCharging",
+          "hold": true,
+          "input_value": {
+            "min": 1,
+            "max": 1
+          }
+        },
+        {
+          "type": "direct_control",
+          "conditions": [
+            { "control": "BrakeCharge", "operator": "lt", "value": 1 }
+          ],
+          "controls": "BrakeCharging",
+          "input_value": {
+            "min": 0,
+            "max": 0
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "BrakeCharging",
+          "input_value": {
+            "min": 0,
+            "max": 1,
+            "step": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Buzzer",
+      "assignments": [
+        {
+          "type": "direct_control",
+          "conditions": [
+            { "control": "Buzzer", "operator": "gte", "value": 1 }
+          ],
+          "controls": "Buzzer",
+          "hold": true,
+          "input_value": {
+            "min": 1,
+            "max": 1
+          }
+        },
+        {
+          "type": "direct_control",
+          "conditions": [
+            { "control": "Buzzer", "operator": "lt", "value": 1 }
+          ],
+          "controls": "Buzzer",
+          "input_value": {
+            "min": 0,
+            "max": 0
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "Buzzer",
+          "input_value": {
+            "min": 0,
+            "max": 1,
+            "step": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "HeadlightsDim",
+      "assignments": [
+        {
+          "type": "direct_control",
+          "controls": "Headlights/AuxLights",
+          "input_value": {
+            "invert": true,
+            "min": 0,
+            "max": 0.5,
+            "step": 0.5
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "Headlights/AuxLights",
+          "input_value": {
+            "invert": true,
+            "min": 0,
+            "max": 0.5,
+            "step": 0.5
+          }
+        }
+      ]
+    },
+    {
+      "name": "HeadlightsBright",
+      "assignments": [
+        {
+          "type": "direct_control",
+          "controls": "Headlights/AuxLights",
+          "input_value": {
+            "min": 0.5,
+            "max": 1.0,
+            "step": 0.5
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "Headlights/AuxLights",
+          "input_value": {
+            "min": 0.5,
+            "max": 1.0,
+            "step": 0.5
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wiper",
+      "assignments": [
+        {
+          "type": "direct_control",
+          "controls": "Wiper",
+          "input_value": {
+            "min": 0,
+            "max": 1
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "Wiper",
+          "input_value": {
+            "min": 0,
+            "max": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Horn",
+      "assignments": [
+        {
+          "type": "direct_control",
+          "conditions": [
+            { "control": "Horn", "operator": "gte", "value": 1 }
+          ],
+          "controls": "Horn",
+          "hold": true,
+          "input_value": {
+            "min": 1,
+            "max": 1
+          }
+        },
+        {
+          "type": "direct_control",
+          "conditions": [
+            { "control": "Horn", "operator": "lt", "value": 1 }
+          ],
+          "controls": "Horn",
+          "input_value": {
+            "min": 0,
+            "max": 0
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "Horn",
+          "input_value": {
+            "min": 0,
+            "max": 1,
+            "step": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Acknowledge",
+      "assignments": [
+        {
+          "type": "direct_control",
+          "conditions": [
+            { "control": "Acknowledge", "operator": "gte", "value": 1 }
+          ],
+          "controls": "Acknowledge",
+          "hold": true,
+          "input_value": {
+            "min": 1,
+            "max": 1
+          }
+        },
+        {
+          "type": "direct_control",
+          "conditions": [
+            { "control": "Acknowledge", "operator": "lt", "value": 1 }
+          ],
+          "controls": "Acknowledge",
+          "input_value": {
+            "min": 0,
+            "max": 0
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "Acknowledge",
+          "input_value": {
+            "min": 0,
+            "max": 1,
+            "step": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "MasterController",
+      "assignments": [
+        {
+          "type": "direct_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "lte", "value": 0.01 }
+          ],
+          "input_value": {
+            "min": 0.0,
+            "max": 0.0,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gte", "value": 0.02 },
+            { "control": "MasterController", "operator": "lte", "value": 0.12 }
+          ],
+          "input_value": {
+            "min": 0.27,
+            "max": 0.27,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.12 },
+            { "control": "MasterController", "operator": "lte", "value": 0.57 }
+          ],
+          "control_value": {
+            "start": 0.12,
+            "end": 0.57
+          },
+          "input_value": {
+            "min": 0.25,
+            "max": 0.65,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.57 },
+            { "control": "MasterController", "operator": "lte", "value": 0.62 }
+          ],
+          "input_value": {
+            "min": 0.65,
+            "max": 0.65,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.63 },
+            { "control": "MasterController", "operator": "lte", "value": 0.73 }
+          ],
+          "input_value": {
+            "min": 0.72,
+            "max": 0.72,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.75 },
+            { "control": "MasterController", "operator": "lte", "value": 0.81 }
+          ],
+          "input_value": {
+            "min": 0.85,
+            "max": 0.85,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.82 },
+            { "control": "MasterController", "operator": "lte", "value": 0.9 }
+          ],
+          "input_value": {
+            "min": 0.9,
+            "max": 0.9,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.92 },
+            { "control": "MasterController", "operator": "lte", "value": 0.99 }
+          ],
+          "input_value": {
+            "min": 0.95,
+            "max": 0.95,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.99 }
+          ],
+          "input_value": {
+            "min": 1.0,
+            "max": 1.0,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "lte", "value": 0.01 }
+          ],
+          "input_value": {
+            "min": 0.0,
+            "max": 0.0,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gte", "value": 0.02 },
+            { "control": "MasterController", "operator": "lte", "value": 0.12 }
+          ],
+          "input_value": {
+            "min": 0.27,
+            "max": 0.27,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.12 },
+            { "control": "MasterController", "operator": "lte", "value": 0.57 }
+          ],
+          "control_value": {
+            "start": 0.12,
+            "end": 0.57
+          },
+          "input_value": {
+            "min": 0.25,
+            "max": 0.65,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.57 },
+            { "control": "MasterController", "operator": "lte", "value": 0.62 }
+          ],
+          "input_value": {
+            "min": 0.65,
+            "max": 0.65,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.63 },
+            { "control": "MasterController", "operator": "lte", "value": 0.73 }
+          ],
+          "input_value": {
+            "min": 0.72,
+            "max": 0.72,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.75 },
+            { "control": "MasterController", "operator": "lte", "value": 0.81 }
+          ],
+          "input_value": {
+            "min": 0.85,
+            "max": 0.85,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.82 },
+            { "control": "MasterController", "operator": "lte", "value": 0.9 }
+          ],
+          "input_value": {
+            "min": 0.9,
+            "max": 0.9,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.92 },
+            { "control": "MasterController", "operator": "lte", "value": 0.99 }
+          ],
+          "input_value": {
+            "min": 0.95,
+            "max": 0.95,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "api_control",
+          "controls": "MasterController",
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.99 }
+          ],
+          "input_value": {
+            "min": 1.0,
+            "max": 1.0,
+            "max_change_rate": 0.1
+          }
+        }
+      ]
+    }
+  ],
+  "controller": {
+    "usb_id": "2341:8036",
+    "mapping": {
+      "name": "InfiniteRailTech M3",
+      "usb_id": "2341:8036",
+      "data": [
+        {
+          "kind": "button",
+          "index": 2,
+          "name": "BrakeCharge"
+        },
+        {
+          "kind": "button",
+          "index": 3,
+          "name": "Buzzer"
+        },
+        {
+          "kind": "button",
+          "index": 1,
+          "name": "Horn"
+        },
+        {
+          "kind": "button",
+          "index": 0,
+          "name": "Acknowledge"
+        },
+        {
+          "kind": "button",
+          "index": 9,
+          "name": "KeyOut"
+        },
+        {
+          "kind": "button",
+          "index": 10,
+          "name": "KeyIn"
+        },
+        {
+          "kind": "button",
+          "index": 12,
+          "name": "HeadlightsDim"
+        },
+        {
+          "kind": "button",
+          "index": 11,
+          "name": "HeadlightsBright"
+        },
+        {
+          "kind": "axis",
+          "index": 1,
+          "name": "Wiper"
+        },
+        {
+          "kind": "button",
+          "index": 5,
+          "name": "ReverserKeyOut"
+        },
+        {
+          "kind": "button",
+          "index": 6,
+          "name": "ReverserForward"
+        },
+        {
+          "kind": "button",
+          "index": 7,
+          "name": "ReverserNeutral"
+        },
+        {
+          "kind": "button",
+          "index": 8,
+          "name": "ReverserReverse"
+        },
+        {
+          "kind": "axis",
+          "index": 0,
+          "name": "MasterController"
+        }
+      ]
+    },
+    "calibration": {
+      "usb_id": "2341:8036",
+      "data": [
+        {
+          "id": "Wiper",
+          "deadzone": 637,
+          "invert": true,
+          "min": -31260,
+          "max": 32439,
+          "idle": -31260,
+          "easing_curve": [0, 0, 1, 1]
+        },
+        {
+          "id": "MasterController",
+          "deadzone": 237,
+          "invert": true,
+          "min": -24567,
+          "max": -857,
+          "idle": -24567,
+          "easing_curve": [0, 0, 1, 1]
+        }
+      ]
+    }
+  }
+}
