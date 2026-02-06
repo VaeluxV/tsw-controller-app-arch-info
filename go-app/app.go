@@ -1010,14 +1010,14 @@ func (a *App) SelectCommAPIKeyFile() (string, error) {
 
 func (a *App) InstallTrainSimWorldMod() error {
 	tsw_exe_path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Select Train Sim World 5/6 executable within Binaries/Win64 (TrainSimWorld.exe)",
+		Title: "Select Train Sim World 5/6 executable within TS2Prototype/Binaries/Win64 (TrainSimWorld.exe)",
 	})
 	if err != nil {
 		return err
 	}
 
-	if !strings.HasSuffix(filepath.ToSlash(tsw_exe_path), "Binaries/Win64/TrainSimWorld.exe") {
-		return fmt.Errorf("please select the TrainSimWorld.exe file in the game's Binaries/Win64 to install the mod")
+	if !strings.HasSuffix(filepath.ToSlash(tsw_exe_path), "TS2Prototype/Binaries/Win64/TrainSimWorld.exe") {
+		return fmt.Errorf("please select the TrainSimWorld.exe file in the game's TS2Prototype/Binaries/Win64 to install the mod")
 	}
 
 	var manifest ModAssets_Manifest
