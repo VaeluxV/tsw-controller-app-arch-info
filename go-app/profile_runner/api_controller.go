@@ -15,6 +15,7 @@ const API_CONTROLLER_QUEUE_BUFFER_SIZE = 32
 type ApiController_Command struct {
 	Controls      string
 	InputValue    float64
+	Hold          bool
 	MaxChangeRate float64
 }
 
@@ -44,7 +45,7 @@ func (controller *ApiController) StartInteractingIfNotAlready(ctx context.Contex
 
 	if interacting, is_interacting := controller.interacting.controls[control]; is_interacting {
 		/* already interacting; reset timer */
-		interacting.Timer.Reset(time.Millisecond * 500)
+		interacting.Timer.Reset(time.Second * 1)
 		return nil
 	}
 
@@ -57,7 +58,7 @@ func (controller *ApiController) StartInteractingIfNotAlready(ctx context.Contex
 
 	logger.Logger.Debug("started interacting with", "control", control)
 	childctx, childctxcancel := context.WithCancel(ctx)
-	stop_interacting_timer := time.NewTimer(time.Millisecond * 500)
+	stop_interacting_timer := time.NewTimer(time.Second * 1)
 	controller.interacting.controls[control] = ApiController_Interacting_Control{
 		Cancel: childctxcancel,
 		Timer:  stop_interacting_timer,
@@ -72,9 +73,12 @@ func (controller *ApiController) StartInteractingIfNotAlready(ctx context.Contex
 		case <-stop_interacting_timer.C:
 			if err := controller.API.SetInteracting(control, 0.0); err != nil {
 				logger.Logger.Debug("could not stop interacting with", "control", control)
-				stop_interacting_timer.Reset(time.Millisecond * 500)
+				stop_interacting_timer.Reset(time.Second * 1)
 			} else {
-				logger.Logger.Debug("stopped interacting with", "control", control)
+				controller.interacting.mutex.Lock()
+				delete(controller.interacting.controls, control)
+				controller.interacting.mutex.Unlock()
+				logger.Logger.Debug("\n\n\nstopped interacting with\n\n\n", "control", control)
 			}
 		}
 	}()
@@ -82,11 +86,6 @@ func (controller *ApiController) StartInteractingIfNotAlready(ctx context.Contex
 }
 
 func (controller *ApiController) UpdateControlValue(ctx context.Context, control string, value float64) error {
-	err := controller.StartInteractingIfNotAlready(ctx, control)
-	if err != nil {
-		return err
-	}
-
 	if err := controller.API.SetInputValue(control, value); err != nil {
 		logger.Logger.Error("could not update value", "error", err)
 		return err
@@ -101,11 +100,22 @@ func (controller *ApiController) ProcessControlCommand(ctx context.Context, comm
 	target_value_diff := math.Abs(current_value - command.InputValue)
 	if target_value_diff <= command.MaxChangeRate {
 		/* if less than max change rate; change as-is */
+		if !command.Hold {
+			if err := controller.StartInteractingIfNotAlready(ctx, command.Controls); err != nil {
+				return err
+			}
+		}
 		return controller.UpdateControlValue(ctx, command.Controls, command.InputValue)
 	} else {
 		/* if not generate steps to reach the target value */
 		num_steps := int(math.Ceil(target_value_diff / command.MaxChangeRate))
 		for step := 1; step <= num_steps; step++ {
+			if !command.Hold {
+				if err := controller.StartInteractingIfNotAlready(ctx, command.Controls); err != nil {
+					return err
+				}
+			}
+
 			set_value := current_value
 			if current_value < command.InputValue {
 				set_value = math.Min(current_value+(float64(step)*command.MaxChangeRate), command.InputValue)

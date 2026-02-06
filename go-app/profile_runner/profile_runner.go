@@ -438,8 +438,12 @@ func (p *ProfileRunner) AssignmentActionToAssignmentCall(
 
 	if action.ApiControl != nil && p.ApiController.API.CanConnect() {
 		max_change_rate := DEFAULT_MAX_CHANGE_RATE
+		hold := false
 		if action.ApiControl.MaxChangeRate != nil {
 			max_change_rate = *action.ApiControl.MaxChangeRate
+		}
+		if action.ApiControl.Hold != nil {
+			hold = *action.ApiControl.Hold
 		}
 		scored_assignment_call := ProfileRunner_ScoredAssignmentCallEntry{
 			Score: 0,
@@ -452,6 +456,7 @@ func (p *ProfileRunner) AssignmentActionToAssignmentCall(
 					Controls:      action.ApiControl.Controls,
 					InputValue:    action.ApiControl.ApiValue,
 					MaxChangeRate: max_change_rate,
+					Hold:          hold,
 				},
 			},
 		}
@@ -802,12 +807,16 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 				}
 				if control_assignment_item.ApiControl != nil {
 					max_change_rate := DEFAULT_MAX_CHANGE_RATE
+					hold := false
 					control_value := change_event.Control.GetState().NormalizedValues.Value
 					if control_assignment_item.ApiControl.InputValue.MaxChangeRate != nil {
 						max_change_rate = *control_assignment_item.ApiControl.InputValue.MaxChangeRate
 					}
 					if control_assignment_item.ApiControl.ControlValue != nil {
 						control_value = control_assignment_item.ApiControl.ControlValue.Clamp(control_value)
+					}
+					if control_assignment_item.ApiControl.Hold != nil {
+						hold = *control_assignment_item.ApiControl.Hold
 					}
 					output_value := control_assignment_item.ApiControl.InputValue.CalculateOutputValue(control_value)
 					p.CallAssignmentActionForControl(control_name, assignment_index, change_event.Controller, change_event.ControlState, control_assignment_item, &ProfileRunnerAssignmentCall{
@@ -818,6 +827,7 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 							Controls:      control_assignment_item.ApiControl.Controls,
 							InputValue:    output_value,
 							MaxChangeRate: max_change_rate,
+							Hold:          hold,
 						},
 					})
 				}

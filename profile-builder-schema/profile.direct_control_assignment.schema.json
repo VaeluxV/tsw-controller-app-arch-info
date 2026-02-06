@@ -23,7 +23,7 @@
       "description": "Enables showing the in-game notification when changing values",
       "default": true
     },
-    "control_range": {
+    "control_value": {
       "type": "object",
       "description": "The control range that will be remapped to 0,1 or 0,-1. This is useful when direct mapping partial ranges.",
       "properties": {

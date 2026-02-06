@@ -54,6 +54,7 @@ type Config_Controller_Profile_Control_Assignment_Action_DirectControl struct {
 type Config_Controller_Profile_Control_Assignment_Action_ApiControl struct {
 	Controls      string   `json:"controls" validate:"required"`
 	ApiValue      float64  `json:"api_value"`
+	Hold          *bool    `json:"hold,omitempty"`
 	MaxChangeRate *float64 `json:"max_change_rate,omitempty"`
 }
 
@@ -145,6 +146,7 @@ type Config_Controller_Profile_Control_Assignment_ApiControl struct {
 	Type string `json:"type" validate:"required,eq=api_control"`
 	/* the HID control component as per the UE4SS API / HTTP API - they are the same */
 	Controls     string                                                                `json:"controls" validate:"required"`
+	Hold         *bool                                                                 `json:"hold,omitempty"`
 	InputValue   Config_Controller_Profile_Control_Assignment_DirectLike_InputValue    `json:"input_value" validate:"required"`
 	ControlValue *Config_Controller_Profile_Control_Assignment_DirectLike_ControlRange `json:"control_value,omitempty"`
 }

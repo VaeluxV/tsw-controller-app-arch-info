@@ -65,8 +65,6 @@ func (cd *CabDebugger) updateControlStateFromAPI() error {
 
 		drivable_actor_result, err := cd.TSWAPI.GetCurrentDrivableActorObjectClass()
 		if err != nil {
-			cd.State.DrivableActorName = ""
-			cd.State.Controls.Clear()
 			return nil
 		}
 
