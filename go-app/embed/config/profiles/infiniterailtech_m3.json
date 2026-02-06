@@ -3,7 +3,9 @@
   "auto_select": true,
   "rail_class_information": [
     { "class_name": "RVM_NYH_MNR_M3a-A_C" },
-    { "class_name": "RVM_NYH_MNR_M3a-B_C" }
+    { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+    { "class_name": "RVM_LIRR_M3-A_C" },
+    { "class_name": "RVM_LIRR_M3-B_C" }
   ],
   "name": "InfiniteRailTech M3",
   "controls": [
@@ -202,9 +204,7 @@
         },
         {
           "type": "direct_control",
-          "conditions": [
-            { "control": "Buzzer", "operator": "lt", "value": 1 }
-          ],
+          "conditions": [{ "control": "Buzzer", "operator": "lt", "value": 1 }],
           "controls": "Buzzer",
           "input_value": {
             "min": 0,
@@ -296,9 +296,7 @@
       "assignments": [
         {
           "type": "direct_control",
-          "conditions": [
-            { "control": "Horn", "operator": "gte", "value": 1 }
-          ],
+          "conditions": [{ "control": "Horn", "operator": "gte", "value": 1 }],
           "controls": "Horn",
           "hold": true,
           "input_value": {
@@ -308,9 +306,7 @@
         },
         {
           "type": "direct_control",
-          "conditions": [
-            { "control": "Horn", "operator": "lt", "value": 1 }
-          ],
+          "conditions": [{ "control": "Horn", "operator": "lt", "value": 1 }],
           "controls": "Horn",
           "input_value": {
             "min": 0,
@@ -323,7 +319,8 @@
           "input_value": {
             "min": 0,
             "max": 1,
-            "step": 1
+            "step": 1,
+            "max_change_rate": 0.3
           }
         }
       ]

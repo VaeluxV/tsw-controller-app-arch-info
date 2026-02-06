@@ -311,7 +311,7 @@ class TSWControllerMod : public RC::CppUserModBase
         auto drivable_actor_name = drivable_actor_result.DrivableActor->GetClassPrivate()->GetName();
         if (
             TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME != drivable_actor_name ||
-            TSWControllerMod::TIME_SINCE_CURRENT_DRIVABLE_ACTOR_REPORTED > 1.0f
+            TSWControllerMod::TIME_SINCE_CURRENT_DRIVABLE_ACTOR_REPORTED > 2.0f
         ) {
             TSWControllerMod::TIME_SINCE_CURRENT_DRIVABLE_ACTOR_REPORTED = 0.0f;
             TSWControllerMod::CURRENT_DRIVABLE_ACTOR_CLASS_NAME = drivable_actor_name;
@@ -413,7 +413,7 @@ class TSWControllerMod : public RC::CppUserModBase
             /* apply incoming value */
             if (set_pushed_state_func)
             {
-                VirtualHIDComponent_SetPushedStateParams set_pushed_state_params = {target_value > 0.5f, true};
+                VirtualHIDComponent_SetPushedStateParams set_pushed_state_params = {target_value > 0.5f, false};
                 find_virtualhid_component_params.VirtualHIDComponent->ProcessEvent(set_pushed_state_func, &set_pushed_state_params);
                 /* remove value from target states */
                 if (!should_hold)
