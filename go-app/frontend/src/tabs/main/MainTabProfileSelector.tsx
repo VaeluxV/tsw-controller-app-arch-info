@@ -121,13 +121,18 @@ export function MainTabProfileSelector({
                   onSelect={(profile) => selectProfileForAll(profile)}
                 />
               ))}
-              {unsupportedProfiles.map((profile) => (
-                <ProfileSelectionListItem
-                  key={profile.Id}
-                  profile={profile}
-                  disabled="Not supported by all controllers"
-                />
-              ))}
+              {!!unsupportedProfiles.length && (
+                <div>
+                  <div className="divider">Unsupported Profiles</div>
+                  {unsupportedProfiles.map((profile) => (
+                    <ProfileSelectionListItem
+                      key={profile.Id}
+                      profile={profile}
+                      disabled="Not supported by all controllers"
+                    />
+                  ))}
+                </div>
+              )}
             </ul>
           </div>
         </div>
