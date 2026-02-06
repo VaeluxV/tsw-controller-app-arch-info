@@ -125,24 +125,29 @@ export function MainTabControllerProfileSelector({
                     />
                   ))}
                   {!!supportedEmbeddedProfiles.length && (
-                      <>
-                        <div className="divider">Built-In Profiles</div>
-                        {supportedEmbeddedProfiles.map((profile) => (
-                          <ProfileSelectionListItem
-                            key={profile.Id}
-                            profile={profile}
-                            onSelect={field.onChange}
-                          />
-                        ))}
-                      </>
-                    )}
-                  {unsupportedProfiles.map((profile) => (
-                    <ProfileSelectionListItem
-                      key={profile.Id}
-                      profile={profile}
-                      disabled="Not supported by controller"
-                    />
-                  ))}
+                    <>
+                      <div className="divider">Built-In Profiles</div>
+                      {supportedEmbeddedProfiles.map((profile) => (
+                        <ProfileSelectionListItem
+                          key={profile.Id}
+                          profile={profile}
+                          onSelect={field.onChange}
+                        />
+                      ))}
+                    </>
+                  )}
+                  {!!unsupportedProfiles.length && (
+                    <div>
+                      <div className="divider">Unsupported Profiles</div>
+                      {unsupportedProfiles.map((profile) => (
+                        <ProfileSelectionListItem
+                          key={profile.Id}
+                          profile={profile}
+                          disabled="Not supported by controller"
+                        />
+                      ))}
+                    </div>
+                  )}
                 </ul>
               </div>
             </div>
