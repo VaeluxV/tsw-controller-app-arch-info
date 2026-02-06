@@ -775,8 +775,8 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 				}
 				if control_assignment_item.DirectControl != nil {
 					control_value := change_event.Control.GetState().NormalizedValues.Value
-					if control_assignment_item.DirectControl.ControlValue != nil {
-						control_value = control_assignment_item.DirectControl.ControlValue.Clamp(control_value)
+					if control_assignment_item.DirectControl.ControlRange != nil {
+						control_value = control_assignment_item.DirectControl.ControlRange.Clamp(control_value)
 					}
 					output_value := control_assignment_item.DirectControl.InputValue.CalculateOutputValue(control_value)
 					max_change_rate := DEFAULT_MAX_CHANGE_RATE
@@ -812,8 +812,8 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 					if control_assignment_item.ApiControl.InputValue.MaxChangeRate != nil {
 						max_change_rate = *control_assignment_item.ApiControl.InputValue.MaxChangeRate
 					}
-					if control_assignment_item.ApiControl.ControlValue != nil {
-						control_value = control_assignment_item.ApiControl.ControlValue.Clamp(control_value)
+					if control_assignment_item.ApiControl.ControlRange != nil {
+						control_value = control_assignment_item.ApiControl.ControlRange.Clamp(control_value)
 					}
 					if control_assignment_item.ApiControl.Hold != nil {
 						hold = *control_assignment_item.ApiControl.Hold
@@ -833,8 +833,8 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 				}
 				if control_assignment_item.SyncControl != nil {
 					control_value := change_event.Control.GetState().NormalizedValues.Value
-					if control_assignment_item.SyncControl.ControlValue != nil {
-						control_value = control_assignment_item.SyncControl.ControlValue.Clamp(control_value)
+					if control_assignment_item.SyncControl.ControlRange != nil {
+						control_value = control_assignment_item.SyncControl.ControlRange.Clamp(control_value)
 					}
 					output_value := control_assignment_item.SyncControl.InputValue.CalculateOutputValue(control_value)
 					p.SyncController.UpdateControlStateTargetValue(control_assignment_item.SyncControl.Identifier, output_value, control_assignment_item.SyncControl, &change_event)

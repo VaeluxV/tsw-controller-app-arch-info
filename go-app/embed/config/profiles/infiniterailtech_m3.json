@@ -401,7 +401,7 @@
             { "control": "MasterController", "operator": "gt", "value": 0.12 },
             { "control": "MasterController", "operator": "lte", "value": 0.57 }
           ],
-          "control_value": {
+          "control_range": {
             "start": 0.12,
             "end": 0.57
           },
@@ -520,7 +520,7 @@
             { "control": "MasterController", "operator": "gt", "value": 0.12 },
             { "control": "MasterController", "operator": "lte", "value": 0.57 }
           ],
-          "control_value": {
+          "control_range": {
             "start": 0.12,
             "end": 0.57
           },

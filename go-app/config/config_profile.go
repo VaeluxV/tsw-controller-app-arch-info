@@ -133,7 +133,7 @@ type Config_Controller_Profile_Control_Assignment_DirectControl struct {
 	/* the HID control component as per the UE4SS API */
 	Controls     string                                                                `json:"controls" validate:"required"`
 	InputValue   Config_Controller_Profile_Control_Assignment_DirectLike_InputValue    `json:"input_value" validate:"required"`
-	ControlValue *Config_Controller_Profile_Control_Assignment_DirectLike_ControlRange `json:"control_value,omitempty"`
+	ControlRange *Config_Controller_Profile_Control_Assignment_DirectLike_ControlRange `json:"control_range,omitempty"`
 	/* will hold the control in changing */
 	Hold *bool `json:"hold,omitempty"`
 	/* whether to apply raw or normalized values */
@@ -148,7 +148,7 @@ type Config_Controller_Profile_Control_Assignment_ApiControl struct {
 	Controls     string                                                                `json:"controls" validate:"required"`
 	Hold         *bool                                                                 `json:"hold,omitempty"`
 	InputValue   Config_Controller_Profile_Control_Assignment_DirectLike_InputValue    `json:"input_value" validate:"required"`
-	ControlValue *Config_Controller_Profile_Control_Assignment_DirectLike_ControlRange `json:"control_value,omitempty"`
+	ControlRange *Config_Controller_Profile_Control_Assignment_DirectLike_ControlRange `json:"control_range,omitempty"`
 }
 
 type Config_Controller_Profile_Control_Assignment_SyncControl struct {
@@ -157,7 +157,7 @@ type Config_Controller_Profile_Control_Assignment_SyncControl struct {
 	/** this is the VHID Identifier Name - differs from the direct control name */
 	Identifier     string                                                                `json:"identifier" validate:"required"`
 	InputValue     Config_Controller_Profile_Control_Assignment_DirectLike_InputValue    `json:"input_value" validate:"required"`
-	ControlValue   *Config_Controller_Profile_Control_Assignment_DirectLike_ControlRange `json:"control_value,omitempty"`
+	ControlRange   *Config_Controller_Profile_Control_Assignment_DirectLike_ControlRange `json:"control_range,omitempty"`
 	ActionIncrease Config_Controller_Profile_Control_Assignment_Action_Keys              `json:"action_increase" validate:"required"`
 	ActionDecrease Config_Controller_Profile_Control_Assignment_Action_Keys              `json:"action_decrease" validate:"required"`
 }
