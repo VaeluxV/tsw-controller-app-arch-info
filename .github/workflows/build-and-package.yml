@@ -172,6 +172,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v7
         name: Download previously built artifacts
+        with:
+          name: tscmod
+          path: tscmod
       - run: find .
       - run: |
           mkdir tsc_mod_assets
