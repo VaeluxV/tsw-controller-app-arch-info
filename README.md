@@ -1,6 +1,6 @@
 # TSW Controller App
 
-This UE4SS mod and program allow you to use any joystick to directly control the Train Sim World (5/6) game. This is NOT a raildriver compatibility layer, rather it uses UE4SS to directly send input values to the train in game.
+This program allows you to use any joystick to directly control the Train Sim World (5/6) or Train Simulator Classic game. This is NOT a raildriver compatibility layer, rather it interfaces directly with the game.
 
 ## Feature Highlights
 ### Controller Specific Profile Selection
@@ -39,10 +39,13 @@ You can find some demos below:
 ## Installation
 
 ### Automatic installation
-To install the mod and program just head to the [releases page](https://github.com/LiamMartens/tsw-controller-app/releases) and download the latest installer for your platform. Once you launch the app you will just need to use the "Install mod" action to install the latest mod into Train Sim World  
+To install the mod and program just head to the [releases page](https://github.com/LiamMartens/tsw-controller-app/releases) and download the latest installer for your platform. Once you launch the app you will just need to use the "Install mod" action to install the latest mod into Train Sim World or Train Simulator Classic game.  
 
-### Manual installation
+### Manual installation (TSW)
 You can also manually install if you alread have your own UE4SS installed and want to use your existing installation. To do so you will need to download the respective binary for you platform as well as the UE4SS mod and manually place the mod files into the UE4SS directory.
+
+### Manual installation (TSC)
+You can also manually install the Train Simulator Classic mod. To do so you will need to download the respective binary for you platform as well as the TSC mod and manually place the mod files in the game directory.
 
 **Note linux users**  
 SDL2 and Webkit2 4.1 are required for this app to work and will need to be installed.  

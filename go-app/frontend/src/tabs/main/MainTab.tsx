@@ -260,8 +260,8 @@ export const MainTab = () => {
       {!lastInstalledModVersion && (
         <div role="alert" className="alert alert-soft alert-warning">
           <span>
-            It looks like you have not installed the Train Sim World mod yet,
-            make sure you install the mod first.
+            It looks like you have not installed the Train Sim World or Train Simulator Clasic mod yet,
+            make sure you install the mod first for the best experience.
           </span>
           <div>
             <button
