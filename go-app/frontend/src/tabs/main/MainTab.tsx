@@ -11,6 +11,7 @@ import {
   DeleteProfile,
   OpenNewProfileBuilder,
   OpenNewProfileBuilderForDeviceID,
+  InstallTrainSimClassicMod,
   SaveProfileForSharing,
   SaveProfileForSharingWithControllerInformation,
   ImportProfile,
@@ -130,8 +131,14 @@ export const MainTab = () => {
     connectRemoteControllerDialogRef.current?.showModal();
   };
 
-  const handleInstall = () => {
+  const handleInstallTrainSimWorldMod = () => {
     InstallTrainSimWorldMod()
+      .then(() => refetchLastInstalledModVersion(version))
+      .catch((err) => alert(String(err), "error"));
+  };
+
+  const handleInstallTrainSimClassicMod = () => {
+    InstallTrainSimClassicMod()
       .then(() => refetchLastInstalledModVersion(version))
       .catch((err) => alert(String(err), "error"));
   };
@@ -225,10 +232,27 @@ export const MainTab = () => {
 
       <div className="divider"></div>
       {/* steam://controllerconfig/2967990/3576092503 */}
-      <div className="flex gap-2">
-        <button className="btn btn-sm grow" onClick={handleInstall}>
-          Install/Reinstall TSW mod
-        </button>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="dropdown grow">
+          <div tabIndex={0} role="button" className="btn btn-sm w-full">
+            Install/Reinstall Game Mod
+          </div>
+          <ul
+            tabIndex={-1}
+            className="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm"
+          >
+            <li>
+              <button onClick={handleInstallTrainSimWorldMod}>
+                Install TSW mod
+              </button>
+            </li>
+            <li>
+              <button onClick={handleInstallTrainSimClassicMod}>
+                Install TS Classic mod
+              </button>
+            </li>
+          </ul>
+        </div>
         <button className="btn btn-sm grow" onClick={handleImportProfile}>
           Import profile (.tswprofile)
         </button>
@@ -274,9 +298,9 @@ export const MainTab = () => {
           The mod is not required to install but recommended for full
           compatibility. Without the mod you will not be able to use the
           "direct_control" or "sync_control" control modes. You will have access
-          to the "api_control" control mode, and any regular key bind
-          assignments as long as the TSW API key is configured properly (see
-          Settings).
+          to the "api_control" control mode (Train Sim World only), and any
+          regular key bind assignments as long as the TSW API key is configured
+          properly (see Settings).
         </span>
       </div>
       <div role="alert" className="alert">

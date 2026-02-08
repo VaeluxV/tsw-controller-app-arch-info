@@ -78,6 +78,10 @@ export function ImportSharedProfile(arg1) {
   return window['go']['main']['App']['ImportSharedProfile'](arg1);
 }
 
+export function InstallTrainSimClassicMod() {
+  return window['go']['main']['App']['InstallTrainSimClassicMod']();
+}
+
 export function InstallTrainSimWorldMod() {
   return window['go']['main']['App']['InstallTrainSimWorldMod']();
 }
