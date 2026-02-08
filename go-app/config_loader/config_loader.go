@@ -3,6 +3,7 @@ package config_loader
 import (
 	"fmt"
 	"io/fs"
+	"path"
 	"path/filepath"
 	"strings"
 	"tsw_controller_app/config"
@@ -24,11 +25,13 @@ func New() *ConfigLoader {
 }
 
 func (c *ConfigLoader) FromFS(fsys fs.FS, options ConfigLoader_FromFS_Options) ([]config.Config_Controller_SDLMap, []config.Config_Controller_Calibration, []config.Config_Controller_Profile, []error) {
+	/* since this method accepts a fsys we'll use path. not filepath */
+
 	var errors []error
 
-	calibration_files_dir := filepath.Join(DIR_CALIBRATION_NAME)
-	sdl_mapping_files_dir := filepath.Join(DIR_SDL_MAPPINGS_NAME)
-	profiles_files_dir := filepath.Join(DIR_PROFILES_NAME)
+	calibration_files_dir := path.Join(DIR_CALIBRATION_NAME)
+	sdl_mapping_files_dir := path.Join(DIR_SDL_MAPPINGS_NAME)
+	profiles_files_dir := path.Join(DIR_PROFILES_NAME)
 
 	entries, _ := fs.ReadDir(fsys, "")
 	fmt.Printf("%#v\n", entries)
@@ -40,7 +43,7 @@ func (c *ConfigLoader) FromFS(fsys fs.FS, options ConfigLoader_FromFS_Options) (
 	} else {
 		for _, entry := range calibration_file_entries {
 			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
-				file_bytes, err := fs.ReadFile(fsys, filepath.Join(calibration_files_dir, entry.Name()))
+				file_bytes, err := fs.ReadFile(fsys, path.Join(calibration_files_dir, entry.Name()))
 				if err != nil {
 					errors = append(errors, fmt.Errorf("could not read calibration file %s (%e)", entry.Name(), err))
 					continue
@@ -62,7 +65,7 @@ func (c *ConfigLoader) FromFS(fsys fs.FS, options ConfigLoader_FromFS_Options) (
 	} else {
 		for _, entry := range sdl_mappings_file_entries {
 			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
-				file_bytes, err := fs.ReadFile(fsys, filepath.Join(sdl_mapping_files_dir, entry.Name()))
+				file_bytes, err := fs.ReadFile(fsys, path.Join(sdl_mapping_files_dir, entry.Name()))
 				if err != nil {
 					errors = append(errors, fmt.Errorf("could not read SDL mapping file %s (%e)", entry.Name(), err))
 					continue
@@ -84,7 +87,7 @@ func (c *ConfigLoader) FromFS(fsys fs.FS, options ConfigLoader_FromFS_Options) (
 	} else {
 		for _, entry := range profiles_file_entries {
 			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
-				fullpath := filepath.Join(profiles_files_dir, entry.Name())
+				fullpath := path.Join(profiles_files_dir, entry.Name())
 				filestat, err := fs.Stat(fsys, fullpath)
 				if err != nil {
 					errors = append(errors, fmt.Errorf("could not read profile info %s (%e)", entry.Name(), err))
@@ -96,6 +99,7 @@ func (c *ConfigLoader) FromFS(fsys fs.FS, options ConfigLoader_FromFS_Options) (
 					continue
 				}
 				profile_metadata := config.Config_Controller_Profile_Metadata{
+					/* this should be the actual OS file path since it will be used later in OS contexts */
 					Path:       filepath.Join(options.Path, fullpath),
 					IsEmbedded: options.Embedded,
 					UpdatedAt:  filestat.ModTime(),
