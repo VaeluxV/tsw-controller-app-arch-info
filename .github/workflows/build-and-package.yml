@@ -179,7 +179,7 @@ jobs:
       - run: |
           mkdir tsc_mod_assets
           install -D tscmod/tscmod.dll tsc_mod_assets/plugins/tscmod.dll
-          install -D tsc-controller-mod/proxy/dwmapi.dll tsc_mod_assets/dwmapi.dll
+          install -D tsc-controller-mod/proxy/d3d9.dll tsc_mod_assets/d3d9.dll
       - uses: actions/upload-artifact@v4
         with:
           name: tsc_mod_assets

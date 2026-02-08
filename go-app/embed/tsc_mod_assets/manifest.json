@@ -1,6 +1,6 @@
 {
   "manifest": [
-    { "path": "dwmapi.dll", "action": "copy" },
+    { "path": "d3d9.dll", "action": "copy" },
     { "path": "plugins/tscmod.dll", "action": "copy" }
   ]
 }
