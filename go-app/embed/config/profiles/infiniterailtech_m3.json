@@ -5,7 +5,8 @@
     { "class_name": "RVM_NYH_MNR_M3a-A_C" },
     { "class_name": "RVM_NYH_MNR_M3a-B_C" },
     { "class_name": "RVM_LIRR_M3-A_C" },
-    { "class_name": "RVM_LIRR_M3-B_C" }
+    { "class_name": "RVM_LIRR_M3-B_C" },
+    { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
   ],
   "name": "InfiniteRailTech M3",
   "controls": [
@@ -38,6 +39,12 @@
       "name": "ReverserKeyOut",
       "assignments": [
         {
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "type": "direct_control",
           "conditions": [
             { "control": "ReverserKeyOut", "operator": "gte", "value": 1 }
@@ -50,6 +57,12 @@
           }
         },
         {
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "type": "api_control",
           "conditions": [
             { "control": "ReverserKeyOut", "operator": "gte", "value": 1 }
@@ -59,6 +72,20 @@
             "min": 1.0,
             "max": 1.0,
             "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "conditions": [
+            { "control": "ReverserKeyOut", "operator": "gte", "value": 1 }
+          ],
+          "controls": "UserVirtualReverser",
+          "input_value": {
+            "min": 3.0,
+            "max": 3.0
           }
         }
       ]
@@ -68,6 +95,12 @@
       "assignments": [
         {
           "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "ReverserForward", "operator": "gte", "value": 1 }
           ],
@@ -80,6 +113,12 @@
         },
         {
           "type": "api_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "ReverserForward", "operator": "gte", "value": 1 }
           ],
@@ -88,6 +127,20 @@
             "min": 0.666,
             "max": 0.666,
             "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "conditions": [
+            { "control": "ReverserForward", "operator": "gte", "value": 1 }
+          ],
+          "controls": "UserVirtualReverser",
+          "input_value": {
+            "min": 2.0,
+            "max": 2.0
           }
         }
       ]
@@ -97,6 +150,12 @@
       "assignments": [
         {
           "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "ReverserNeutral", "operator": "gte", "value": 1 }
           ],
@@ -109,6 +168,12 @@
         },
         {
           "type": "api_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "ReverserNeutral", "operator": "gte", "value": 1 }
           ],
@@ -117,6 +182,20 @@
             "min": 0.333,
             "max": 0.333,
             "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "conditions": [
+            { "control": "ReverserNeutral", "operator": "gte", "value": 1 }
+          ],
+          "controls": "UserVirtualReverser",
+          "input_value": {
+            "min": 1.0,
+            "max": 1.0
           }
         }
       ]
@@ -126,6 +205,12 @@
       "assignments": [
         {
           "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "ReverserReverse", "operator": "gte", "value": 1 }
           ],
@@ -138,6 +223,12 @@
         },
         {
           "type": "api_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "ReverserReverse", "operator": "gte", "value": 1 }
           ],
@@ -147,6 +238,20 @@
             "max": 0,
             "max_change_rate": 0.1
           }
+        },
+        {
+          "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "conditions": [
+            { "control": "ReverserReverse", "operator": "gte", "value": 1 }
+          ],
+          "controls": "UserVirtualReverser",
+          "input_value": {
+            "min": 0.0,
+            "max": 0.0
+          }
         }
       ]
     },
@@ -155,6 +260,12 @@
       "assignments": [
         {
           "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "BrakeCharge", "operator": "gte", "value": 1 }
           ],
@@ -167,6 +278,12 @@
         },
         {
           "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "BrakeCharge", "operator": "lt", "value": 1 }
           ],
@@ -178,8 +295,26 @@
         },
         {
           "type": "api_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "controls": "BrakeCharging",
           "hold": true,
+          "input_value": {
+            "min": 0,
+            "max": 1,
+            "step": 1
+          }
+        },
+        {
+          "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "controls": "Charging",
           "input_value": {
             "min": 0,
             "max": 1,
@@ -193,6 +328,12 @@
       "assignments": [
         {
           "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "Buzzer", "operator": "gte", "value": 1 }
           ],
@@ -205,6 +346,12 @@
         },
         {
           "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [{ "control": "Buzzer", "operator": "lt", "value": 1 }],
           "controls": "Buzzer",
           "input_value": {
@@ -214,8 +361,26 @@
         },
         {
           "type": "api_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "controls": "Buzzer",
           "hold": true,
+          "input_value": {
+            "min": 0,
+            "max": 1,
+            "step": 1
+          }
+        },
+        {
+          "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "controls": "Bell",
           "input_value": {
             "min": 0,
             "max": 1,
@@ -230,6 +395,12 @@
         {
           "type": "direct_control",
           "controls": "Headlights/AuxLights",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "input_value": {
             "invert": true,
             "min": 0,
@@ -240,11 +411,30 @@
         {
           "type": "api_control",
           "controls": "Headlights/AuxLights",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "input_value": {
             "invert": true,
             "min": 0,
             "max": 0.5,
             "step": 0.5
+          }
+        },
+        {
+          "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "controls": "Headlights",
+          "input_value": {
+            "invert": true,
+            "min": 0,
+            "max": 1,
+            "step": 1
           }
         }
       ]
@@ -255,6 +445,12 @@
         {
           "type": "direct_control",
           "controls": "Headlights/AuxLights",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "input_value": {
             "min": 0.5,
             "max": 1.0,
@@ -264,10 +460,28 @@
         {
           "type": "api_control",
           "controls": "Headlights/AuxLights",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "input_value": {
             "min": 0.5,
             "max": 1.0,
             "step": 0.5
+          }
+        },
+        {
+          "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "controls": "Headlights",
+          "input_value": {
+            "min": 1,
+            "max": 2,
+            "step": 1
           }
         }
       ]
@@ -277,6 +491,12 @@
       "assignments": [
         {
           "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "controls": "Wiper",
           "input_value": {
             "min": 0,
@@ -286,6 +506,23 @@
         {
           "type": "api_control",
           "controls": "Wiper",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
+          "input_value": {
+            "min": 0,
+            "max": 1
+          }
+        },
+        {
+          "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "controls": "Wipers",
           "input_value": {
             "min": 0,
             "max": 1
@@ -333,6 +570,12 @@
       "assignments": [
         {
           "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "Acknowledge", "operator": "gte", "value": 1 }
           ],
@@ -345,6 +588,12 @@
         },
         {
           "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "Acknowledge", "operator": "lt", "value": 1 }
           ],
@@ -356,8 +605,26 @@
         },
         {
           "type": "api_control",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "controls": "Acknowledge",
           "hold": true,
+          "input_value": {
+            "min": 0,
+            "max": 1,
+            "step": 1
+          }
+        },
+        {
+          "type": "direct_control",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "controls": "AWSReset",
           "input_value": {
             "min": 0,
             "max": 1,
@@ -372,6 +639,12 @@
         {
           "type": "direct_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "lte", "value": 0.01 }
           ],
@@ -384,6 +657,12 @@
         {
           "type": "direct_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gte", "value": 0.02 },
             { "control": "MasterController", "operator": "lte", "value": 0.12 }
@@ -397,6 +676,12 @@
         {
           "type": "direct_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gt", "value": 0.12 },
             { "control": "MasterController", "operator": "lte", "value": 0.57 }
@@ -414,6 +699,12 @@
         {
           "type": "direct_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gt", "value": 0.57 },
             { "control": "MasterController", "operator": "lte", "value": 0.62 }
@@ -427,6 +718,12 @@
         {
           "type": "direct_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gt", "value": 0.63 },
             { "control": "MasterController", "operator": "lte", "value": 0.73 }
@@ -440,6 +737,12 @@
         {
           "type": "direct_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gt", "value": 0.74 },
             { "control": "MasterController", "operator": "lte", "value": 0.81 }
@@ -453,6 +756,12 @@
         {
           "type": "direct_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gt", "value": 0.82 },
             { "control": "MasterController", "operator": "lte", "value": 0.9 }
@@ -466,6 +775,12 @@
         {
           "type": "direct_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gt", "value": 0.91 },
             { "control": "MasterController", "operator": "lte", "value": 0.99 }
@@ -479,6 +794,12 @@
         {
           "type": "direct_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gt", "value": 0.99 }
           ],
@@ -491,6 +812,12 @@
         {
           "type": "api_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "lte", "value": 0.01 }
           ],
@@ -503,6 +830,12 @@
         {
           "type": "api_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gte", "value": 0.02 },
             { "control": "MasterController", "operator": "lte", "value": 0.12 }
@@ -516,6 +849,12 @@
         {
           "type": "api_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gt", "value": 0.12 },
             { "control": "MasterController", "operator": "lte", "value": 0.57 }
@@ -533,6 +872,12 @@
         {
           "type": "api_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gt", "value": 0.57 },
             { "control": "MasterController", "operator": "lte", "value": 0.62 }
@@ -546,6 +891,12 @@
         {
           "type": "api_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gt", "value": 0.63 },
             { "control": "MasterController", "operator": "lte", "value": 0.73 }
@@ -559,6 +910,12 @@
         {
           "type": "api_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gt", "value": 0.75 },
             { "control": "MasterController", "operator": "lte", "value": 0.81 }
@@ -572,6 +929,12 @@
         {
           "type": "api_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gt", "value": 0.82 },
             { "control": "MasterController", "operator": "lte", "value": 0.9 }
@@ -585,6 +948,12 @@
         {
           "type": "api_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gt", "value": 0.92 },
             { "control": "MasterController", "operator": "lte", "value": 0.99 }
@@ -598,6 +967,154 @@
         {
           "type": "api_control",
           "controls": "MasterController",
+          "rail_class_information": [
+            { "class_name": "RVM_NYH_MNR_M3a-A_C" },
+            { "class_name": "RVM_NYH_MNR_M3a-B_C" },
+            { "class_name": "RVM_LIRR_M3-A_C" },
+            { "class_name": "RVM_LIRR_M3-B_C" }
+          ],
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.99 }
+          ],
+          "input_value": {
+            "min": 1.0,
+            "max": 1.0,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "ThrottleAndBrake",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "conditions": [
+            { "control": "MasterController", "operator": "lte", "value": 0.01 }
+          ],
+          "input_value": {
+            "min": -1,
+            "max": -1
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "ThrottleAndBrake",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "conditions": [
+            { "control": "MasterController", "operator": "gte", "value": 0.02 },
+            { "control": "MasterController", "operator": "lte", "value": 0.12 }
+          ],
+          "input_value": {
+            "min": -0.9,
+            "max": -0.9,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "ThrottleAndBrake",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.12 },
+            { "control": "MasterController", "operator": "lte", "value": 0.57 }
+          ],
+          "control_range": {
+            "start": 0.12,
+            "end": 0.57
+          },
+          "input_value": {
+            "min": -0.9,
+            "max": -0.2
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "ThrottleAndBrake",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.57 },
+            { "control": "MasterController", "operator": "lte", "value": 0.62 }
+          ],
+          "input_value": {
+            "min": -0.2,
+            "max": -0.2
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "ThrottleAndBrake",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.63 },
+            { "control": "MasterController", "operator": "lte", "value": 0.73 }
+          ],
+          "input_value": {
+            "min": 0,
+            "max": 0,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "ThrottleAndBrake",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.74 },
+            { "control": "MasterController", "operator": "lte", "value": 0.81 }
+          ],
+          "input_value": {
+            "min": 0.25,
+            "max": 0.25,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "ThrottleAndBrake",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.82 },
+            { "control": "MasterController", "operator": "lte", "value": 0.9 }
+          ],
+          "input_value": {
+            "min": 0.5,
+            "max": 0.5,
+            "max_change_rate": 0.1
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "ThrottleAndBrake",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
+          "conditions": [
+            { "control": "MasterController", "operator": "gt", "value": 0.91 },
+            { "control": "MasterController", "operator": "lte", "value": 0.99 }
+          ],
+          "input_value": {
+            "min": 0.75,
+            "max": 0.75
+          }
+        },
+        {
+          "type": "direct_control",
+          "controls": "ThrottleAndBrake",
+          "rail_class_information": [
+            { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" }
+          ],
           "conditions": [
             { "control": "MasterController", "operator": "gt", "value": 0.99 }
           ],
