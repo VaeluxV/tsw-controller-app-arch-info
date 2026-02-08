@@ -1,6 +1,6 @@
 {
   "manifest": [
-    { "path": "dxgi.dll", "action": "copy" },
+    { "path": "dwmapi.dll", "action": "copy" },
     { "path": "plugins/tscmod.dll", "action": "copy" }
   ]
 }
