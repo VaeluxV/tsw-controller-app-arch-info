@@ -11,6 +11,7 @@
 - Add support for embedded configuration and profiles
 - Fixed bug with inverted calibration normalization
 - Add way to remap values when using conditional direct control with partial range
+- Added support for Train Simulator Classic
 
 ## 1.7.1
 - Fix breaking calibration bug
