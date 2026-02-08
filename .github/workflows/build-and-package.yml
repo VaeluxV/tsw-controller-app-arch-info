@@ -171,6 +171,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v5
         name: Download previously built artifacts
+      - run: find .
       - run: |
           mkdir tsc_mod_assets
           install -D tscmod/tscmod.dll tsc_mod_assets/plugins/tscmod.dll
