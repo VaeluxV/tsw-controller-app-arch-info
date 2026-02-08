@@ -37,6 +37,36 @@ jobs:
             tsw-controller-mod/socket-connection-lib/target/release/*.lib
             tsw-controller-mod/socket-connection-lib/*.h
 
+  build__tscmod:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tsc-controller-mod/tscmod/target
+          key: ${{ runner.os }}_tscmod_cargo_${{ hashFiles('tsc-controller-mod/tscmod/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}_tscmod_cargo_
+      - run: |
+          cd ./tsc-controller-mod/tscmod
+          cargo build --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tscmod
+          path: |
+            tsc-controller-mod/tscmod/target/release/*.dll
+
+
   build__ue4ssmod:
     runs-on: windows-2022
     needs: [build__socketconnectionlib]
@@ -134,10 +164,25 @@ jobs:
           name: mod_assets
           path: mod_assets
 
+  build__tsc_mod_assets:
+    runs-on: ubuntu-22.04
+    needs: [build__tscmod]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v5
+        name: Download previously built artifacts
+      - run: |
+          mkdir tsc_mod_assets
+          install -D tscmod/tscmod.dll tsc_mod_assets/plugins/tscmod.dll
+          install -D tsc-controller-mod/proxy/dxgi.dll tsc_mod_assets/dxgi.dll
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tsc_mod_assets
+          path: tsc_mod_assets
 
   build__goapp__windows:
     runs-on: windows-2022
-    needs: [build__mod_assets]
+    needs: [build__mod_assets, build__tsc_mod_assets]
     steps:
       - uses: actions/checkout@v4
 
@@ -176,7 +221,14 @@ jobs:
           name: mod_assets
           path: mod_assets
 
-      - run: Copy-Item -Path mod_assets -Destination go-app -Recurse -Force
+      - uses: actions/download-artifact@v5
+        name: Download tsc_mod_assets artifact
+        with:
+          name: tsc_mod_assets
+          path: tsc_mod_assets
+
+      - run: Copy-Item -Path mod_assets -Destination go-app/embed -Recurse -Force
+      - run: Copy-Item -Path tsc_mod_assets -Destination go-app/embed -Recurse -Force
       - run:  Get-ChildItem -File -Recurse -Path "go-app/embed/mod_assets"
       - run: |
           $env:VERSION=(Get-Content -Path RELEASE_VERSION -First 1)
@@ -211,7 +263,7 @@ jobs:
 
   build__goapp__linux:
     runs-on: ubuntu-22.04
-    needs: [build__mod_assets]
+    needs: [build__mod_assets, build__tsc_mod_assets]
     steps:
       - uses: actions/checkout@v4
 
@@ -238,7 +290,13 @@ jobs:
           name: mod_assets
           path: mod_assets
 
-      - run: cp -r mod_assets go-app/embed
+      - uses: actions/download-artifact@v5
+        name: Download tsc_mod_assets artifact
+        with:
+          name: tsc_mod_assets
+          path: tsc_mod_assets
+
+      - run: cp -r mod_assets go-app/embed; cp -r tsc_mod_assets go-app/embed; 
       - run: |
           VERSION=$(head -n 1 RELEASE_VERSION)
           cd go-app
@@ -276,7 +334,7 @@ jobs:
 
   build__goapp__macos:
     runs-on: macos-latest
-    needs: [build__mod_assets]
+    needs: [build__mod_assets, build__tsc_mod_assets]
     steps:
       - uses: actions/checkout@v4
 
@@ -298,7 +356,14 @@ jobs:
         with:
           name: mod_assets
           path: mod_assets
-      - run: cp -r mod_assets go-app/embed
+
+      - uses: actions/download-artifact@v5
+        name: Download tsc_mod_assets artifact
+        with:
+          name: tsc_mod_assets
+          path: tsc_mod_assets
+
+      - run: cp -r mod_assets go-app/embed; cp -r tsc_mod_assets go-app/embed
       - run: |
           VERSION=$(head -n 1 RELEASE_VERSION)
           cd go-app

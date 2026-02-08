@@ -1,33 +1,31 @@
 use futures_util::{SinkExt, StreamExt};
+use libc::{c_char, c_float, c_int};
 use libloading::Library;
 use once_cell::sync::Lazy;
-use windows::core::PCWSTR;
 use std::collections::HashMap;
-use std::ffi::{CStr, CString, c_uint};
+use std::ffi::{CStr};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
-use std::{fmt, thread};
 use std::time::Duration;
 use tokio::runtime::Runtime;
-use tokio::sync::mpsc::{self};
 use tokio::sync::broadcast;
-use std::iter;
+use tokio::sync::mpsc::{self};
 use tokio_tungstenite::connect_async;
-use std::ffi::OsStr;
-use std::os::windows::ffi::OsStrExt;
 use tungstenite::{protocol::Message, Utf8Bytes};
 use windows::Win32::Foundation::HMODULE;
-use windows::Win32::System::LibraryLoader::{GetModuleFileNameW,AddDllDirectory};
-use libc::{c_char, c_float, c_int};
+use windows::Win32::System::LibraryLoader::{GetModuleFileNameW};
 
-/// C callback signature: void (*MessageCallback)(const char*)
-pub type MessageCallback = extern "C" fn(*const std::ffi::c_char);
+struct DLLLocoState {
+    name: String,
+    controls: HashMap<String, usize>,
+    controlvalues: HashMap<String, c_float>
+}
 
-/// Holds state of the DLL
 struct DLLState {
     rt: Option<Runtime>,
-    stop_tx: Option<broadcast::Sender<()>>,
+    stop_tx: Option<Arc<broadcast::Sender<()>>>,
     outgoing_tx: Option<mpsc::Sender<String>>,
+    loco: Option<DLLLocoState>
 }
 
 static STATE: Lazy<Arc<RwLock<DLLState>>> = Lazy::new(|| {
@@ -35,16 +33,14 @@ static STATE: Lazy<Arc<RwLock<DLLState>>> = Lazy::new(|| {
         rt: None,
         stop_tx: None,
         outgoing_tx: None,
+        loco: None
     }))
 });
-
 
 fn module_path_from_hmodule(hmodule: HMODULE) -> Option<PathBuf> {
     let mut buffer = vec![0u16; 260];
 
-    let len = unsafe {
-        GetModuleFileNameW(Some(hmodule), &mut buffer)
-    };
+    let len = unsafe { GetModuleFileNameW(Some(hmodule), &mut buffer) };
 
     if len == 0 {
         return None;
@@ -54,19 +50,17 @@ fn module_path_from_hmodule(hmodule: HMODULE) -> Option<PathBuf> {
     Some(PathBuf::from(String::from_utf16_lossy(&buffer)))
 }
 
-unsafe fn get_loco_name(lib: &Library) -> &str {
-    let loconame_raw = lib.get::<unsafe extern "C" fn() -> * const c_char>(b"GetLocoName")
-        .unwrap()();
+unsafe fn get_loco_name(lib: &Library) -> String {
+    let loconame_raw = lib.get::<unsafe extern "C" fn() -> *const c_char>(b"GetLocoName").unwrap()();
     let cstr = CStr::from_ptr(loconame_raw);
     match cstr.to_str() {
-        Ok(v) => v,
-        _ => "",
+        Ok(v) => v.to_string(),
+        _ => String::new(),
     }
 }
 
-unsafe fn get_controller_list(lib: &Library) -> HashMap<&str, usize> {
-    let controllerlist_raw = lib.get::<unsafe extern "C" fn() -> * const c_char>(b"GetControllerList")
-        .unwrap()();
+unsafe fn get_controller_list(lib: &Library) -> HashMap<String, usize> {
+    let controllerlist_raw = lib.get::<unsafe extern "C" fn() -> *const c_char>(b"GetControllerList").unwrap()();
     let cstr = CStr::from_ptr(controllerlist_raw);
 
     match cstr.to_str() {
@@ -75,24 +69,22 @@ unsafe fn get_controller_list(lib: &Library) -> HashMap<&str, usize> {
                 return HashMap::new();
             }
 
-            let mut map = HashMap::<&str, usize>::new();
+            let mut map = HashMap::<String, usize>::new();
             for (index, control_name) in v.split("::").enumerate() {
-                map.insert(control_name, index);
+                map.insert(control_name.to_string(), index);
             }
             map
-        },
+        }
         _ => HashMap::new(),
     }
 }
 
 unsafe fn get_controller_value(lib: &Library, index: c_int, value_type: c_int) -> c_float {
-    lib.get::<unsafe extern "C" fn(c_int, c_int) -> c_float>(b"GetControllerValue")
-        .unwrap()(index, value_type)
+    lib.get::<unsafe extern "C" fn(c_int, c_int) -> c_float>(b"GetControllerValue").unwrap()(index, value_type)
 }
 
 unsafe fn set_controller_value(lib: &Library, index: c_int, value: c_float) {
-    lib.get::<unsafe extern "C" fn(c_int, c_float) -> c_float>(b"SetControllerValue")
-        .unwrap()(index, value);
+    lib.get::<unsafe extern "C" fn(c_int, c_float) -> c_float>(b"SetControllerValue").unwrap()(index, value);
 }
 
 pub fn mod_init(hmod: HMODULE) {
@@ -115,22 +107,23 @@ pub fn mod_init(hmod: HMODULE) {
     };
 
     // create tokio runtime
-    let rt =  tokio::runtime::Builder::new_multi_thread().enable_all().build().expect("Failed to create runtime");
+    let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build().expect("Failed to create runtime");
 
     // create channels
     let (stop_tx, _) = broadcast::channel::<()>(1);
     let (out_tx, mut out_rx) = mpsc::channel::<String>(64);
+    let stop_tx_arc = Arc::new(stop_tx);
 
     let ws_url = "ws://127.0.0.1:63241".to_string();
-    // let state_clone = STATE.clone();
 
     let socket_lib = Arc::clone(&lib);
-    let mut socket_stop_rx = stop_tx.subscribe();
+    let socket_thread_stop_tx = Arc::clone(&stop_tx_arc);
     rt.spawn(async move {
         loop {
             println!("[tscmod][info] attempting to connect to socket");
+            let mut sockst_stop_rx = socket_thread_stop_tx.subscribe();
             tokio::select! {
-                _ = socket_stop_rx.recv() => {
+                _ = sockst_stop_rx.recv() => {
                     break;
                 }
                 conect_res = connect_async(ws_url.as_str()) => {
@@ -141,41 +134,50 @@ pub fn mod_init(hmod: HMODULE) {
                             let (reconnect_tx, mut reconnect_rx) = mpsc::channel::<()>(1);
 
                             // Forward incoming WS messages to callback
-                            // let state_c = state_clone.clone();
                             let read_loop_lib = Arc::clone(&socket_lib);
+                            let client_read_loop_stop_tx = Arc::clone(&socket_thread_stop_tx);
                             tokio::spawn(async move {
-                                while let Some(Ok(msg)) = ws_read.next().await {
-                                  match msg {
-                                     tungstenite::Message::Text(text) => {
-                                        let msg_split: Vec<&str> = text.split(",").collect();
-                                        if msg_split[0] == "direct_control" {
-                                            /* collect properties from direct control message */
-                                            let mut properties = HashMap::<&str, &str>::new();
-                                            for part in msg_split.iter().skip(1) {
-                                                let valuesplit: Vec<&str> = part.split("=").collect();
-                                                if valuesplit.len() == 2 {
-                                                    properties.insert(valuesplit[0], valuesplit[1]);
-                                                }
-                                            }
+                                loop {
+                                    let mut client_read_loop_stop_rx = client_read_loop_stop_tx.subscribe();
 
-                                            /* now apply value */
-                                            if properties.contains_key("controls") && properties.contains_key("value") {
-                                                let lib = read_loop_lib.lock().unwrap();
-                                                unsafe {
-                                                    let controls = get_controller_list(&lib);
-                                                    if controls.contains_key(properties["controls"]) {
-                                                        let control_index = controls[properties["controls"]];
-                                                        set_controller_value(&lib, control_index as c_int, properties["value"].parse().unwrap());
+                                    tokio::select! {
+                                        _ = client_read_loop_stop_rx.recv() => {
+                                            break;
+                                        },
+                                        Some(Ok(msg)) = ws_read.next() => {
+                                            match msg {
+                                                tungstenite::Message::Text(text) => {
+                                                    let msg_split: Vec<&str> = text.split(",").collect();
+                                                    if msg_split[0] == "direct_control" {
+                                                        /* collect properties from direct control message */
+                                                        let mut properties = HashMap::<&str, &str>::new();
+                                                        for part in msg_split.iter().skip(1) {
+                                                            let valuesplit: Vec<&str> = part.split("=").collect();
+                                                            if valuesplit.len() == 2 {
+                                                                properties.insert(valuesplit[0], valuesplit[1]);
+                                                            }
+                                                        }
+
+                                                        /* now apply value */
+                                                        if properties.contains_key("controls") && properties.contains_key("value") {
+                                                            let lib = read_loop_lib.lock().unwrap();
+                                                            unsafe {
+                                                                let controls = get_controller_list(&lib);
+                                                                if controls.contains_key(properties["controls"]) {
+                                                                    let control_index = controls[properties["controls"]];
+                                                                    set_controller_value(&lib, control_index as c_int, properties["value"].parse().unwrap());
+                                                                }
+                                                            }
+                                                        }
                                                     }
-                                                }
+                                                },
+                                                tungstenite::Message::Close(_) => {
+                                                    break;
+                                                },
+                                                _ => {},
                                             }
                                         }
-                                     },
-                                     tungstenite::Message::Close(_) => {
-                                      break;
-                                     },
-                                     _ => {},
-                                  }
+                                    }
                                 }
                                 /* if this while ends - the read resulted in an error - try send reconnect_tx */
                                 println!("[socket_connection_lib][info] closing connection and reconnecting due to error or close message");
@@ -183,6 +185,7 @@ pub fn mod_init(hmod: HMODULE) {
                             });
 
                             // Outgoing loop
+                            let mut client_write_loop_stop_rx = socket_thread_stop_tx.subscribe();
                             loop {
                                 tokio::select! {
                                     Some(msg) = out_rx.recv() => {
@@ -195,7 +198,7 @@ pub fn mod_init(hmod: HMODULE) {
                                     _ = reconnect_rx.recv() => {
                                       break;
                                     },
-                                    _ = socket_stop_rx.recv() => {
+                                    _ = client_write_loop_stop_rx.recv() => {
                                         let _ = ws_write.send(Message::Close(None)).await;
                                         return;
                                     }
@@ -214,10 +217,10 @@ pub fn mod_init(hmod: HMODULE) {
     });
 
     let read_state_lib = Arc::clone(&lib);
-    let mut read_state_stop_rx = stop_tx.subscribe();   
+    let read_state_thread_stop_tx = Arc::clone(&stop_tx_arc);
     rt.spawn(async move {
         unsafe {
-            // libraildriver::Value::Speedometer
+            let mut read_state_stop_rx = read_state_thread_stop_tx.subscribe();
             loop {
                 tokio::select! {
                     _ = read_state_stop_rx.recv() => {
@@ -225,23 +228,39 @@ pub fn mod_init(hmod: HMODULE) {
                     }
                     _ = tokio::time::sleep(Duration::from_millis(300)) => {
                         let lib = read_state_lib.lock().unwrap();
-                        let st = STATE.read().unwrap_or_else(|poisoned| poisoned.into_inner());
+                        let mut guard = STATE.write().unwrap_or_else(|poisoned| poisoned.into_inner());
+                        let st = &mut *guard;
 
                         let loconame = get_loco_name(&lib);
-                        let controls = get_controller_list(&lib);
+                        if st.loco.is_none() || st.loco.as_ref().unwrap().name != loconame {
+                            let controls = get_controller_list(&lib);
+                            let loco = DLLLocoState {
+                                name: loconame.to_string(),
+                                controls: controls,
+                                controlvalues: HashMap::new(),
+                            };
+                            st.loco = Some(loco);
 
-                        let drivable_msg = format!("current_drivable_actor,name={}", loconame);
-                         if let Some(tx) = &st.outgoing_tx {
-                            let drivable_send_result = tx.try_send(drivable_msg);
-                            if let Err(e) = drivable_send_result {
-                                println!("[tscmod][error] failed to send message {}", e.to_string());
+                            let drivable_msg = format!("current_drivable_actor,name={}", loconame);
+                            if let Some(tx) = &st.outgoing_tx {
+                                let drivable_send_result = tx.try_send(drivable_msg);
+                                if let Err(e) = drivable_send_result {
+                                    println!("[tscmod][error] failed to send message {}", e.to_string());
+                                }
                             }
                         }
 
-                        for (control_name, index) in controls {
-                            let controlvalue = get_controller_value(&lib, index as c_int, libraildriver::Kind::Current as c_int);
+                        let loco = st.loco.as_mut().unwrap();
+                        for (control_name, index) in loco.controls.iter() {
+                            let controlvalue = get_controller_value(&lib, (*index) as c_int, libraildriver::Kind::Current as c_int);
+                            if loco.controlvalues.contains_key(control_name) && loco.controlvalues[control_name] == controlvalue {
+                                /* skip sending if value is unchanged */
+                                continue;
+                            }
+
+                            loco.controlvalues.insert(control_name.to_string(), controlvalue);
                             let msg = format!("sync_control_value,name={},property={},value={},normal_value={}", control_name, control_name, controlvalue, controlvalue);
-                            if let Some(tx) = &st.outgoing_tx {
+                            if let Some(tx) = st.outgoing_tx.as_ref() {
                                 let send_result = tx.try_send(msg);
                                 if let Err(e) = send_result {
                                     println!("[tscmod][error] failed to send message {}", e.to_string());
@@ -255,7 +274,7 @@ pub fn mod_init(hmod: HMODULE) {
     });
 
     st.rt = Some(rt);
-    st.stop_tx = Some(stop_tx);
+    st.stop_tx = Some(stop_tx_arc);
     st.outgoing_tx = Some(out_tx);
 }
 
@@ -264,7 +283,7 @@ pub fn mod_destroy() {
     if let Some(stop_tx) = st.stop_tx.take() {
         let _ = stop_tx.send(());
     }
-    st.rt.take(); // dropping runtime shuts it down
+    st.rt.take().unwrap().shutdown_background(); // dropping runtime shuts it down
 }
 
 #[no_mangle]

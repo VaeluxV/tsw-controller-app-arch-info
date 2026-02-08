@@ -1134,7 +1134,7 @@ func (a *App) InstallTrainSimClassicMod() error {
 	}
 
 	/* write version file */
-	os.WriteFile(filepath.Join(install_path, "plugins/tscmod_version.txt"), []byte(VERSION), 0755)
+	os.WriteFile(filepath.Join(install_path, "plugins/version.txt"), []byte(VERSION), 0755)
 	a.program_config.LastInstalledModVersion = VERSION
 	a.program_config.Save(filepath.Join(a.config.GlobalConfigDir, "program.json"))
 
