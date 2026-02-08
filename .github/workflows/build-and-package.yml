@@ -64,7 +64,7 @@ jobs:
         with:
           name: tscmod
           path: |
-            tsc-controller-mod/tscmod/target/release/*.dll
+            tsc-controller-mod/tscmod/target/release/tscmod.dll
 
 
   build__ue4ssmod:
@@ -101,7 +101,7 @@ jobs:
             ~/AppData/Local/vcpkg/archives
           key: ${{ runner.os }}_ue4ssmod_xmake_${{ hashFiles('RE-UE4SS/**/xmake.lua') }}
 
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download socket connection lib
         with:
           name: socketconnectionlib
@@ -149,8 +149,9 @@ jobs:
     needs: [build__socketconnectionlib, build__ue4ssmod]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download previously built artifacts
+
       - run: |
           mkdir mod_assets
           install -D ue4ssproxy/dwmapi.dll mod_assets/dwmapi.dll
@@ -164,12 +165,12 @@ jobs:
           name: mod_assets
           path: mod_assets
 
-  build__tsc_mod_assets:
+  build__tscmod_assets:
     runs-on: ubuntu-22.04
     needs: [build__tscmod]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download previously built artifacts
       - run: find .
       - run: |
@@ -183,7 +184,7 @@ jobs:
 
   build__goapp__windows:
     runs-on: windows-2022
-    needs: [build__mod_assets, build__tsc_mod_assets]
+    needs: [build__mod_assets, build__tscmod_assets]
     steps:
       - uses: actions/checkout@v4
 
@@ -216,13 +217,13 @@ jobs:
       - name: Install wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10
 
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download mod_assets artifact
         with:
           name: mod_assets
           path: mod_assets
 
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download tsc_mod_assets artifact
         with:
           name: tsc_mod_assets
@@ -264,7 +265,7 @@ jobs:
 
   build__goapp__linux:
     runs-on: ubuntu-22.04
-    needs: [build__mod_assets, build__tsc_mod_assets]
+    needs: [build__mod_assets, build__tscmod_assets]
     steps:
       - uses: actions/checkout@v4
 
@@ -285,13 +286,13 @@ jobs:
       - name: Install wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10
 
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download mod_assets artifact
         with:
           name: mod_assets
           path: mod_assets
 
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download tsc_mod_assets artifact
         with:
           name: tsc_mod_assets
@@ -335,7 +336,7 @@ jobs:
 
   build__goapp__macos:
     runs-on: macos-latest
-    needs: [build__mod_assets, build__tsc_mod_assets]
+    needs: [build__mod_assets, build__tscmod_assets]
     steps:
       - uses: actions/checkout@v4
 
@@ -352,13 +353,13 @@ jobs:
       - name: Install wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10
 
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download mod_assets artifact
         with:
           name: mod_assets
           path: mod_assets
 
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download tsc_mod_assets artifact
         with:
           name: tsc_mod_assets
@@ -443,7 +444,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build__goapp__linux, build__goapp__windows, build__goapp__macos, build__virtual_controller_app]
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download all artifacts
 
       - name: debug
