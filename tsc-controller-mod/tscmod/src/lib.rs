@@ -15,10 +15,17 @@ use tungstenite::{protocol::Message, Utf8Bytes};
 use windows::Win32::Foundation::HMODULE;
 use windows::Win32::System::LibraryLoader::{GetModuleFileNameW};
 
+struct DLLLocoStateControlTarget {
+    value: c_float,
+    max_change_rate: c_float,
+    hold: bool
+}
+
 struct DLLLocoState {
     name: String,
     controls: HashMap<String, usize>,
-    controlvalues: HashMap<String, c_float>
+    controlvalues: HashMap<String, c_float>,
+    controltargetvalues: HashMap<String, DLLLocoStateControlTarget>
 }
 
 struct DLLState {
@@ -134,7 +141,6 @@ pub fn mod_init(hmod: HMODULE) {
                             let (reconnect_tx, mut reconnect_rx) = mpsc::channel::<()>(1);
 
                             // Forward incoming WS messages to callback
-                            let read_loop_lib = Arc::clone(&socket_lib);
                             let client_read_loop_stop_tx = Arc::clone(&socket_thread_stop_tx);
                             tokio::spawn(async move {
                                 loop {
@@ -160,13 +166,22 @@ pub fn mod_init(hmod: HMODULE) {
 
                                                         /* now apply value */
                                                         if properties.contains_key("controls") && properties.contains_key("value") {
-                                                            let lib = read_loop_lib.lock().unwrap();
-                                                            unsafe {
-                                                                let controls = get_controller_list(&lib);
-                                                                if controls.contains_key(properties["controls"]) {
-                                                                    let control_index = controls[properties["controls"]];
-                                                                    set_controller_value(&lib, control_index as c_int, properties["value"].parse().unwrap());
-                                                                }
+                                                            let mut guard = STATE.write().unwrap_or_else(|poisoned| poisoned.into_inner());
+                                                            let st = &mut *guard;
+                                                            if st.loco.is_some() {
+                                                                let value: f32 = properties["value"].parse().unwrap();
+                                                                let max_change_rate: f32 = match properties.contains_key("max_change_rate") {
+                                                                    true => properties["max_change_rate"].parse().unwrap(),
+                                                                    false => 999.0f32 /* 999 should be more than enough */
+                                                                };
+                                                                let hold: bool = match properties.contains_key("flags") {
+                                                                    true => properties["flags"].split(',').any(|s| s.trim().contains(target)),
+                                                                    false => false
+                                                                };
+                                                                st.loco.as_mut().unwrap().controltargetvalues.insert(
+                                                                    properties["controls"].to_string(),
+                                                                    DLLLocoStateControlTarget { value, max_change_rate, hold }
+                                                                );
                                                             }
                                                         }
                                                     }
@@ -237,7 +252,9 @@ pub fn mod_init(hmod: HMODULE) {
                             let loco = DLLLocoState {
                                 name: loconame.to_string(),
                                 controls: controls,
+                                /* this will reset the controlvalues and controltarget values */
                                 controlvalues: HashMap::new(),
+                                controltargetvalues: HashMap::new()
                             };
                             st.loco = Some(loco);
 
@@ -265,6 +282,52 @@ pub fn mod_init(hmod: HMODULE) {
                                 if let Err(e) = send_result {
                                     println!("[tscmod][error] failed to send message {}", e.to_string());
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    let control_tick_lib = Arc::clone(&lib);
+    let control_tick_thread_stop_tx = Arc::clone(&stop_tx_arc);
+    rt.spawn(async move {
+        let mut control_tick_thread_stop_rx = control_tick_thread_stop_tx.subscribe();
+        loop {
+            tokio::select! {
+                _ = control_tick_thread_stop_rx.recv() => {
+                    break;
+                }
+                _ = tokio::time::sleep(Duration::from_millis(33)) => {
+                    /* check state */
+                    let lib = control_tick_lib.lock().unwrap();
+                    let mut guard = STATE.write().unwrap_or_else(|poisoned| poisoned.into_inner());
+                    let st = &mut *guard;
+                    if !st.loco.is_some() {
+                        continue;
+                    }
+
+                    let loco = guard.loco.as_ref().unwrap();
+                    for key in loco.controltargetvalues.keys().collect::<Vec<String>>() {
+                        if !loco.controls.contains_key(&key) {
+                           /* skip and delete from targets if not available in loco */
+                            loco.controltargetvalues.remove(&key);
+                            continue;
+                        }
+
+                        unsafe {
+                            let control_index = loco.controls[key];
+                            let currentvalue = get_controller_value(&lib, control_index as c_int, libraildriver::Kind::Current as c_int);
+                            let delta = target_state.value - currentvalue;
+                            let next_value = match delta > 0.0 {
+                                true => currentvalue + delta.abs().min(target_state.max_change_rate),
+                                false => currentvalue - delta.abs().min(target_state.max_change_rate)
+                            };
+                            set_controller_value(&lib, control_index as c_int, next_value as c_float);
+                            if !target_state.hold && (next_value - target_state.value).abs() < 0.05f32 {
+                                /* has reached target value within margin of error of 0.05 */
+                                loco.controltargetvalues.remove(&key);
                             }
                         }
                     }
