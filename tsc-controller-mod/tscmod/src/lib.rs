@@ -317,7 +317,7 @@ pub fn mod_init(hmod: HMODULE) {
                         }
 
                         unsafe {
-                            let control_index = loco.controls[key];
+                            let control_index = loco.controls[&key];
                             let currentvalue = get_controller_value(&lib, control_index as c_int, libraildriver::Kind::Current as c_int);
                             let delta = target_state.value - currentvalue;
                             let next_value = match delta > 0.0 {
