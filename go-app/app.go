@@ -784,7 +784,7 @@ func (a *App) SaveProfileForSharingWithControllerInformation(id string, unique_i
 
 		if profile_for_sharing.Controller.Mapping == nil {
 			mapping := config.Config_Controller_SDLMap{
-				Name:  fmt.Sprintf("%s - %s", controller.Joystick.Name, profile_for_sharing.Name),
+				Name:  fmt.Sprintf("%s - %s", controller.Name, profile_for_sharing.Name),
 				UsbID: usb_id,
 				Data:  []config.Config_Controller_SDLMap_Control{},
 			}
