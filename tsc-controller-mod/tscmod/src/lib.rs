@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::ffi::{CStr};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::runtime::Runtime;
 use tokio::sync::broadcast;
 use tokio::sync::mpsc::{self};
@@ -21,8 +21,13 @@ struct DLLLocoStateControlTarget {
     hold: bool
 }
 
-struct DLLLocoState {
+struct DLLLocoStateDrivableActor {
     name: String,
+    lastsent: Instant
+}
+
+struct DLLLocoState {
+    drivable: DLLLocoStateDrivableActor,
     controls: HashMap<String, usize>,
     controlvalues: HashMap<String, c_float>,
     controltargetvalues: HashMap<String, DLLLocoStateControlTarget>
@@ -246,10 +251,18 @@ pub fn mod_init(hmod: HMODULE) {
                         let st = &mut *guard;
 
                         let loconame = get_loco_name(&lib);
-                        if st.loco.is_none() || st.loco.as_ref().unwrap().name != loconame {
+                        if st.loco.is_none() || (
+                            /* send name if changed */
+                            st.loco.as_ref().unwrap().drivable.name != loconame
+                            /* or it's been 2 secs - just to make sure */
+                            || st.loco.as_ref().unwrap().drivable.lastsent.elapsed() > Duration::from_secs(2)
+                         ) {
                             let controls = get_controller_list(&lib);
                             let loco = DLLLocoState {
-                                name: loconame.to_string(),
+                                drivable:  DLLLocoStateDrivableActor{
+                                    name: loconame.to_string(),
+                                    lastsent: Instant::now(),
+                                },
                                 controls: controls,
                                 /* this will reset the controlvalues and controltarget values */
                                 controlvalues: HashMap::new(),
