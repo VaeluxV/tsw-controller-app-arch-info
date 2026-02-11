@@ -9,7 +9,7 @@
     { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 A" },
     { "class_name": "DTG.:.M3EMUPack01.:.LIRR M3 B" }
   ],
-  "name": "20260209_BETA",
+  "name": "Infinite Railtech: Model #01 (Budd M3)",
   "controls": [
     {
       "name": "KeyIn",
@@ -1150,7 +1150,7 @@
   "controller": {
     "usb_id": "2341:8036",
     "mapping": {
-      "name": "20260209_BETA",
+      "name": "Infinite Railtech: Model #01",
       "usb_id": "2341:8036",
       "data": [
         {

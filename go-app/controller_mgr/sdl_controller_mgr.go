@@ -36,6 +36,7 @@ var _ IControllerManager_Controller_Control = &SDL_ControllerManager_Controller_
 var _ IControllerManager_Controller_Control = &SDL_ControllerManager_Controller_JoyControl{}
 
 type SDL_ControllerManager_ConfiguredController struct {
+	Name            string
 	Manager         *SDLControllerManager
 	Joystick        *sdl_mgr.SDLMgr_Joystick
 	controls        *map_utils.LockMap[string, IControllerManager_Controller_Control]
@@ -350,6 +351,7 @@ func (mgr *SDLControllerManager) Config() SDL_ControllerManager_Config {
 
 func (mgr *SDLControllerManager) ConfigureJoystick(joystick *sdl_mgr.SDLMgr_Joystick, sdl_map config.Config_Controller_SDLMap, calibration config.Config_Controller_Calibration) SDL_ControllerManager_ConfiguredController {
 	controller := SDL_ControllerManager_ConfiguredController{
+		Name:            sdl_map.Name,
 		Manager:         mgr,
 		Joystick:        joystick,
 		controls:        map_utils.NewLockMap[string, IControllerManager_Controller_Control](),

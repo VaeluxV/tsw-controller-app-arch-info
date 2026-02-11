@@ -435,7 +435,7 @@ func (a *App) GetControllers() []Interop_GenericController {
 		controllers = append(controllers, Interop_GenericController{
 			UniqueID:     c.Device().UniqueID(),
 			DeviceID:     c.Device().DeviceID(),
-			Name:         c.Device().Name(),
+			Name:         c.Name,
 			IsConfigured: true,
 			IsVirtual:    false,
 		})
