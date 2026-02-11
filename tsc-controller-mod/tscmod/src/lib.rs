@@ -123,7 +123,6 @@ pub fn mod_init(hmod: HMODULE) {
 
     let ws_url = "ws://127.0.0.1:63241".to_string();
 
-    let socket_lib = Arc::clone(&lib);
     let socket_thread_stop_tx = Arc::clone(&stop_tx_arc);
     rt.spawn(async move {
         loop {
@@ -175,7 +174,7 @@ pub fn mod_init(hmod: HMODULE) {
                                                                     false => 999.0f32 /* 999 should be more than enough */
                                                                 };
                                                                 let hold: bool = match properties.contains_key("flags") {
-                                                                    true => properties["flags"].split(',').any(|s| s.trim().contains(target)),
+                                                                    true => properties["flags"].split(',').any(|s| s.trim().contains("hold")),
                                                                     false => false
                                                                 };
                                                                 st.loco.as_mut().unwrap().controltargetvalues.insert(
@@ -308,26 +307,29 @@ pub fn mod_init(hmod: HMODULE) {
                         continue;
                     }
 
-                    let loco = guard.loco.as_ref().unwrap();
-                    for key in loco.controltargetvalues.keys().collect::<Vec<String>>() {
-                        if !loco.controls.contains_key(&key) {
-                           /* skip and delete from targets if not available in loco */
-                            loco.controltargetvalues.remove(&key);
-                            continue;
-                        }
+                    if let Some(loco) = guard.loco.as_mut() {
+                        let controltargetvalues_keys = loco.controltargetvalues.keys().cloned().collect::<Vec<String>>();
+                        for key in controltargetvalues_keys.iter() {
+                            if !loco.controls.contains_key(key) {
+                            /* skip and delete from targets if not available in loco */
+                                loco.controltargetvalues.remove(key);
+                                continue;
+                            }
 
-                        unsafe {
-                            let control_index = loco.controls[&key];
-                            let currentvalue = get_controller_value(&lib, control_index as c_int, libraildriver::Kind::Current as c_int);
-                            let delta = target_state.value - currentvalue;
-                            let next_value = match delta > 0.0 {
-                                true => currentvalue + delta.abs().min(target_state.max_change_rate),
-                                false => currentvalue - delta.abs().min(target_state.max_change_rate)
-                            };
-                            set_controller_value(&lib, control_index as c_int, next_value as c_float);
-                            if !target_state.hold && (next_value - target_state.value).abs() < 0.05f32 {
-                                /* has reached target value within margin of error of 0.05 */
-                                loco.controltargetvalues.remove(&key);
+                            unsafe {
+                                let target_state = loco.controltargetvalues.get_mut(key).unwrap();
+                                let control_index = loco.controls[key];
+                                let currentvalue = get_controller_value(&lib, control_index as c_int, libraildriver::Kind::Current as c_int);
+                                let delta = target_state.value - currentvalue;
+                                let next_value = match delta > 0.0 {
+                                    true => currentvalue + delta.abs().min(target_state.max_change_rate),
+                                    false => currentvalue - delta.abs().min(target_state.max_change_rate)
+                                };
+                                set_controller_value(&lib, control_index as c_int, next_value as c_float);
+                                if !target_state.hold && (next_value - target_state.value).abs() < 0.05f32 {
+                                    /* has reached target value within margin of error of 0.05 */
+                                    loco.controltargetvalues.remove(key);
+                                }
                             }
                         }
                     }
