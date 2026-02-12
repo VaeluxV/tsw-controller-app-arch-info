@@ -223,6 +223,7 @@ export namespace main {
 	}
 	export class Interop_Profile_Metadata {
 	    Path: string;
+	    IsEmbedded: boolean;
 	    UpdatedAt: string;
 	    Warnings: string[];
 	
@@ -233,6 +234,7 @@ export namespace main {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.Path = source["Path"];
+	        this.IsEmbedded = source["IsEmbedded"];
 	        this.UpdatedAt = source["UpdatedAt"];
 	        this.Warnings = source["Warnings"];
 	    }

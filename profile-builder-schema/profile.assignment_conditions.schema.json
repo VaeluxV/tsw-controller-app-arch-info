@@ -7,6 +7,18 @@
       "items": {
         "$ref": "./profile.assignment_condition.schema.json"
       }
+    },
+    "rail_class_information": {
+      "type": "array",
+      "description": "Defines the supported rail class names (can be found at the top of the cab debugger)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "class_name": {
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }

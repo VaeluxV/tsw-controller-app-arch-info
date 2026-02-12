@@ -19,14 +19,25 @@ import (
 
 type ProfileRunner_AssignmentScore = int
 
+const DEFAULT_MAX_CHANGE_RATE = 999.0
 const ASSIGNMENT_SCORE_IS_PREFERRED_CONTROL_MODE ProfileRunner_AssignmentScore = 10
 const ASSIGNMENT_SCORE_DIRECT_CONTROL_MODE ProfileRunner_AssignmentScore = 3
 const ASSIGNMENT_SCORE_API_CONTROL_MODE ProfileRunner_AssignmentScore = 2
 const ASSIGNMENT_SCORE_SYNC_CONTROL_MODE ProfileRunner_AssignmentScore = 1
 
+type ProfileRunner_ScoredProfileEntry struct {
+	Id    string
+	Score int
+}
+
 type ProfileRunner_ScoredAssignmentsListEntry struct {
 	Score       int
 	Assignments []config.Config_Controller_Profile_Control_Assignment
+}
+
+type ProfileRunner_ScoredAssignmentCallEntry struct {
+	Score          int
+	AssignmentCall ProfileRunnerAssignmentCall
 }
 
 type ProfileRunnerSettings_SelectedProfile struct {
@@ -133,11 +144,7 @@ func (p *ProfileRunner) getSelectedProfileForDevice(device *controller_mgr.Contr
 	/* try auto-selection */
 	current_rail_class := p.CabDebugger.State.DrivableActorName
 	if !has_selected_profile && current_rail_class != "" {
-		type ScoredProfile struct {
-			Id    string
-			Score int
-		}
-		scored_profiles := []ScoredProfile{}
+		scored_profiles := []ProfileRunner_ScoredProfileEntry{}
 
 		p.Profiles.ForEach(func(profile config.Config_Controller_Profile, id string) bool {
 			if (profile.AutoSelect == nil || !*profile.AutoSelect) ||
@@ -147,13 +154,19 @@ func (p *ProfileRunner) getSelectedProfileForDevice(device *controller_mgr.Contr
 				return true
 			}
 
+			/* we'll score any match which is not embedded higher than their embedded counterpart */
+			score_factor := 1
+			if !profile.Metadata.IsEmbedded {
+				score_factor = 10
+			}
+
 			for _, rc_info := range *profile.RailClassInformation {
-				if *rc_info.ClassName == current_rail_class {
+				if rc_info.ClassName == current_rail_class {
 					is_controller_match := profile.Controller != nil && *profile.Controller.UsbID == device.DeviceID
 					if is_controller_match {
-						scored_profiles = append(scored_profiles, ScoredProfile{Id: id, Score: 20})
+						scored_profiles = append(scored_profiles, ProfileRunner_ScoredProfileEntry{Id: id, Score: 20 * score_factor})
 					} else {
-						scored_profiles = append(scored_profiles, ScoredProfile{Id: id, Score: 10})
+						scored_profiles = append(scored_profiles, ProfileRunner_ScoredProfileEntry{Id: id, Score: 10 * score_factor})
 					}
 					break
 				}
@@ -379,8 +392,16 @@ func (p *ProfileRunner) AssignmentActionToAssignmentCall(
 			ApiControlCommand:     nil,
 		}
 	}
-	if action.DirectControl != nil {
+
+	preferred_control_mode := p.Settings.GetPreferredControlMode()
+	scored_assignment_calls := []ProfileRunner_ScoredAssignmentCallEntry{}
+
+	if action.DirectControl != nil && p.DirectController.Connector.IsActive() {
+		max_change_rate := DEFAULT_MAX_CHANGE_RATE
 		flags := []string{}
+		if action.DirectControl.MaxChangeRate != nil {
+			max_change_rate = *action.DirectControl.MaxChangeRate
+		}
 		if action.DirectControl.Relative != nil && *action.DirectControl.Relative {
 			flags = append(flags, "relative")
 		}
@@ -394,30 +415,64 @@ func (p *ProfileRunner) AssignmentActionToAssignmentCall(
 			flags = append(flags, "notify")
 		}
 
-		return &ProfileRunnerAssignmentCall{
-			ControlState:          control_state,
-			ActionSequencerAction: nil,
-			VirtualAction:         nil,
-			ApiControlCommand:     nil,
-			DirectControlCommand: &DirectController_Command{
-				Controls:   action.DirectControl.Controls,
-				InputValue: action.DirectControl.Value,
-				Flags:      flags,
+		scored_assignment_call := ProfileRunner_ScoredAssignmentCallEntry{
+			Score: 0,
+			AssignmentCall: ProfileRunnerAssignmentCall{
+				ControlState:          control_state,
+				ActionSequencerAction: nil,
+				VirtualAction:         nil,
+				ApiControlCommand:     nil,
+				DirectControlCommand: &DirectController_Command{
+					Controls:      action.DirectControl.Controls,
+					InputValue:    action.DirectControl.Value,
+					MaxChangeRate: max_change_rate,
+					Flags:         flags,
+				},
 			},
 		}
+		if preferred_control_mode == config.PreferredControlMode_DirectControl {
+			scored_assignment_call.Score += 10
+		}
+		scored_assignment_calls = append(scored_assignment_calls, scored_assignment_call)
 	}
-	if action.ApiControl != nil {
-		return &ProfileRunnerAssignmentCall{
-			ControlState:          control_state,
-			ActionSequencerAction: nil,
-			VirtualAction:         nil,
-			DirectControlCommand:  nil,
-			ApiControlCommand: &ApiController_Command{
-				Controls:   action.ApiControl.Controls,
-				InputValue: action.ApiControl.ApiValue,
+
+	if action.ApiControl != nil && p.ApiController.API.CanConnect() {
+		max_change_rate := DEFAULT_MAX_CHANGE_RATE
+		hold := false
+		if action.ApiControl.MaxChangeRate != nil {
+			max_change_rate = *action.ApiControl.MaxChangeRate
+		}
+		if action.ApiControl.Hold != nil {
+			hold = *action.ApiControl.Hold
+		}
+		scored_assignment_call := ProfileRunner_ScoredAssignmentCallEntry{
+			Score: 0,
+			AssignmentCall: ProfileRunnerAssignmentCall{
+				ControlState:          control_state,
+				ActionSequencerAction: nil,
+				VirtualAction:         nil,
+				DirectControlCommand:  nil,
+				ApiControlCommand: &ApiController_Command{
+					Controls:      action.ApiControl.Controls,
+					InputValue:    action.ApiControl.ApiValue,
+					MaxChangeRate: max_change_rate,
+					Hold:          hold,
+				},
 			},
 		}
+		if preferred_control_mode == config.PreferredControlMode_ApiControl {
+			scored_assignment_call.Score += 10
+		}
+		scored_assignment_calls = append(scored_assignment_calls, scored_assignment_call)
 	}
+
+	sort.Slice(scored_assignment_calls, func(i, j int) bool {
+		return scored_assignment_calls[i].Score > scored_assignment_calls[j].Score
+	})
+	if len(scored_assignment_calls) > 0 {
+		return &scored_assignment_calls[0].AssignmentCall
+	}
+
 	return nil
 }
 
@@ -434,6 +489,7 @@ func (p *ProfileRunner) GetAssignments(
 	}
 
 	/* filter out conditional assignments */
+	current_rail_class := p.CabDebugger.State.DrivableActorName
 	preferred_control_mode := p.Settings.GetPreferredControlMode()
 	can_use_direct_control_mode := p.DirectController.Connector.IsActive()
 	can_use_sync_control_mode := p.SyncController.Connector.IsActive()
@@ -445,8 +501,28 @@ func (p *ProfileRunner) GetAssignments(
 	scored_control_assignments[config.PreferredControlMode_ApiControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 0, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
 	scored_control_assignments[config.PreferredControlMode_SyncControl] = &ProfileRunner_ScoredAssignmentsListEntry{Score: 0, Assignments: []config.Config_Controller_Profile_Control_Assignment{}}
 
-check_assignments_loop:
+collect_assignments_loop:
 	for _, assignment := range assignments {
+		assignment_rail_class_information := assignment.RailClassInformation()
+		if assignment_rail_class_information != nil &&
+			len(*assignment_rail_class_information) > 0 {
+			/* should check rail class information */
+			if current_rail_class == "" {
+				continue collect_assignments_loop
+			}
+
+			does_match_rail_class := false
+			for _, rc := range *assignment_rail_class_information {
+				if rc.ClassName == current_rail_class {
+					does_match_rail_class = true
+					break
+				}
+			}
+			if !does_match_rail_class {
+				continue collect_assignments_loop
+			}
+		}
+
 		/* conditions can only be evaluated if there is a source event */
 		assigmment_conditions := assignment.Conditions()
 		if source_event != nil && assigmment_conditions != nil && len(*assigmment_conditions) > 0 {
@@ -466,7 +542,7 @@ check_assignments_loop:
 
 				if dependecy_control == nil {
 					logger.Logger.Error("[ProfileRunner::GetAssignments] skipping assignment because dependency control does not exist")
-					continue check_assignments_loop
+					continue collect_assignments_loop
 				}
 
 				state := dependecy_control.GetState()
@@ -474,22 +550,22 @@ check_assignments_loop:
 				case "gte":
 					if state.NormalizedValues.Value < condition.Value {
 						/* condition doesn't match -> skip */
-						continue check_assignments_loop
+						continue collect_assignments_loop
 					}
 				case "lte":
 					if state.NormalizedValues.Value > condition.Value {
 						/* condition doesn't match -> skip */
-						continue check_assignments_loop
+						continue collect_assignments_loop
 					}
 				case "gt":
 					if state.NormalizedValues.Value <= condition.Value {
 						/* condition doesn't match -> skip */
-						continue check_assignments_loop
+						continue collect_assignments_loop
 					}
 				case "lt":
 					if state.NormalizedValues.Value >= condition.Value {
 						/* condition doesn't match -> skip */
-						continue check_assignments_loop
+						continue collect_assignments_loop
 					}
 				}
 			}
@@ -698,8 +774,16 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 					}
 				}
 				if control_assignment_item.DirectControl != nil {
-					output_value := control_assignment_item.DirectControl.InputValue.CalculateOutputValue(change_event.Control.GetState().NormalizedValues.Value)
+					control_value := change_event.Control.GetState().NormalizedValues.Value
+					if control_assignment_item.DirectControl.ControlRange != nil {
+						control_value = control_assignment_item.DirectControl.ControlRange.Clamp(control_value)
+					}
+					output_value := control_assignment_item.DirectControl.InputValue.CalculateOutputValue(control_value)
+					max_change_rate := DEFAULT_MAX_CHANGE_RATE
 					flags := []string{}
+					if control_assignment_item.DirectControl.InputValue.MaxChangeRate != nil {
+						max_change_rate = *control_assignment_item.DirectControl.InputValue.MaxChangeRate
+					}
 					if control_assignment_item.DirectControl.Hold != nil && *control_assignment_item.DirectControl.Hold {
 						flags = append(flags, "hold")
 					}
@@ -714,26 +798,45 @@ func (p *ProfileRunner) Run(ctx context.Context) context.CancelFunc {
 						ActionSequencerAction: nil,
 						ApiControlCommand:     nil,
 						DirectControlCommand: &DirectController_Command{
-							Controls:   control_assignment_item.DirectControl.Controls,
-							InputValue: output_value,
-							Flags:      flags,
+							Controls:      control_assignment_item.DirectControl.Controls,
+							InputValue:    output_value,
+							MaxChangeRate: max_change_rate,
+							Flags:         flags,
 						},
 					})
 				}
 				if control_assignment_item.ApiControl != nil {
-					output_value := control_assignment_item.ApiControl.InputValue.CalculateOutputValue(change_event.Control.GetState().NormalizedValues.Value)
+					max_change_rate := DEFAULT_MAX_CHANGE_RATE
+					hold := false
+					control_value := change_event.Control.GetState().NormalizedValues.Value
+					if control_assignment_item.ApiControl.InputValue.MaxChangeRate != nil {
+						max_change_rate = *control_assignment_item.ApiControl.InputValue.MaxChangeRate
+					}
+					if control_assignment_item.ApiControl.ControlRange != nil {
+						control_value = control_assignment_item.ApiControl.ControlRange.Clamp(control_value)
+					}
+					if control_assignment_item.ApiControl.Hold != nil {
+						hold = *control_assignment_item.ApiControl.Hold
+					}
+					output_value := control_assignment_item.ApiControl.InputValue.CalculateOutputValue(control_value)
 					p.CallAssignmentActionForControl(control_name, assignment_index, change_event.Controller, change_event.ControlState, control_assignment_item, &ProfileRunnerAssignmentCall{
 						ControlState:          change_event.ControlState,
 						ActionSequencerAction: nil,
 						DirectControlCommand:  nil,
 						ApiControlCommand: &ApiController_Command{
-							Controls:   control_assignment_item.ApiControl.Controls,
-							InputValue: output_value,
+							Controls:      control_assignment_item.ApiControl.Controls,
+							InputValue:    output_value,
+							MaxChangeRate: max_change_rate,
+							Hold:          hold,
 						},
 					})
 				}
 				if control_assignment_item.SyncControl != nil {
-					output_value := control_assignment_item.SyncControl.InputValue.CalculateOutputValue(change_event.Control.GetState().NormalizedValues.Value)
+					control_value := change_event.Control.GetState().NormalizedValues.Value
+					if control_assignment_item.SyncControl.ControlRange != nil {
+						control_value = control_assignment_item.SyncControl.ControlRange.Clamp(control_value)
+					}
+					output_value := control_assignment_item.SyncControl.InputValue.CalculateOutputValue(control_value)
 					p.SyncController.UpdateControlStateTargetValue(control_assignment_item.SyncControl.Identifier, output_value, control_assignment_item.SyncControl, &change_event)
 				}
 			}

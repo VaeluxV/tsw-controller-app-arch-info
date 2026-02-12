@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -31,8 +32,14 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-//go:embed mod_assets/*
-var mod_assets embed.FS
+//go:embed embed/mod_assets/*
+var embed_mod_assets_fs embed.FS
+
+//go:embed embed/tsc_mod_assets/*
+var embed_tsc_mod_assets_fs embed.FS
+
+//go:embed embed/config/*
+var embed_config_fs embed.FS
 
 type AppEventType = string
 
@@ -373,14 +380,26 @@ func (a *App) GetDeviceIP() (string, error) {
 
 func (a *App) LoadConfiguration() {
 	/* load config from relative config directory */
-	dirs_to_load := []string{
-		a.config.GlobalConfigDir,
-		a.config.LocalConfigDir,
+	embed_config_fs, _ := fs.Sub(embed_config_fs, "embed/config")
+
+	type loadLocation struct {
+		fs       fs.FS
+		path     string
+		embedded bool
+	}
+
+	load_locations := []loadLocation{
+		{fs: embed_config_fs, path: "builtin:", embedded: true},
+		{fs: os.DirFS(a.config.GlobalConfigDir), path: a.config.GlobalConfigDir},
+		{fs: os.DirFS(a.config.LocalConfigDir), path: a.config.LocalConfigDir},
 	}
 
 	a.profile_runner.Profiles.Clear()
-	for _, dir := range dirs_to_load {
-		sdl_mappings, calibrations, profiles, errors := a.config_loader.FromDirectory(dir)
+	for _, loc := range load_locations {
+		sdl_mappings, calibrations, profiles, errors := a.config_loader.FromFS(loc.fs, config_loader.ConfigLoader_FromFS_Options{
+			Path:     loc.path,
+			Embedded: loc.embedded,
+		})
 
 		for _, err := range errors {
 			logger.Logger.Error("[App] encountered error while reading configuration files", "error", err)
@@ -411,12 +430,12 @@ func (a *App) LoadConfiguration() {
 }
 
 func (a *App) GetControllers() []Interop_GenericController {
-	var controllers []Interop_GenericController
+	var controllers []Interop_GenericController = []Interop_GenericController{}
 	a.sdl_controller_manager.ConfiguredControllers.ForEach(func(c controller_mgr.SDL_ControllerManager_ConfiguredController, _ controller_mgr.DeviceUniqueID) bool {
 		controllers = append(controllers, Interop_GenericController{
 			UniqueID:     c.Device().UniqueID(),
 			DeviceID:     c.Device().DeviceID(),
-			Name:         c.Device().Name(),
+			Name:         c.Name,
 			IsConfigured: true,
 			IsVirtual:    false,
 		})
@@ -449,7 +468,7 @@ func (a *App) GetControllers() []Interop_GenericController {
 }
 
 func (a *App) GetProfiles() []Interop_Profile {
-	var profiles []Interop_Profile
+	var profiles []Interop_Profile = []Interop_Profile{}
 
 	profile_name_to_ids_map := a.profile_runner.GetProfileNameToIdMap()
 	a.profile_runner.Profiles.ForEach(func(profile config.Config_Controller_Profile, key string) bool {
@@ -477,9 +496,10 @@ func (a *App) GetProfiles() []Interop_Profile {
 			DeviceID:   UsbID,
 			AutoSelect: profile.AutoSelect,
 			Metadata: Interop_Profile_Metadata{
-				Path:      profile.Metadata.Path,
-				UpdatedAt: profile.Metadata.UpdatedAt.Format(time.RFC3339),
-				Warnings:  warnings,
+				Path:       profile.Metadata.Path,
+				IsEmbedded: profile.Metadata.IsEmbedded,
+				UpdatedAt:  profile.Metadata.UpdatedAt.Format(time.RFC3339),
+				Warnings:   warnings,
 			},
 		})
 		return true
@@ -764,7 +784,7 @@ func (a *App) SaveProfileForSharingWithControllerInformation(id string, unique_i
 
 		if profile_for_sharing.Controller.Mapping == nil {
 			mapping := config.Config_Controller_SDLMap{
-				Name:  fmt.Sprintf("%s - %s", controller.Joystick.Name, profile_for_sharing.Name),
+				Name:  fmt.Sprintf("%s - %s", controller.Name, profile_for_sharing.Name),
 				UsbID: usb_id,
 				Data:  []config.Config_Controller_SDLMap_Control{},
 			}
@@ -837,8 +857,10 @@ func (a *App) OpenProfileBuilder(id string) {
 func (a *App) DeleteProfile(id string) error {
 	if profile, has_profile := a.profile_runner.Profiles.Get(id); has_profile {
 		err := os.Remove(profile.Metadata.Path)
+		if err != nil {
+			return err
+		}
 		a.profile_runner.Profiles.Delete(id)
-		return err
 	}
 	return nil
 }
@@ -991,18 +1013,18 @@ func (a *App) SelectCommAPIKeyFile() (string, error) {
 
 func (a *App) InstallTrainSimWorldMod() error {
 	tsw_exe_path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Select Train Sim World 5/6 executable within Binaries/Win64 (TrainSimWorld.exe)",
+		Title: "Select Train Sim World 5/6 executable within TS2Prototype/Binaries/Win64 (TrainSimWorld.exe)",
 	})
 	if err != nil {
 		return err
 	}
 
-	if !strings.HasSuffix(filepath.ToSlash(tsw_exe_path), "Binaries/Win64/TrainSimWorld.exe") {
-		return fmt.Errorf("please select the TrainSimWorld.exe file in the game's Binaries/Win64 to install the mod")
+	if !strings.HasSuffix(filepath.ToSlash(tsw_exe_path), "TS2Prototype/Binaries/Win64/TrainSimWorld.exe") {
+		return fmt.Errorf("please select the TrainSimWorld.exe file in the game's TS2Prototype/Binaries/Win64 to install the mod")
 	}
 
 	var manifest ModAssets_Manifest
-	manifest_json_bytes, err := mod_assets.ReadFile("mod_assets/manifest.json")
+	manifest_json_bytes, err := embed_mod_assets_fs.ReadFile("embed/mod_assets/manifest.json")
 	if err != nil {
 		logger.Logger.Error("[App::InstallMod] failed to read manfiest file", "error", err)
 		return err
@@ -1025,7 +1047,7 @@ func (a *App) InstallTrainSimWorldMod() error {
 				return err
 			}
 
-			fh, err := mod_assets.Open(fmt.Sprintf("mod_assets/%s", entry.Path))
+			fh, err := embed_mod_assets_fs.Open(fmt.Sprintf("embed/mod_assets/%s", entry.Path))
 			if err != nil {
 				logger.Logger.Error("[App::InstallMod] could open file", "file", entry.Path)
 				return fmt.Errorf("could not open file %e", err)
@@ -1048,6 +1070,71 @@ func (a *App) InstallTrainSimWorldMod() error {
 
 	/* write version file */
 	os.WriteFile(filepath.Join(install_path, "ue4ss_tsw_controller_mod/Mods/TSWControllerMod/version.txt"), []byte(VERSION), 0755)
+	a.program_config.LastInstalledModVersion = VERSION
+	a.program_config.Save(filepath.Join(a.config.GlobalConfigDir, "program.json"))
+
+	return nil
+}
+
+func (a *App) InstallTrainSimClassicMod() error {
+	tsc_exe_path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Select TS Classic executable (RailWorks64.exe)",
+	})
+	if err != nil {
+		return err
+	}
+
+	if !strings.HasSuffix(filepath.ToSlash(tsc_exe_path), "/RailWorks64.exe") {
+		return fmt.Errorf("please select the RailWorks64.exe file to install the mod")
+	}
+
+	var manifest ModAssets_Manifest
+	manifest_json_bytes, err := embed_tsc_mod_assets_fs.ReadFile("embed/tsc_mod_assets/manifest.json")
+	if err != nil {
+		logger.Logger.Error("[App::InstallMod] failed to read manfiest file", "error", err)
+		return err
+	}
+
+	if err := json.Unmarshal(manifest_json_bytes, &manifest); err != nil {
+		return err
+	}
+
+	install_path := filepath.Dir(tsc_exe_path)
+	/* go through files to copy */
+	for _, entry := range manifest.Manifest {
+		if entry.Action == ModAssets_Manifest_Entry_ActionType_Delete {
+			// no action required if remove fails
+			os.Remove(filepath.Join(install_path, entry.Path))
+		} else if entry.Action == ModAssets_Manifest_Entry_ActionType_Copy {
+			file_dir := filepath.Dir(entry.Path)
+			if err := os.MkdirAll(filepath.Join(install_path, file_dir), 0755); err != nil {
+				logger.Logger.Error("[App::InstallMod] could not create directory", "dir", filepath.Join(install_path, file_dir))
+				return err
+			}
+
+			fh, err := embed_tsc_mod_assets_fs.Open(fmt.Sprintf("embed/tsc_mod_assets/%s", entry.Path))
+			if err != nil {
+				logger.Logger.Error("[App::InstallMod] could open file", "file", entry.Path)
+				return fmt.Errorf("could not open file %e", err)
+			}
+			defer fh.Close()
+
+			out, err := os.Create(filepath.Join(install_path, entry.Path))
+			if err != nil {
+				logger.Logger.Error("[App::InstallMod] could not create file", "file", filepath.Join(install_path, entry.Path))
+				return fmt.Errorf("could not open create %e", err)
+			}
+			if _, err := io.Copy(out, fh); err != nil {
+				logger.Logger.Error("[App::InstallMod] failed to copy file", "file", filepath.Join(install_path, entry.Path))
+				return fmt.Errorf("failed to copy file: %w", err)
+			}
+
+			defer out.Close()
+		}
+	}
+
+	/* write version file */
+	os.WriteFile(filepath.Join(install_path, "plugins/version.txt"), []byte(VERSION), 0755)
 	a.program_config.LastInstalledModVersion = VERSION
 	a.program_config.Save(filepath.Join(a.config.GlobalConfigDir, "program.json"))
 

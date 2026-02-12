@@ -1,7 +1,4 @@
-import {
-  MutableRefObject,
-  useRef,
-} from "react";
+import { MutableRefObject, useRef } from "react";
 import { main } from "../../../wailsjs/go/models";
 import { CalibrationModalForm } from "./CalibrationModalForm";
 

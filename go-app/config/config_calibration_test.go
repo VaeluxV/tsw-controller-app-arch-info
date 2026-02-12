@@ -40,3 +40,24 @@ func TestConfigCalibration_NormalizeRawValue(t *testing.T) {
 		IsWithinDeadzone: false,
 	})
 }
+
+func TestConfigCalibration_NormalizeRawValue_NegativeOnly(t *testing.T) {
+	var deadzone float64 = 300
+	var idle float64 = -24000
+	calibration := Config_Controller_CalibrationData{
+		Id:           "",
+		IsCalibrated: true,
+		Deadzone:     &deadzone,
+		Idle:         &idle,
+		Min:          -24000,
+		Max:          -800,
+	}
+	assert.Equal(t, calibration.NormalizeRawValue(-24000), NormalizedValue{
+		Value:            0,
+		IsWithinDeadzone: true,
+	})
+	assert.Equal(t, calibration.NormalizeRawValue(-800), NormalizedValue{
+		Value:            1,
+		IsWithinDeadzone: false,
+	})
+}

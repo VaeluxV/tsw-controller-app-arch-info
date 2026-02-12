@@ -13,7 +13,7 @@ export default function Home() {
             </h1>
 
             <p className="mt-4 text-base text-pretty text-base-content/80">
-              The best way to control Train Sim World with any controller or
+              The best way to control Train Sim World and Train Simulator Classic with any controller or
               joystick.
             </p>
 

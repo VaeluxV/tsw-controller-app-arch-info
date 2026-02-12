@@ -37,6 +37,36 @@ jobs:
             tsw-controller-mod/socket-connection-lib/target/release/*.lib
             tsw-controller-mod/socket-connection-lib/*.h
 
+  build__tscmod:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tsc-controller-mod/tscmod/target
+          key: ${{ runner.os }}_tscmod_cargo_${{ hashFiles('tsc-controller-mod/tscmod/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}_tscmod_cargo_
+      - run: |
+          cd ./tsc-controller-mod/tscmod
+          cargo build --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tscmod
+          path: |
+            tsc-controller-mod/tscmod/target/release/tscmod.dll
+
+
   build__ue4ssmod:
     runs-on: windows-2022
     needs: [build__socketconnectionlib]
@@ -71,7 +101,7 @@ jobs:
             ~/AppData/Local/vcpkg/archives
           key: ${{ runner.os }}_ue4ssmod_xmake_${{ hashFiles('RE-UE4SS/**/xmake.lua') }}
 
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download socket connection lib
         with:
           name: socketconnectionlib
@@ -119,25 +149,45 @@ jobs:
     needs: [build__socketconnectionlib, build__ue4ssmod]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download previously built artifacts
+
       - run: |
           mkdir mod_assets
           install -D ue4ssproxy/dwmapi.dll mod_assets/dwmapi.dll
           install -D ue4ssdll/UE4SS.dll mod_assets/ue4ss_tsw_controller_mod/UE4SS.dll
           install -D socketconnectionlib/target/release/tsw_controller_mod_socket_connection.dll mod_assets/ue4ss_tsw_controller_mod/Mods/TSWControllerMod/dlls/tsw_controller_mod_socket_connection.dll
           install -D tswcontrollermod/TSWControllerMod.dll mod_assets/ue4ss_tsw_controller_mod/Mods/TSWControllerMod/dlls/main.dll
-          install -D go-app/mod_assets/ue4ss_tsw_controller_mod/UE4SS-settings.ini mod_assets/ue4ss_tsw_controller_mod/UE4SS-settings.ini
+          install -D go-app/embed/mod_assets/ue4ss_tsw_controller_mod/UE4SS-settings.ini mod_assets/ue4ss_tsw_controller_mod/UE4SS-settings.ini
           touch mod_assets/ue4ss_tsw_controller_mod/Mods/TSWControllerMod/enabled.txt
       - uses: actions/upload-artifact@v4
         with:
           name: mod_assets
           path: mod_assets
 
+  build__tscmod_assets:
+    runs-on: ubuntu-22.04
+    needs: [build__tscmod]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v7
+        name: Download previously built artifacts
+        with:
+          name: tscmod
+          path: tscmod
+      - run: find .
+      - run: |
+          mkdir tsc_mod_assets
+          install -D tscmod/tscmod.dll tsc_mod_assets/plugins/tscmod.dll
+          install -D tsc-controller-mod/proxy/d3d9.dll tsc_mod_assets/d3d9.dll
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tsc_mod_assets
+          path: tsc_mod_assets
 
   build__goapp__windows:
     runs-on: windows-2022
-    needs: [build__mod_assets]
+    needs: [build__mod_assets, build__tscmod_assets]
     steps:
       - uses: actions/checkout@v4
 
@@ -170,14 +220,21 @@ jobs:
       - name: Install wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10
 
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download mod_assets artifact
         with:
           name: mod_assets
           path: mod_assets
 
-      - run: Copy-Item -Path mod_assets -Destination go-app -Recurse -Force
-      - run:  Get-ChildItem -File -Recurse -Path "go-app/mod_assets"
+      - uses: actions/download-artifact@v7
+        name: Download tsc_mod_assets artifact
+        with:
+          name: tsc_mod_assets
+          path: tsc_mod_assets
+
+      - run: Copy-Item -Path mod_assets -Destination go-app/embed -Recurse -Force
+      - run: Copy-Item -Path tsc_mod_assets -Destination go-app/embed -Recurse -Force
+      - run:  Get-ChildItem -File -Recurse -Path "go-app/embed/mod_assets"
       - run: |
           $env:VERSION=(Get-Content -Path RELEASE_VERSION -First 1)
           cd go-app
@@ -211,7 +268,7 @@ jobs:
 
   build__goapp__linux:
     runs-on: ubuntu-22.04
-    needs: [build__mod_assets]
+    needs: [build__mod_assets, build__tscmod_assets]
     steps:
       - uses: actions/checkout@v4
 
@@ -232,14 +289,19 @@ jobs:
       - name: Install wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10
 
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download mod_assets artifact
         with:
           name: mod_assets
           path: mod_assets
 
-      - run: cp -r mod_assets go-app
-      - run: find go-app/mod_assets
+      - uses: actions/download-artifact@v7
+        name: Download tsc_mod_assets artifact
+        with:
+          name: tsc_mod_assets
+          path: tsc_mod_assets
+
+      - run: cp -r mod_assets go-app/embed; cp -r tsc_mod_assets go-app/embed; 
       - run: |
           VERSION=$(head -n 1 RELEASE_VERSION)
           cd go-app
@@ -277,7 +339,7 @@ jobs:
 
   build__goapp__macos:
     runs-on: macos-latest
-    needs: [build__mod_assets]
+    needs: [build__mod_assets, build__tscmod_assets]
     steps:
       - uses: actions/checkout@v4
 
@@ -294,13 +356,19 @@ jobs:
       - name: Install wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10
 
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download mod_assets artifact
         with:
           name: mod_assets
           path: mod_assets
-      - run: cp -r mod_assets go-app
-      - run: find go-app/mod_assets
+
+      - uses: actions/download-artifact@v7
+        name: Download tsc_mod_assets artifact
+        with:
+          name: tsc_mod_assets
+          path: tsc_mod_assets
+
+      - run: cp -r mod_assets go-app/embed; cp -r tsc_mod_assets go-app/embed
       - run: |
           VERSION=$(head -n 1 RELEASE_VERSION)
           cd go-app
@@ -379,7 +447,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build__goapp__linux, build__goapp__windows, build__goapp__macos, build__virtual_controller_app]
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         name: Download all artifacts
 
       - name: debug

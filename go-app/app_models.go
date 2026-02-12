@@ -14,9 +14,10 @@ type Interop_GenericController struct {
 }
 
 type Interop_Profile_Metadata struct {
-	Path      string
-	UpdatedAt string
-	Warnings  []string
+	Path       string
+	IsEmbedded bool
+	UpdatedAt  string
+	Warnings   []string
 }
 
 type Interop_Profile struct {

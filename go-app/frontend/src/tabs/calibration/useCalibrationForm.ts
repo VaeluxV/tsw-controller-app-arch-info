@@ -17,15 +17,15 @@ export type CalibrationStateControl = {
   invert: boolean;
   easingCurve: number[];
   override: boolean;
-}
+};
 export type CalibrationState = {
   name: string;
-  controls: CalibrationStateControl[]
+  controls: CalibrationStateControl[];
 };
 
-export type UseCalibrationFormType = ReturnType<typeof useCalibrationForm>
+export type UseCalibrationFormType = ReturnType<typeof useCalibrationForm>;
 
-const EMPTY_CONTROL_STATE: Omit<CalibrationStateControl, 'kind' | 'index'> = {
+const EMPTY_CONTROL_STATE: Omit<CalibrationStateControl, "kind" | "index"> = {
   deadzone: 0,
   invert: false,
   name: "",
@@ -37,18 +37,19 @@ const EMPTY_CONTROL_STATE: Omit<CalibrationStateControl, 'kind' | 'index'> = {
   max: Number.MIN_SAFE_INTEGER,
   easingCurve: [0.0, 0.0, 1.0, 1.0],
   override: false,
-}
+};
 
 const roundToFactor = (value: number) => {
-  const ROUNDING_FACTOR = 100
-  if (Math.abs(value) < 1) return Math.round(value * ROUNDING_FACTOR) / ROUNDING_FACTOR
-  return Math.round(value)
-}
+  const ROUNDING_FACTOR = 100;
+  if (Math.abs(value) < 1)
+    return Math.round(value * ROUNDING_FACTOR) / ROUNDING_FACTOR;
+  return Math.round(value);
+};
 
 const applyDefaultDeadzoneToRawValue = (value: number) => {
   /* apply a default edge deadzone of 1% */
-  return roundToFactor(value * 0.99)
-}
+  return roundToFactor(value * 0.99);
+};
 
 export const useCalibrationForm = () => {
   const form = useForm<CalibrationState>({
@@ -60,42 +61,62 @@ export const useCalibrationForm = () => {
 
   useEffect(() => {
     return EventsOn(events.rawevent, (data: main.Interop_RawEvent) => {
-      const controls = form.getValues('controls')
-      const existingIndex = form.getValues('controls').findIndex((c) => (
-        c.kind === data.Kind && c.index === data.Index
-      ))
+      const controls = form.getValues("controls");
+      const existingIndex = form
+        .getValues("controls")
+        .findIndex((c) => c.kind === data.Kind && c.index === data.Index);
 
-      const controlState: CalibrationStateControl = existingIndex === -1
-        ? { ...EMPTY_CONTROL_STATE, kind: data.Kind as Kind, index: data.Index }
-        : { ...controls[existingIndex] }
+      const controlState: CalibrationStateControl =
+        existingIndex === -1
+          ? {
+              ...EMPTY_CONTROL_STATE,
+              kind: data.Kind as Kind,
+              index: data.Index,
+            }
+          : { ...controls[existingIndex] };
 
       if (!controlState.override) {
         const nextState = {
           value: data.Value,
           deadzone: controlState.deadzone,
-          min: Math.min(controlState.min, applyDefaultDeadzoneToRawValue(data.Value)),
-          max: Math.max(controlState.max, applyDefaultDeadzoneToRawValue(data.Value)),
-          idle: Math.min(controlState.min, applyDefaultDeadzoneToRawValue(data.Value)),
-        } as Partial<CalibrationStateControl>
-        nextState.deadzone = roundToFactor(Math.abs(controlState.max - controlState.min) * 0.01)
-        Object.assign(controlState, nextState)
+          min: Math.min(
+            controlState.min,
+            applyDefaultDeadzoneToRawValue(data.Value),
+          ),
+          max: Math.max(
+            controlState.max,
+            applyDefaultDeadzoneToRawValue(data.Value),
+          ),
+          idle: Math.min(
+            controlState.min,
+            applyDefaultDeadzoneToRawValue(data.Value),
+          ),
+        } as Partial<CalibrationStateControl>;
+        nextState.deadzone = roundToFactor(
+          Math.abs(controlState.max - controlState.min) * 0.01,
+        );
+        Object.assign(controlState, nextState);
       } else {
-        controlState.value = data.Value
+        controlState.value = data.Value;
       }
 
       if (existingIndex === -1) {
-        form.setValue('controls', [...form.getValues('controls'), controlState], {
-          shouldDirty: true,
-          shouldTouch: true,
-        })
+        form.setValue(
+          "controls",
+          [...form.getValues("controls"), controlState],
+          {
+            shouldDirty: true,
+            shouldTouch: true,
+          },
+        );
       } else {
         form.setValue(`controls.${existingIndex}`, controlState, {
           shouldDirty: true,
           shouldTouch: true,
-        })
+        });
       }
     });
   }, []);
 
-  return form
-}
+  return form;
+};

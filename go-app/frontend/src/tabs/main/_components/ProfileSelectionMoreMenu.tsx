@@ -9,7 +9,7 @@ export type ProfileInfo = {
 
 type Props = {
   controller: main.Interop_GenericController | null;
-  profile: ProfileInfo | null;
+  profile: main.Interop_Profile | null;
   onReloadConfiguration: () => void;
   onBrowseConfiguration: () => void;
   onCreateProfile: (controller: main.Interop_GenericController | null) => void;
@@ -104,7 +104,7 @@ export const ProfileSelectionMoreMenu = ({
         </li>
         <li>
           <button
-            disabled={!profile}
+            disabled={!profile || profile.Metadata.IsEmbedded}
             onClick={handleDeleteProfile}
             className="disabled:opacity-50 disabled:pointer-events-none"
           >

@@ -1,20 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { main } from "../../../wailsjs/go/models";
-import useSWR from "swr";
-import { GetControllers } from "../../../wailsjs/go/main/App";
 import { CalibrationModal } from "./CalibrationModal";
 import { EventsOn } from "../../../wailsjs/runtime/runtime";
 import { events } from "../../events";
+import { useControllers } from "../../swr";
 
 export const CalibrationTab = () => {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const [currentlyCalibratingController, setCurrentlyCalibratingController] =
     useState<main.Interop_GenericController | null>(null);
-  const { data: controllers, mutate: refetchControllers } = useSWR(
-    "controllers",
-    () => GetControllers(),
-    { revalidateOnMount: true },
-  );
+  const { data: controllers, mutate: refetchControllers } = useControllers();
 
   const handleConfigure = (c: main.Interop_GenericController) => {
     setCurrentlyCalibratingController(c);

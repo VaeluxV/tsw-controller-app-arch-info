@@ -65,8 +65,6 @@ func (cd *CabDebugger) updateControlStateFromAPI() error {
 
 		drivable_actor_result, err := cd.TSWAPI.GetCurrentDrivableActorObjectClass()
 		if err != nil {
-			cd.State.DrivableActorName = ""
-			cd.State.Controls.Clear()
 			return nil
 		}
 
@@ -115,7 +113,7 @@ func (cd *CabDebugger) Start(ctx context.Context) {
 	go func() {
 		socket_channel, unsubscribe_socket_channel := cd.Connector.Subscribe()
 		ticker := time.NewTicker(333 * time.Millisecond)
-		slow_ticker := time.NewTicker(20 * time.Second)
+		slow_ticker := time.NewTicker(5 * time.Second)
 		for {
 			tick_channel := ticker.C
 			if !cd.TSWAPI.CanConnect() {

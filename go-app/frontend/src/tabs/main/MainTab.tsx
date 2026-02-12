@@ -1,21 +1,17 @@
-import useSWR from "swr";
 import { lt as semverLt } from "semver";
 import {
-  GetProfiles,
   LoadConfiguration,
   SelectProfile,
   ClearProfile,
   GetSelectedProfiles,
   InstallTrainSimWorldMod,
   OpenConfigDirectory,
-  GetLastInstalledModVersion,
   SetLastInstalledModVersion,
-  GetVersion,
-  GetControllers,
   OpenProfileBuilder,
   DeleteProfile,
   OpenNewProfileBuilder,
   OpenNewProfileBuilderForDeviceID,
+  InstallTrainSimClassicMod,
   SaveProfileForSharing,
   SaveProfileForSharingWithControllerInformation,
   ImportProfile,
@@ -31,33 +27,25 @@ import { confirm } from "../../utils/confirm";
 import { ProfileInfo } from "./_components/ProfileSelectionMoreMenu";
 import { MainTabProfileSelector } from "./MainTabProfileSelector";
 import { ConnectRemoteControllerModal } from "./_components/ConnectRemoteControllerModal";
+import {
+  useControllers,
+  useLastInstalledModVersion,
+  useProfiles,
+  useVersion,
+} from "../../swr";
 
 type FormValues = {
   profiles: Partial<Awaited<ReturnType<typeof GetSelectedProfiles>>>;
 };
 
 export const MainTab = () => {
-  const { data: versionInfo, mutate: refetchVersionInfo } = useSWR(
-    "version-info",
-    () =>
-      Promise.all([GetVersion(), GetLastInstalledModVersion()]).then(
-        ([version, lastInstalledModVersion]) => ({
-          version,
-          lastInstalledModVersion,
-        }),
-      ),
-    { revalidateOnMount: true },
-  );
-  const { data: profiles, mutate: refetchProfiles } = useSWR(
-    "profiles",
-    () => GetProfiles(),
-    { revalidateOnMount: true },
-  );
-  const { data: controllers, mutate: refetchControllers } = useSWR(
-    "controllers",
-    () => GetControllers(),
-    { revalidateOnMount: true },
-  );
+  const { data: version } = useVersion();
+  const {
+    data: lastInstalledModVersion,
+    mutate: refetchLastInstalledModVersion,
+  } = useLastInstalledModVersion();
+  const { data: profiles, mutate: refetchProfiles } = useProfiles();
+  const { data: controllers, mutate: refetchControllers } = useControllers();
 
   const connectRemoteControllerDialogRef = useRef<HTMLDialogElement | null>(
     null,
@@ -143,9 +131,15 @@ export const MainTab = () => {
     connectRemoteControllerDialogRef.current?.showModal();
   };
 
-  const handleInstall = () => {
+  const handleInstallTrainSimWorldMod = () => {
     InstallTrainSimWorldMod()
-      .then(() => refetchVersionInfo())
+      .then(() => refetchLastInstalledModVersion(version))
+      .catch((err) => alert(String(err), "error"));
+  };
+
+  const handleInstallTrainSimClassicMod = () => {
+    InstallTrainSimClassicMod()
+      .then(() => refetchLastInstalledModVersion(version))
       .catch((err) => alert(String(err), "error"));
   };
 
@@ -156,11 +150,9 @@ export const MainTab = () => {
   };
 
   const handleIgnoreModInstallWarning = () => {
-    if (versionInfo) {
-      SetLastInstalledModVersion(versionInfo.version).then(() =>
-        refetchVersionInfo(),
-      );
-    }
+    SetLastInstalledModVersion(version).then(() => {
+      refetchLastInstalledModVersion(version);
+    });
   };
 
   useEffect(() => {
@@ -212,7 +204,7 @@ export const MainTab = () => {
             onDeleteProfileForController={handleDeleteProfile}
           />
         )}
-        {controllers?.map((c) => (
+        {controllers.map((c) => (
           <div key={c.UniqueID}>
             <MainTabControllerProfileSelector
               controller={c}
@@ -231,25 +223,45 @@ export const MainTab = () => {
       <p className="text-xs text-base-content/50">
         Note: for auto-detection to work it has to be supported by the profile.
       </p>
-      <button className="btn btn-sm grow" onClick={handleConnectRemoteController}>
+      <button
+        className="btn btn-sm grow"
+        onClick={handleConnectRemoteController}
+      >
         + Connect Virtual/Remote Controller
       </button>
 
       <div className="divider"></div>
       {/* steam://controllerconfig/2967990/3576092503 */}
-      <div className="flex gap-2">
-        <button className="btn btn-sm grow" onClick={handleInstall}>
-          Install/Reinstall TSW mod
-        </button>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="dropdown grow">
+          <div tabIndex={0} role="button" className="btn btn-sm w-full">
+            Install/Reinstall Game Mod
+          </div>
+          <ul
+            tabIndex={-1}
+            className="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm"
+          >
+            <li>
+              <button onClick={handleInstallTrainSimWorldMod}>
+                Install TSW mod
+              </button>
+            </li>
+            <li>
+              <button onClick={handleInstallTrainSimClassicMod}>
+                Install TS Classic mod
+              </button>
+            </li>
+          </ul>
+        </div>
         <button className="btn btn-sm grow" onClick={handleImportProfile}>
           Import profile (.tswprofile)
         </button>
       </div>
-      {!versionInfo?.lastInstalledModVersion && (
+      {!lastInstalledModVersion && (
         <div role="alert" className="alert alert-soft alert-warning">
           <span>
-            It looks like you have not installed the Train Sim World mod yet,
-            make sure you install the mod first.
+            It looks like you have not installed the Train Sim World or Train Simulator Clasic mod yet,
+            make sure you install the mod first for the best experience.
           </span>
           <div>
             <button
@@ -261,8 +273,8 @@ export const MainTab = () => {
           </div>
         </div>
       )}
-      {versionInfo?.lastInstalledModVersion &&
-        semverLt(versionInfo.lastInstalledModVersion, versionInfo.version) && (
+      {lastInstalledModVersion &&
+        semverLt(lastInstalledModVersion, version) && (
           <div role="alert" className="alert alert-soft alert-warning">
             <span>
               It looks like the app has updated since the last time you
@@ -286,9 +298,9 @@ export const MainTab = () => {
           The mod is not required to install but recommended for full
           compatibility. Without the mod you will not be able to use the
           "direct_control" or "sync_control" control modes. You will have access
-          to the "api_control" control mode, and any regular key bind
-          assignments as long as the TSW API key is configured properly (see
-          Settings).
+          to the "api_control" control mode (Train Sim World only), and any
+          regular key bind assignments as long as the TSW API key is configured
+          properly (see Settings).
         </span>
       </div>
       <div role="alert" className="alert">

@@ -10,7 +10,7 @@ const container = document.getElementById("root");
 const root = createRoot(container!);
 
 GetTheme().then((theme) => {
-  updateTheme(theme as UpdateThemeValue)
+  updateTheme(theme as UpdateThemeValue);
 });
 
 root.render(

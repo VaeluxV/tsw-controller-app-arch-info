@@ -1,6 +1,6 @@
-# 🎮 Train Sim World Controller Configuration Format
+# 🎮 Controller Configuration Format
 
-This document describes the structure and semantics of the configuration system used to map game controllers (e.g., joysticks, gamepads) to controls in Train Sim World using UE4SS. It is designed to be flexible, extensible, and friendly to both analog and digital input devices.
+This document describes the structure and semantics of the configuration system used to map game controllers (e.g., joysticks, gamepads) to controls in Train Sim World and Train Simulator Classic. It is designed to be flexible, extensible, and friendly to both analog and digital input devices.
 
 ---
 

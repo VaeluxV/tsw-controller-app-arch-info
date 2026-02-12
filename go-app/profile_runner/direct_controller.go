@@ -11,9 +11,10 @@ const DIRECT_CONTROLLER_QUEUE_BUFFER_SIZE = 32
 const DIRECT_CONTROL_CONNECTOR_EVENT_NAME tswconnector.TSWConnector_Message_EventName = "direct_control"
 
 type DirectController_Command struct {
-	Controls   string
-	InputValue float64
-	Flags      []string
+	Controls      string
+	InputValue    float64
+	MaxChangeRate float64
+	Flags         []string
 }
 
 type DirectController struct {
@@ -25,9 +26,10 @@ func (command *DirectController_Command) ToSocketMessage() tswconnector.TSWConne
 	return tswconnector.TSWConnector_Message{
 		EventName: DIRECT_CONTROL_CONNECTOR_EVENT_NAME,
 		Properties: map[string]string{
-			"controls": command.Controls,
-			"value":    fmt.Sprintf("%f", command.InputValue),
-			"flags":    strings.Join(command.Flags, "|"),
+			"controls":        command.Controls,
+			"value":           fmt.Sprintf("%f", command.InputValue),
+			"max_change_rate": fmt.Sprintf("%f", command.MaxChangeRate),
+			"flags":           strings.Join(command.Flags, "|"),
 		},
 	}
 }

@@ -88,7 +88,7 @@ func (calibration *Config_Controller_CalibrationData) NormalizeRawValue(raw_valu
 
 	value := float64(raw_value)
 	if invert_value {
-		value = -value
+		value = calibration.Max - value + calibration.Min
 	}
 
 	if value >= idle_range[0] && value <= idle_range[1] {
@@ -103,9 +103,11 @@ func (calibration *Config_Controller_CalibrationData) NormalizeRawValue(raw_valu
 	*/
 	if calibration.Min != idle_value && value < idle_range[0] {
 		abs_value := math.Abs(math_utils.Clamp((value-idle_range[0])/(calibration.Min-idle_range[0]), 0.0, 1.0))
-		return NormalizedValue{Value: ease_func(abs_value) * -1.0, IsWithinDeadzone: false}
+		normal := NormalizedValue{Value: ease_func(abs_value) * -1.0, IsWithinDeadzone: false}
+		return normal
 	}
 
 	abs_value := math.Abs(math_utils.Clamp((value-idle_range[1])/(calibration.Max-idle_range[1]), 0.0, 1.0))
-	return NormalizedValue{Value: ease_func(abs_value), IsWithinDeadzone: false}
+	normal := NormalizedValue{Value: ease_func(abs_value), IsWithinDeadzone: false}
+	return normal
 }

@@ -1,8 +1,8 @@
-import { EventsOn } from "../wailsjs/runtime/runtime"
-import { events } from "./events"
+import { EventsOn } from "../wailsjs/runtime/runtime";
+import { events } from "./events";
 
-export const logs: string[] = []
+export const logs: string[] = [];
 
 EventsOn(events.log, (msg: string) => {
-  logs.push(msg)
-})
+  logs.push(msg);
+});

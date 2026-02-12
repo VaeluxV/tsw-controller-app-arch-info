@@ -38,8 +38,9 @@ type Config_Controller_Profile_Control_Assignment_Action_Virtual struct {
 }
 
 type Config_Controller_Profile_Control_Assignment_Action_DirectControl struct {
-	Controls string  `json:"controls" validate:"required"`
-	Value    float64 `json:"value"`
+	Controls      string   `json:"controls" validate:"required"`
+	Value         float64  `json:"value"`
+	MaxChangeRate *float64 `json:"max_change_rate,omitempty"`
 	/* sets this value to be a relative adjustment as opposed to an absolute one */
 	Relative *bool `json:"relative,omitempty"`
 	/* determine whether to hold the value or not; meaning the value will be sent continuously */
@@ -51,8 +52,10 @@ type Config_Controller_Profile_Control_Assignment_Action_DirectControl struct {
 }
 
 type Config_Controller_Profile_Control_Assignment_Action_ApiControl struct {
-	Controls string  `json:"controls" validate:"required"`
-	ApiValue float64 `json:"api_value"`
+	Controls      string   `json:"controls" validate:"required"`
+	ApiValue      float64  `json:"api_value"`
+	Hold          *bool    `json:"hold,omitempty"`
+	MaxChangeRate *float64 `json:"max_change_rate,omitempty"`
 }
 
 type Config_Controller_Profile_Control_Assignment_Action struct {
@@ -70,7 +73,8 @@ type Config_Controller_Profile_Control_Assignment_Condition struct {
 }
 
 type Config_Controller_Profile_Control_Assignment_Shared struct {
-	Conditions *[]Config_Controller_Profile_Control_Assignment_Condition `json:"conditions,omitempty"`
+	RailClassInformation *[]Config_Controller_Profile_RailClassInformationEntry    `json:"rail_class_information,omitempty"`
+	Conditions           *[]Config_Controller_Profile_Control_Assignment_Condition `json:"conditions,omitempty"`
 }
 
 type Config_Controller_Profile_Control_Assignment_Momentary struct {
@@ -109,10 +113,15 @@ type Config_Controller_Profile_Control_Assignment_Toggle struct {
 	ActionDeactivate Config_Controller_Profile_Control_Assignment_Action `json:"action_deactivate" validate:"required"`
 }
 
+type Config_Controller_Profile_Control_Assignment_DirectLike_ControlRange struct {
+	Start float64 `json:"start"` /* depending on the value direction this is the min or maximum value */
+	End   float64 `json:"end"`
+}
 type Config_Controller_Profile_Control_Assignment_DirectLike_InputValue struct {
-	Min  float64  `json:"min"`
-	Max  float64  `json:"max"`
-	Step *float64 `json:"step,omitempty"`
+	Min           float64  `json:"min"`
+	Max           float64  `json:"max"`
+	MaxChangeRate *float64 `json:"max_change_rate,omitempty"`
+	Step          *float64 `json:"step,omitempty"`
 	/** steps can be combined with null values to create automatic interpolation */
 	Steps  *[]*float64 `json:"steps,omitempty"`
 	Invert *bool       `json:"invert,omitempty"`
@@ -122,8 +131,9 @@ type Config_Controller_Profile_Control_Assignment_DirectControl struct {
 	Config_Controller_Profile_Control_Assignment_Shared
 	Type string `json:"type" validate:"required,eq=direct_control"`
 	/* the HID control component as per the UE4SS API */
-	Controls   string                                                             `json:"controls" validate:"required"`
-	InputValue Config_Controller_Profile_Control_Assignment_DirectLike_InputValue `json:"input_value" validate:"required"`
+	Controls     string                                                                `json:"controls" validate:"required"`
+	InputValue   Config_Controller_Profile_Control_Assignment_DirectLike_InputValue    `json:"input_value" validate:"required"`
+	ControlRange *Config_Controller_Profile_Control_Assignment_DirectLike_ControlRange `json:"control_range,omitempty"`
 	/* will hold the control in changing */
 	Hold *bool `json:"hold,omitempty"`
 	/* whether to apply raw or normalized values */
@@ -135,18 +145,21 @@ type Config_Controller_Profile_Control_Assignment_ApiControl struct {
 	Config_Controller_Profile_Control_Assignment_Shared
 	Type string `json:"type" validate:"required,eq=api_control"`
 	/* the HID control component as per the UE4SS API / HTTP API - they are the same */
-	Controls   string                                                             `json:"controls" validate:"required"`
-	InputValue Config_Controller_Profile_Control_Assignment_DirectLike_InputValue `json:"input_value" validate:"required"`
+	Controls     string                                                                `json:"controls" validate:"required"`
+	Hold         *bool                                                                 `json:"hold,omitempty"`
+	InputValue   Config_Controller_Profile_Control_Assignment_DirectLike_InputValue    `json:"input_value" validate:"required"`
+	ControlRange *Config_Controller_Profile_Control_Assignment_DirectLike_ControlRange `json:"control_range,omitempty"`
 }
 
 type Config_Controller_Profile_Control_Assignment_SyncControl struct {
 	Config_Controller_Profile_Control_Assignment_Shared
 	Type string `json:"type" validate:"required,eq=sync_control"`
 	/** this is the VHID Identifier Name - differs from the direct control name */
-	Identifier     string                                                             `json:"identifier" validate:"required"`
-	InputValue     Config_Controller_Profile_Control_Assignment_DirectLike_InputValue `json:"input_value" validate:"required"`
-	ActionIncrease Config_Controller_Profile_Control_Assignment_Action_Keys           `json:"action_increase" validate:"required"`
-	ActionDecrease Config_Controller_Profile_Control_Assignment_Action_Keys           `json:"action_decrease" validate:"required"`
+	Identifier     string                                                                `json:"identifier" validate:"required"`
+	InputValue     Config_Controller_Profile_Control_Assignment_DirectLike_InputValue    `json:"input_value" validate:"required"`
+	ControlRange   *Config_Controller_Profile_Control_Assignment_DirectLike_ControlRange `json:"control_range,omitempty"`
+	ActionIncrease Config_Controller_Profile_Control_Assignment_Action_Keys              `json:"action_increase" validate:"required"`
+	ActionDecrease Config_Controller_Profile_Control_Assignment_Action_Keys              `json:"action_decrease" validate:"required"`
 }
 
 type Config_Controller_Profile_Control_Assignment struct {
@@ -173,13 +186,14 @@ type Config_Controller_Profile_Controller struct {
 }
 
 type Config_Controller_Profile_Metadata struct {
-	Path      string    `json:"-"`
-	UpdatedAt time.Time `json:"-"`
-	Warnings  []string  `json:"-"`
+	Path       string    `json:"-"`
+	IsEmbedded bool      `json:"-"`
+	UpdatedAt  time.Time `json:"-"`
+	Warnings   []string  `json:"-"`
 }
 
 type Config_Controller_Profile_RailClassInformationEntry struct {
-	ClassName *string `json:"class_name"`
+	ClassName string `json:"class_name"`
 }
 
 type Config_Controller_Profile struct {
@@ -286,6 +300,28 @@ func (c *Config_Controller_Profile_Control_Assignment) Conditions() *[]Config_Co
 	}
 	if c.SyncControl != nil {
 		return c.SyncControl.Conditions
+	}
+	return nil
+}
+
+func (c *Config_Controller_Profile_Control_Assignment) RailClassInformation() *[]Config_Controller_Profile_RailClassInformationEntry {
+	if c.Momentary != nil {
+		return c.Momentary.RailClassInformation
+	}
+	if c.Linear != nil {
+		return c.Linear.RailClassInformation
+	}
+	if c.Toggle != nil {
+		return c.Toggle.RailClassInformation
+	}
+	if c.DirectControl != nil {
+		return c.DirectControl.RailClassInformation
+	}
+	if c.ApiControl != nil {
+		return c.ApiControl.RailClassInformation
+	}
+	if c.SyncControl != nil {
+		return c.SyncControl.RailClassInformation
 	}
 	return nil
 }
@@ -455,6 +491,36 @@ func (c *Config_Controller_Profile_Control_Assignment_Linear) CalculateNeutraliz
 	return value
 }
 
+func (c *Config_Controller_Profile_Control_Assignment_DirectLike_ControlRange) Clamp(value float64) float64 {
+	// Positive side
+	if value >= 0.0 {
+
+		start := math.Max(c.Start, 0.0)
+		end := math.Max(c.End, start)
+		if end == start {
+			return 1.0
+		}
+
+		return (value - start) / (end - start)
+	}
+
+	// Negative side (may be inverted)
+	start := math.Min(c.Start, 0.0)
+	end := math.Min(c.End, 0.0)
+
+	// If inverted (e.g. -0.5 → -0.8), swap
+	if start < end {
+		start, end = end, start
+	}
+
+	if start == end {
+		return 1.0
+	}
+
+	// Normalize by magnitude toward 1.0
+	return (end - value) / (end - start)
+}
+
 func (c *Config_Controller_Profile_Control_Assignment_DirectLike_InputValue) GetFreeRangeZones() []FreeRangeZone {
 	var zones []FreeRangeZone
 	if c.Steps == nil {
@@ -516,6 +582,7 @@ This calculates the actual value which would be sent to the game
 */
 func (c *Config_Controller_Profile_Control_Assignment_DirectLike_InputValue) CalculateOutputValue(value float64) float64 {
 	input_value := value
+
 	if c.Invert != nil && *c.Invert {
 		if value < 0.0 {
 			input_value = -1.0 - value

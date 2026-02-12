@@ -1,5 +1,5 @@
 import "react-bezier-curve-editor/index.css";
-import { easings } from 'animejs';
+import { easings } from "animejs";
 import { BezierCurveEditor, ValueType } from "react-bezier-curve-editor";
 import {
   CalibrationStateControl,
@@ -24,16 +24,16 @@ export const CalibrationModalFormControl = ({
 }: Props) => {
   const curveDialogRef = useRef<HTMLDialogElement | null>(null);
   const normalAxisValue = useMemo(() => {
-    const ease = easings.cubicBezier(...field.easingCurve)
+    const ease = easings.cubicBezier(...field.easingCurve);
 
     if (!field.invert) {
       return ease(
-        (field.value + Math.abs(field.min)) / (Math.abs(field.min) + field.max)
+        (field.value + Math.abs(field.min)) / (Math.abs(field.min) + field.max),
       );
     }
     return ease(
       (Math.abs(field.min) + field.max - (field.value + Math.abs(field.min))) /
-      (Math.abs(field.min) + field.max)
+        (Math.abs(field.min) + field.max),
     );
   }, [field]);
 

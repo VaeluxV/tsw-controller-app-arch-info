@@ -1,6 +1,21 @@
 
 # CHANGELOG
 
+## v1.8.0
+### Major Features
+- Added support for Train Simulator Classic
+
+### Fixes & Improvements
+- Refactored data fetching mechanism for better performance and maintainability
+- Added support for rail class specific assignments in controller configurations
+- Implemented additional configuration options: max_change_rate, control_range
+- Made general improvements to API control and improved stability
+- Made general improvements to direct control and improved stability
+- Fixed CommAPIKey detection for TSW5
+- Add support for embedded configuration and profiles
+- Fixed bug with inverted calibration normalization
+- Add way to remap values when using conditional direct control with partial range
+
 ## 1.7.1
 - Fix breaking calibration bug
 

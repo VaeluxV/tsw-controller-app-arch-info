@@ -23,6 +23,18 @@
       "description": "Enables showing the in-game notification when changing values",
       "default": true
     },
+    "control_range": {
+      "type": "object",
+      "description": "The control range that will be remapped to 0,1 or 0,-1. This is useful when direct mapping partial ranges.",
+      "properties": {
+        "start": {
+          "type": "number"
+        },
+        "end": {
+          "type": "number"
+        }
+      }
+    },
     "input_value": {
       "type": "object",
       "properties": {
@@ -33,6 +45,10 @@
         "max": {
           "type": "number",
           "description": "The maximum reachable value in the game cab; can be identified using the Cab Debugger"
+        },
+        "max_change_rate": {
+          "type": "number",
+          "description": "The maximum rate at which this control can change"
         },
         "step": {
           "type": "number",
