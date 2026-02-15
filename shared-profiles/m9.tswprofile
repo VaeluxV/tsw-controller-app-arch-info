@@ -2,7 +2,9 @@
   "name": "m9",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_LIRREX_M9-A_C" }
+    {
+      "class_name": "RVM_LIRREX_M9-A_C"
+    }
   ],
   "controls": [
     {
@@ -320,5 +322,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

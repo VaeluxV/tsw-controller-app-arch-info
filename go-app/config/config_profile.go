@@ -197,14 +197,18 @@ type Config_Controller_Profile_RailClassInformationEntry struct {
 }
 
 type Config_Controller_Profile struct {
-	Metadata Config_Controller_Profile_Metadata `json:"-"`
-	Extends  *string                            `json:"extends,omitempty"`
-	Name     string                             `json:"name" validate:"required"`
+	Metadata Config_Controller_Profile_Metadata  `json:"-"`
+	Extends  *string                             `json:"extends,omitempty"`
+	Name     string                              `json:"name" validate:"required"`
+	Controls []Config_Controller_Profile_Control `json:"controls" validate:"required"`
 	/* specifies if this profile can be autoselected */
-	AutoSelect           *bool                                                  `json:"auto_select,omitempty"`
-	Controller           *Config_Controller_Profile_Controller                  `json:"controller,omitempty"`
+	AutoSelect *bool `json:"auto_select,omitempty"`
+	/* specifies which controller this profile is for */
+	Controller *Config_Controller_Profile_Controller `json:"controller,omitempty"`
+	/** specifies which rail classes this profile can be used on */
 	RailClassInformation *[]Config_Controller_Profile_RailClassInformationEntry `json:"rail_class_information,omitempty"`
-	Controls             []Config_Controller_Profile_Control                    `json:"controls" validate:"required"`
+	/** specifies which apps this profile support(s) */
+	Apps *[]string `json:"apps,omitempty"`
 }
 
 func (c *Config_Controller_Profile_Control_Assignment_Action) UnmarshalJSON(data []byte) error {

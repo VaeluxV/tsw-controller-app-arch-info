@@ -2,7 +2,9 @@
   "name": "bnsf_sd40",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_CJP_BNSF_SD40-2_C" }
+    {
+      "class_name": "RVM_CJP_BNSF_SD40-2_C"
+    }
   ],
   "controls": [
     {
@@ -326,5 +328,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

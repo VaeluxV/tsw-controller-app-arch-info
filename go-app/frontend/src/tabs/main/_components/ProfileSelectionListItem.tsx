@@ -68,6 +68,14 @@ export const ProfileSelectionListItem = ({
           {!!profile.Metadata.IsEmbedded && (
             <div className="badge badge-sm badge-soft badge-info">Built-In</div>
           )}
+          {profile.Apps?.map((app) => (
+              <div
+                key={`app-${app}`}
+                className="badge badge-sm badge-soft badge-info"
+              >
+                {app}
+              </div>
+            ))}
         </div>
       </button>
     </li>

@@ -2,8 +2,12 @@
   "name": "br193",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_FTF_DB_Vectron_C" },
-    { "class_name": "RVM_FTF_FT_Vectron_C" }
+    {
+      "class_name": "RVM_FTF_DB_Vectron_C"
+    },
+    {
+      "class_name": "RVM_FTF_FT_Vectron_C"
+    }
   ],
   "controls": [
     {
@@ -373,5 +377,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

@@ -312,5 +312,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

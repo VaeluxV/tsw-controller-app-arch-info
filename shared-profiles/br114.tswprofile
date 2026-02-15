@@ -2,7 +2,9 @@
   "name": "br114",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_FTF_DB_BR114_C" }
+    {
+      "class_name": "RVM_FTF_DB_BR114_C"
+    }
   ],
   "controls": [
     {
@@ -368,5 +370,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

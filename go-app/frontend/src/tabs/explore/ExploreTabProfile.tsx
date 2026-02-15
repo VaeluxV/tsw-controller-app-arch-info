@@ -30,7 +30,7 @@ export const ExploreTabProfile = ({ profile }: Props) => {
   };
 
   return (
-    <li className="list-row">
+    <li className="list-row grid-rows-[max-content,max-content]">
       <div className="list-col-grow flex flex-col gap-2">
         <div>
           <div>{profile.Name}</div>
@@ -69,6 +69,14 @@ export const ExploreTabProfile = ({ profile }: Props) => {
                 Fully Configured
               </div>
             )}
+            {profile.Apps?.map((app) => (
+              <div
+                key={`app-${app}`}
+                className="badge badge-sm badge-soft badge-info"
+              >
+                {app}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -81,7 +89,7 @@ export const ExploreTabProfile = ({ profile }: Props) => {
           {downloading && (
             <span className="loading loading-spinner text-primary"></span>
           )}
-          Download Profile
+          Download
         </button>
       </div>
     </li>

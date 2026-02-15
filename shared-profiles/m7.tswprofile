@@ -2,8 +2,12 @@
   "name": "m7",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_LIRR_M7-A_C" },
-    { "class_name": "RVM_NYH_MNR_M7a-A_C" }
+    {
+      "class_name": "RVM_LIRR_M7-A_C"
+    },
+    {
+      "class_name": "RVM_NYH_MNR_M7a-A_C"
+    }
   ],
   "controls": [
     {
@@ -325,5 +329,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

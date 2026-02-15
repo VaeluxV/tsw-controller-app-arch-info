@@ -2,7 +2,9 @@
   "name": "bilevel_rotem_car",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_ALV_ML_RotemCars_CabCar_C" }
+    {
+      "class_name": "RVM_ALV_ML_RotemCars_CabCar_C"
+    }
   ],
   "controls": [
     {
@@ -345,5 +347,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

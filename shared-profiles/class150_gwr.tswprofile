@@ -2,7 +2,9 @@
   "name": "class150_gwr",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_GWR_Class150_DMS_C" }
+    {
+      "class_name": "RVM_GWR_Class150_DMS_C"
+    }
   ],
   "controls": [
     {
@@ -322,5 +324,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

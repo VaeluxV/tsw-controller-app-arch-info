@@ -2,7 +2,9 @@
   "name": "AWC_Class805",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_805_DPTS_C" }
+    {
+      "class_name": "RVM_805_DPTS_C"
+    }
   ],
   "controls": [
     {
@@ -297,5 +299,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

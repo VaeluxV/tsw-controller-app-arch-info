@@ -2,7 +2,9 @@
   "name": "alp45dp",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_MRT_NJT_ALP45DP_C" }
+    {
+      "class_name": "RVM_MRT_NJT_ALP45DP_C"
+    }
   ],
   "controls": [
     {
@@ -349,5 +351,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

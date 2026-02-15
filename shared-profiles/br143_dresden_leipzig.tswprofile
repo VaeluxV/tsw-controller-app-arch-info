@@ -2,7 +2,9 @@
   "name": "br143_dresden_leipzig",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_DLG_DB_BR143_C" }
+    {
+      "class_name": "RVM_DLG_DB_BR143_C"
+    }
   ],
   "controls": [
     {
@@ -391,5 +393,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }
