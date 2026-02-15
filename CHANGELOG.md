@@ -1,6 +1,9 @@
 
 # CHANGELOG
 
+## v1.8.2
+- Fix tags not always displaying
+
 ## v1.8.1
 - Add supported apps tags to profiles
 
