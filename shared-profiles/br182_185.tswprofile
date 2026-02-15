@@ -2,10 +2,18 @@
   "name": "br182_185",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_MRCE_BR182_C" },
-    { "class_name": "RVM_DRA_MRCE_BR185-5_C" },
-    { "class_name": "RVM_DLG_DB_BR185_C" },
-    { "class_name": "RVM_KWG_DB_BR185_C" }
+    {
+      "class_name": "RVM_MRCE_BR182_C"
+    },
+    {
+      "class_name": "RVM_DRA_MRCE_BR185-5_C"
+    },
+    {
+      "class_name": "RVM_DLG_DB_BR185_C"
+    },
+    {
+      "class_name": "RVM_KWG_DB_BR185_C"
+    }
   ],
   "controls": [
     {
@@ -395,5 +403,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

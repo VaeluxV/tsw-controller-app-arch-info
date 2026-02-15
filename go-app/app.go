@@ -83,6 +83,7 @@ type Remote_SharedProfilesIndex_Profile struct {
 	Name                string                                     `json:"name"`
 	UsbID               string                                     `json:"usb_id"`
 	AutoSelect          *bool                                      `json:"auto_select,omitempty"`
+	Apps                *[]string                                  `json:"apps,omitempty"`
 	ContainsCalibration *bool                                      `json:"contains_calibration,omitempty"`
 	Author              *Remote_SharedProfilesIndex_Profile_Author `json:"author,omitempty"`
 }
@@ -495,6 +496,7 @@ func (a *App) GetProfiles() []Interop_Profile {
 			Name:       profile.Name,
 			DeviceID:   UsbID,
 			AutoSelect: profile.AutoSelect,
+			Apps:       profile.Apps,
 			Metadata: Interop_Profile_Metadata{
 				Path:       profile.Metadata.Path,
 				IsEmbedded: profile.Metadata.IsEmbedded,
@@ -640,6 +642,7 @@ func (a *App) GetSharedProfiles() []Interop_SharedProfile {
 			DeviceID:            profile.UsbID,
 			Url:                 fmt.Sprintf("https://raw.githubusercontent.com/LiamMartens/tsw-controller-app/refs/heads/main/shared-profiles/%s", profile.File),
 			AutoSelect:          profile.AutoSelect,
+			Apps:                profile.Apps,
 			ContainsCalibration: profile.ContainsCalibration,
 			Author:              author,
 		})

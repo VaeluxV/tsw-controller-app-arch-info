@@ -25,6 +25,7 @@ type Interop_Profile struct {
 	Name       string
 	DeviceID   string
 	AutoSelect *bool
+	Apps       *[]string
 	Metadata   Interop_Profile_Metadata
 }
 
@@ -82,6 +83,7 @@ type Interop_SharedProfile struct {
 	DeviceID            string
 	Url                 string
 	AutoSelect          *bool
+	Apps                *[]string
 	ContainsCalibration *bool
 	Author              *Interop_SharedProfile_Author
 }

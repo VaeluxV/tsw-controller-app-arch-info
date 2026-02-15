@@ -2,7 +2,9 @@
   "name": "br112",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_HBK_DB_BR112_C" }
+    {
+      "class_name": "RVM_HBK_DB_BR112_C"
+    }
   ],
   "controls": [
     {
@@ -370,5 +372,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

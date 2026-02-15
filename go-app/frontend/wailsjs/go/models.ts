@@ -244,6 +244,7 @@ export namespace main {
 	    Name: string;
 	    DeviceID: string;
 	    AutoSelect?: boolean;
+	    Apps?: string[];
 	    Metadata: Interop_Profile_Metadata;
 	
 	    static createFrom(source: any = {}) {
@@ -256,6 +257,7 @@ export namespace main {
 	        this.Name = source["Name"];
 	        this.DeviceID = source["DeviceID"];
 	        this.AutoSelect = source["AutoSelect"];
+	        this.Apps = source["Apps"];
 	        this.Metadata = this.convertValues(source["Metadata"], Interop_Profile_Metadata);
 	    }
 	
@@ -333,6 +335,7 @@ export namespace main {
 	    DeviceID: string;
 	    Url: string;
 	    AutoSelect?: boolean;
+	    Apps?: string[];
 	    ContainsCalibration?: boolean;
 	    Author?: Interop_SharedProfile_Author;
 	
@@ -346,6 +349,7 @@ export namespace main {
 	        this.DeviceID = source["DeviceID"];
 	        this.Url = source["Url"];
 	        this.AutoSelect = source["AutoSelect"];
+	        this.Apps = source["Apps"];
 	        this.ContainsCalibration = source["ContainsCalibration"];
 	        this.Author = this.convertValues(source["Author"], Interop_SharedProfile_Author);
 	    }

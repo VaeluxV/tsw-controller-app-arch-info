@@ -2,7 +2,9 @@
   "name": "br111",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_SRM_DB_BR111_C" }
+    {
+      "class_name": "RVM_SRM_DB_BR111_C"
+    }
   ],
   "controls": [
     {
@@ -415,5 +417,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

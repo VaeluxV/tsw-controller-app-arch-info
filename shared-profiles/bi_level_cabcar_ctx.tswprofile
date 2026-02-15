@@ -2,7 +2,9 @@
   "name": "bi_level_cabcar_ctx",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_SFJ_CT_BiLevelCoach_CabCar_C" }
+    {
+      "class_name": "RVM_SFJ_CT_BiLevelCoach_CabCar_C"
+    }
   ],
   "controls": [
     {
@@ -343,5 +345,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

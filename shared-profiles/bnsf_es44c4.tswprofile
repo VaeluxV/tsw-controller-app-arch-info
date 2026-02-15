@@ -2,7 +2,9 @@
   "name": "bnsf_es44c4",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_CJP_BNSF_ES44C4_C" }
+    {
+      "class_name": "RVM_CJP_BNSF_ES44C4_C"
+    }
   ],
   "controls": [
     {
@@ -325,5 +327,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

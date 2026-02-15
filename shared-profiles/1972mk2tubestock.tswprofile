@@ -2,7 +2,9 @@
   "name": "1972mk2tubestock",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_BKR_LUL_72Stock_DM_Mk2_32_C" }
+    {
+      "class_name": "RVM_BKR_LUL_72Stock_DM_Mk2_32_C"
+    }
   ],
   "controls": [
     {
@@ -339,5 +341,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

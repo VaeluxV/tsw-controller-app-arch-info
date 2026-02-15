@@ -1,6 +1,9 @@
 
 # CHANGELOG
 
+## v1.8.1
+- Add supported apps tags to profiles
+
 ## v1.8.0
 ### Major Features
 - Added support for Train Simulator Classic

@@ -1,5 +1,5 @@
 {
-   "name": "Class_220_ZUIKI",
+  "name": "Class_220_ZUIKI",
   "controls": [
     {
       "name": "MaterControl",
@@ -405,5 +405,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

@@ -2,7 +2,9 @@
   "name": "Allegra",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_RhB_ABe_8_12_EWA_C" }
+    {
+      "class_name": "RVM_RhB_ABe_8_12_EWA_C"
+    }
   ],
   "controls": [
     {
@@ -346,5 +348,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }

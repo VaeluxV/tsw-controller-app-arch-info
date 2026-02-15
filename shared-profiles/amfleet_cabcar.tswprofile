@@ -2,7 +2,9 @@
   "name": "amfleet_cabcar",
   "auto_select": true,
   "rail_class_information": [
-    { "class_name": "RVM_NYT_AMTK_CabCar_C" }
+    {
+      "class_name": "RVM_NYT_AMTK_CabCar_C"
+    }
   ],
   "controls": [
     {
@@ -343,5 +345,8 @@
         }
       ]
     }
-  }
+  },
+  "apps": [
+    "Train Sim World"
+  ]
 }
